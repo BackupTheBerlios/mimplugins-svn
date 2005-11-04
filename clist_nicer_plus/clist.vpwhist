@@ -1,0 +1,27 @@
+[Global]
+CurrentProject=clist.vpj
+[ActiveConfig]
+clist.vpj=,Release - UNICODE|Win32
+[ProjectDates]
+clist.vcproj=20051103112856110
+[TreeExpansion2]
+- clist.vcproj
+  - Source Files
+    - CLUIFrames
+  - Header Files
+  + Resource Files
+  - Docs
+scroll:0
+[State]
+SCREEN: 1600 1200 114 27 1265 1103 0 0 N 0 0 0 0 947 765
+CWD: ..\avs
+FILEHIST: 9
+clc.h
+C:\TEMP\_tc\mToolTip.txt
+docs\CHANGELOG
+..\..\include\m_clc.h
+clcutils.c
+c:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\include\WinUser.h
+clui.c
+C:\avs\CHANGELOG
+..\avs\CHANGELOG
