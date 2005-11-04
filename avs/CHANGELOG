@@ -1,6 +1,11 @@
 
         Version history:
 
+0.0.1.11 - 2005/11/01
+
+        + added patch by pescuma for making normal avatars transparent (or semi-
+          transparent).
+
 0.0.1.10 - 2005/10/19
 
         ! added support for jabber avatar updates.
