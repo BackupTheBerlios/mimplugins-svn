@@ -247,7 +247,7 @@ void PaintNotifyArea(HDC hDC, RECT *rc)
     int iCount;
     static int ev_lastIcon = 0;
 
-    rc->left += 26;             // button
+	rc->left += 26;             // button
     iCount = GetMenuItemCount(g_CluiData.hMenuNotify);
     if (g_CluiData.hUpdateContact != 0) {
         TCHAR *szName = GetContactDisplayNameW(g_CluiData.hUpdateContact, 0);
@@ -264,7 +264,7 @@ void PaintNotifyArea(HDC hDC, RECT *rc)
         TCHAR *szName;
         int iIcon;
 
-        mii.cbSize = sizeof(mii);
+		mii.cbSize = sizeof(mii);
         mii.fMask = MIIM_DATA;
         GetMenuItemInfo(g_CluiData.hMenuNotify, iCount - 1, TRUE, &mii);
         nmi = (struct NotifyMenuItemExData *) mii.dwItemData;
@@ -280,7 +280,6 @@ void PaintNotifyArea(HDC hDC, RECT *rc)
         DrawTextA(hDC, g_CluiData.szNoEvents, lstrlenA(g_CluiData.szNoEvents), rc, DT_VCENTER | DT_SINGLELINE);
         DrawIconEx(hDC, 4, (rc->bottom + rc->top - 16) / 2, hIcon, 16, 16, 0, 0, DI_NORMAL | DI_COMPAT);
         DestroyIcon(hIcon);
-        //ImageList_DrawEx(hCListImages, (int)ev_lastIcon, hDC, 4, (rc->bottom + rc->top - 16) / 2, 16, 16, CLR_NONE, CLR_NONE, ILD_NORMAL);
     }
 }
 
@@ -308,12 +307,8 @@ static int __fastcall DrawAvatar(HDC hdcMem, RECT *rc, struct ClcContact *contac
 	if(!g_CluiData.bAvatarServiceAvail || dat->bisEmbedded)
         return 0;
 
-    if (g_CluiData.bForceRefetchOnPaint) {
-        //if(contact->gdipObject && contact->ace != NULL && !(contact->ace->dwFlags & AVS_PROTOPIC))
-        //    RemoveFromImgCache(contact->hContact, contact->ace);
+    if (g_CluiData.bForceRefetchOnPaint)
         contact->ace = (struct avatarCacheEntry *)CallService(MS_AV_GETAVATARBITMAP, (WPARAM)contact->hContact, 0);
-        //contact->gdipObject = NULL;
-    }
 
     if(contact->ace != NULL && contact->ace->cbSize == sizeof(struct avatarCacheEntry)) {
         if(contact->ace->dwFlags & AVS_HIDEONCLIST) {
@@ -1500,10 +1495,10 @@ bgdone:
         }
 
         line_num++;
-        if (y > rcPaint->top - dat->row_heights[line_num] && y <= rcPaint->bottom) {
-	        RowHeights_GetRowHeight(dat, hwnd, &(group->contact[group->scanIndex]), line_num, style);
-            PaintItem(hdcMem, group, &group->contact[group->scanIndex], indent, y, dat, index, hwnd, style, &clRect, &bFirstNGdrawn, groupCountsFontTopShift, dat->row_heights[line_num]);
-        }
+		if (y > rcPaint->top - dat->row_heights[line_num] && y <= rcPaint->bottom) {
+			RowHeights_GetRowHeight(dat, hwnd, &(group->contact[group->scanIndex]), line_num, style);
+			PaintItem(hdcMem, group, &group->contact[group->scanIndex], indent, y, dat, index, hwnd, style, &clRect, &bFirstNGdrawn, groupCountsFontTopShift, dat->row_heights[line_num]);
+		}
         index++;
         y += dat->row_heights[line_num];
         if (group->contact[group->scanIndex].type == CLCIT_GROUP && group->contact[group->scanIndex].group->expanded) {
