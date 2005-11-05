@@ -66,7 +66,7 @@ static int OnContactMenuBuild(WPARAM wParam,LPARAM lParam)
     grpid+=100000;
     //AddGroupItem(menuid,"---------------------------------------------",grpid++,0);
     while (TRUE) {
-        itoa(i,intname,10);
+        _itoa(i,intname,10);
         grpname=DBGetString(0,"CListGroups",intname);
 
         if (grpname==NULL ) {
@@ -113,7 +113,7 @@ static int MTG_DOMOVE(WPARAM wParam,LPARAM lParam)
         return 0;
     }
     intname=(char *)malloc(20);
-    itoa(lParam,intname,10);
+    _itoa(lParam,intname,10);
     grpname=DBGetString(0,"CListGroups",intname);
     if (grpname!=0) {
         correctgrpname=&(grpname[1]);

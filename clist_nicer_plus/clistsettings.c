@@ -159,12 +159,12 @@ int GetContactDisplayName(WPARAM wParam, LPARAM lParam)
 		if (ci.type == CNFT_DWORD) {
 			if (cacheEntry == -1) {
 				buffer = ( char* )mir_alloc(15);
-				ltoa(ci.dVal, buffer, 10 );
+				_ltoa(ci.dVal, buffer, 10 );
 				return (int) buffer;
 			}
 			else {
 				buffer = ( char* )mir_alloc(15);
-				ltoa(ci.dVal, buffer, 10 );
+				_ltoa(ci.dVal, buffer, 10 );
 				displayNameCache[cacheEntry].name = buffer;
 				#if defined( _UNICODE )
 					displayNameCache[cacheEntry].wszName = a2u( buffer );

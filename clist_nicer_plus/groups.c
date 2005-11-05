@@ -35,7 +35,7 @@ static int CountGroups(void)
     char str[33];
 
     for (i = 0; ; i++) {
-        itoa(i, str, 10);
+        _itoa(i, str, 10);
         if (DBGetContactSetting(NULL, "CListGroups", str, &dbv))
             break;
         DBFreeVariant(&dbv);
@@ -52,7 +52,7 @@ static int GroupNameExists(const TCHAR *name, int skipGroup)
     for (i = 0; ; i++) {
         if (i == skipGroup)
             continue;
-        itoa(i, idstr, 10);
+        _itoa(i, idstr, 10);
         if (DBGetContactSettingTString(NULL, "CListGroups", idstr, &dbv))
             break;
         if (!_tcscmp(dbv.ptszVal + 1, name)) {
@@ -73,7 +73,7 @@ static int CreateGroup(WPARAM wParam, LPARAM lParam)
     DBVARIANT dbv;
 
     if (wParam) {
-        itoa(wParam - 1, str, 10);
+        _itoa(wParam - 1, str, 10);
         if (DBGetContactSettingTString(NULL, "CListGroups", str, &dbv))
             return 0;
 
@@ -82,7 +82,7 @@ static int CreateGroup(WPARAM wParam, LPARAM lParam)
         mir_free(dbv.ptszVal);
     } else
         lstrcpyn(newBaseName, TranslateT("New Group"), safe_sizeof(newBaseName));
-    itoa(newId, str, 10);
+    _itoa(newId, str, 10);
     i = 1;
     lstrcpyn(newName + 1, newBaseName, safe_sizeof(newName) - 1);
     while (GroupNameExists(newName + 1, -1)) {
@@ -101,7 +101,7 @@ static int GetGroupName2(WPARAM wParam, LPARAM lParam)
     DBVARIANT dbv;
     static char name[128];
 
-    itoa(wParam - 1, idstr, 10);
+    _itoa(wParam - 1, idstr, 10);
     if (DBGetContactSetting(NULL, "CListGroups", idstr, &dbv))
         return(int) (char*) NULL;
     lstrcpynA(name, dbv.pszVal + 1, sizeof(name));
@@ -117,7 +117,7 @@ TCHAR * GetGroupNameT(int idx, DWORD *pdwFlags)
     DBVARIANT dbv = {0};
     static TCHAR name[128];
 
-    itoa(idx - 1, idstr, 10);
+	_itoa(idx - 1, idstr, 10);
     if (DBGetContactSettingTString(NULL, "CListGroups", idstr, &dbv))
         return NULL;
 
@@ -147,7 +147,7 @@ static int DeleteGroup(WPARAM wParam, LPARAM lParam)
 	TCHAR name[256], szNewParent[256], *pszLastBackslash;
 
 	//get the name
-	itoa(wParam - 1, str, 10);
+	_itoa(wParam - 1, str, 10);
 	if (DBGetContactSettingTString(NULL, "CListGroups", str, &dbv))
 		return 1;
 	if (DBGetContactSettingByte(NULL, "CList", "ConfirmDelete", SETTING_CONFIRMDELETE_DEFAULT))
@@ -180,14 +180,14 @@ static int DeleteGroup(WPARAM wParam, LPARAM lParam)
 	} while ((hContact = (HANDLE) CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM) hContact, 0)) != NULL);
 	//shuffle list of groups up to fill gap
 	for (i = wParam - 1;; i++) {
-		itoa(i + 1, str, 10);
+		_itoa(i + 1, str, 10);
 		if (DBGetContactSettingStringUtf(NULL, "CListGroups", str, &dbv))
 			break;
-		itoa(i, str, 10);
+		_itoa(i, str, 10);
 		DBWriteContactSettingStringUtf(NULL, "CListGroups", str, dbv.pszVal);
 		DBFreeVariant(&dbv);
 	}
-	itoa(i, str, 10);
+	_itoa(i, str, 10);
 	DBDeleteContactSetting(NULL, "CListGroups", str);
 	//rename subgroups
 	{
@@ -196,7 +196,7 @@ static int DeleteGroup(WPARAM wParam, LPARAM lParam)
 
 		len = lstrlen(name);
 		for (i = 0;; i++) {
-			itoa(i, str, 10);
+			_itoa(i, str, 10);
 			if (DBGetContactSettingTString(NULL, "CListGroups", str, &dbv))
 				break;
 			if (!_tcsncmp(dbv.ptszVal + 1, name, len) && dbv.ptszVal[len + 1] == '\\' && _tcschr(dbv.ptszVal + len + 2, '\\') == NULL) {
@@ -228,7 +228,7 @@ static int RenameGroupWithMove(int groupId, const TCHAR *szName, int move)
     }
 
     //do the change
-    itoa(groupId, idstr, 10);
+    _itoa(groupId, idstr, 10);
     if (DBGetContactSettingTString(NULL, "CListGroups", idstr, &dbv))
         return 1;
     str[0] = dbv.pszVal[0];
@@ -256,7 +256,7 @@ static int RenameGroupWithMove(int groupId, const TCHAR *szName, int move)
         for (i = 0; ; i++) {
             if (i == groupId)
                 continue;
-            itoa(i, idstr, 10);
+            _itoa(i, idstr, 10);
             if (DBGetContactSettingTString(NULL, "CListGroups", idstr, &dbv))
                 break;
             if (!_tcsncmp(dbv.ptszVal + 1, oldName, len) && dbv.ptszVal[len + 1] == '\\' && _tcschr(dbv.ptszVal + len + 2, '\\') == NULL) {
@@ -278,7 +278,7 @@ static int RenameGroupWithMove(int groupId, const TCHAR *szName, int move)
             return 0;
         *pszLastBackslash = '\0';
         for (i = 0; ; i++) {
-            itoa(i, idstr, 10);
+            _itoa(i, idstr, 10);
             if (DBGetContactSettingTString(NULL, "CListGroups", idstr, &dbv))
                 break;
             if (!lstrcmp(dbv.ptszVal + 1, str)) {
@@ -315,7 +315,7 @@ static int SetGroupExpandedState(WPARAM wParam, LPARAM lParam)
 	char idstr[33];
 	DBVARIANT dbv;
 
-	itoa(wParam - 1, idstr, 10);
+	_itoa(wParam - 1, idstr, 10);
 	if (DBGetContactSettingStringUtf(NULL, "CListGroups", idstr, &dbv))
 		return 1;
 	if (lParam)
@@ -333,7 +333,7 @@ static int SetGroupFlags(WPARAM wParam, LPARAM lParam)
 	DBVARIANT dbv;
 	int flags, oldval, newval;
 
-	itoa(wParam - 1, idstr, 10);
+	_itoa(wParam - 1, idstr, 10);
 	if (DBGetContactSettingStringUtf(NULL, "CListGroups", idstr, &dbv))
 		return 1;
 	flags = LOWORD(lParam) & HIWORD(lParam);
@@ -355,7 +355,7 @@ static int MoveGroupBefore(WPARAM wParam, LPARAM lParam)
 
 	if (wParam == 0 || (LPARAM) wParam == lParam)
 		return 0;
-	itoa(wParam - 1, str, 10);
+	_itoa(wParam - 1, str, 10);
 	if (DBGetContactSettingTString(NULL, "CListGroups", str, &dbv))
 		return 0;
 	szMoveName = dbv.ptszVal;
@@ -379,29 +379,29 @@ static int MoveGroupBefore(WPARAM wParam, LPARAM lParam)
 	}
 	if (shuffleDir == -1) {
 		for (i = shuffleFrom; i != shuffleTo; i++) {
-			itoa(i + 1, str, 10);
+			_itoa(i + 1, str, 10);
 			if (DBGetContactSettingStringUtf(NULL, "CListGroups", str, &dbv)) {
 				shuffleTo = i;
 				break;
 			}
-			itoa(i, str, 10);
+			_itoa(i, str, 10);
 			DBWriteContactSettingStringUtf(NULL, "CListGroups", str, dbv.pszVal);
 			DBFreeVariant(&dbv);
 		}
 	}
 	else {
 		for (i = shuffleFrom; i != shuffleTo; i--) {
-			itoa(i - 1, str, 10);
+			_itoa(i - 1, str, 10);
 			if (DBGetContactSettingStringUtf(NULL, "CListGroups", str, &dbv)) {
 				mir_free(szMoveName);
 				return 1;
 			}                   //never happens
-			itoa(i, str, 10);
+			_itoa(i, str, 10);
 			DBWriteContactSettingStringUtf(NULL, "CListGroups", str, dbv.pszVal);
 			DBFreeVariant(&dbv);
 		}
 	}
-	itoa(shuffleTo, str, 10);
+	_itoa(shuffleTo, str, 10);
 	DBWriteContactSettingTString(NULL, "CListGroups", str, szMoveName);
 	mir_free(szMoveName);
 	return shuffleTo + 1;
@@ -423,7 +423,7 @@ static int BuildGroupMenu(WPARAM wParam, LPARAM lParam)
 	DBFreeVariant(&dbv);
 	hRootMenu = CreateMenu();
 	for (groupId = 0;; groupId++) {
-		itoa(groupId, idstr, 10);
+		_itoa(groupId, idstr, 10);
 		if (DBGetContactSettingTString(NULL, "CListGroups", idstr, &dbv))
 			break;
 

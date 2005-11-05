@@ -558,7 +558,7 @@ int DBLoadFrameSettingsAtPos(int pos,int Frameid)
     char buf[255];
 //	char *oldtb;
 
-    itoa(pos,sadd,10);
+    _itoa(pos,sadd,10);
 
     //DBWriteContactSettingString(0,CLUIFrameModule,strcat("Name",sadd),Frames[Frameid].name);
     //boolean
@@ -590,7 +590,7 @@ int DBStoreFrameSettingsAtPos(int pos,int Frameid)
     char sadd[16];
     char buf[255];
 
-    itoa(pos,sadd,10);
+    _itoa(pos,sadd,10);
 
     DBWriteContactSettingString(0,CLUIFrameModule,AS(buf,"Name",sadd),Frames[Frameid].name);
     //boolean
@@ -625,7 +625,7 @@ int LocateStorePosition(int Frameid,int maxstored)
         wsprintfA(settingname,"%s%d","Name",i);
         frmname=DBGetString(0,CLUIFrameModule,settingname);
         if (frmname==NULL) continue;
-        if (strcmpi(frmname,Frames[Frameid].name)==0) {
+        if (_strcmpi(frmname,Frames[Frameid].name)==0) {
             storpos=i;
             mir_free(frmname);
             break;
@@ -1794,7 +1794,7 @@ int CLUIFramesAddFrame(WPARAM wParam,LPARAM lParam)
         Frames[nFramescount].TitleBar.TextColour=(COLORREF)DBGetContactSettingDword(NULL,"CUSTOM_CLUI_FRAMES",AS(buff,"CustomTextColor_",clfrm->name),GetSysColor(COLOR_WINDOWTEXT));
         if (CustomName) {
             if (clfrm->name) mir_free(clfrm->name);
-            clfrm->name=strdup(CustomName);
+            clfrm->name=_strdup(CustomName);
             mir_free(CustomName);
         }
     }

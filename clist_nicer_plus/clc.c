@@ -88,11 +88,11 @@ int GetProtocolVisibility(char *ProtoName)
     if (count == -1) 
         return 1;
     for (i = 0; i < count; i++) {
-        itoa(i, buf2, 10);
+        _itoa(i, buf2, 10);
         if (!DBGetContactSetting(NULL, "Protocols", buf2, &dbv)) {
             if (strcmp(ProtoName, dbv.pszVal) == 0) {
                 mir_free(dbv.pszVal);
-                itoa(i + 400, buf2, 10);
+                _itoa(i + 400, buf2, 10);
                 res= DBGetContactSettingDword(NULL, "Protocols", buf2, 0);
                 return res;
             }
@@ -442,7 +442,7 @@ int LoadCLCModule(void)
     CreateServiceFunction(MS_CLC_SETINFOTIPHOVERTIME, SetInfoTipHoverTime);
     CreateServiceFunction(MS_CLC_GETINFOTIPHOVERTIME, GetInfoTipHoverTime);
 
-    wndclass.style = /*CS_HREDRAW | CS_VREDRAW | */CS_DBLCLKS | CS_GLOBALCLASS | CS_PARENTDC;
+    wndclass.style = /*CS_HREDRAW | CS_VREDRAW | */CS_DBLCLKS | CS_GLOBALCLASS;
     wndclass.lpfnWndProc = ContactListControlWndProc;
     wndclass.cbClsExtra = 0;
     wndclass.cbWndExtra = sizeof(void*);

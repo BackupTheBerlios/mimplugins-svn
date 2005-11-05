@@ -43,6 +43,7 @@ int g_fading_active = 0;
 static RECT g_PreSizeRect, g_SizingRect;
 static int g_sizingmethod;
 static LONG g_CLUI_x_off, g_CLUI_y_off, g_CLUI_y1_off;
+static RECT rcWPC;
 
 static HMODULE hUserDll;
 static HIMAGELIST himlMirandaIcon;
@@ -304,7 +305,7 @@ void CLN_DrawMenuItem(DRAWITEMSTRUCT *dis, HICON hIcon, HICON eventIcon)
                 DrawState(dis->hDC, NULL, NULL, (LPARAM) eventIcon, 0, 2, (dis->rcItem.bottom + dis->rcItem.top - g_cysmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), 0, 0, DST_ICON | (dis->itemState & ODS_INACTIVE ? DSS_DISABLED : DSS_NORMAL));
                 DrawState(dis->hDC, NULL, NULL, (LPARAM) hIcon, 0, 4 + g_cxsmIcon, (dis->rcItem.bottom + dis->rcItem.top - g_cysmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), 0, 0, DST_ICON | (dis->itemState & ODS_INACTIVE ? DSS_DISABLED : DSS_NORMAL));
             } else
-                DrawState(dis->hDC, NULL, NULL, (LPARAM) hIcon, 0, (dis->rcItem.right + dis->rcItem.left - g_cxsmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), (dis->rcItem.bottom + dis->rcItem.top - g_cysmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), 0, 0, DST_ICON | (dis->itemState & ODS_INACTIVE ? DSS_DISABLED : DSS_NORMAL));
+                DrawState(dis->hDC, NULL, N ULL, (LPARAM) hIcon, 0, (dis->rcItem.right + dis->rcItem.left - g_cxsmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), (dis->rcItem.bottom + dis->rcItem.top - g_cysmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), 0, 0, DST_ICON | (dis->itemState & ODS_INACTIVE ? DSS_DISABLED : DSS_NORMAL));
         }
     }
     DestroyIcon(hIcon);
@@ -365,7 +366,6 @@ int CreateCLC(HWND parent)
 		Frame.hWnd=hwndContactTree;
 		Frame.align=alClient;
 		Frame.hIcon=LoadSkinnedIcon(SKINICON_OTHER_MIRANDA);
-			//LoadIcon(hInst,MAKEINTRESOURCE(IDI_MIRANDA));
 		Frame.Flags=F_VISIBLE|F_SHOWTB|F_SHOWTBTIP|F_NOBORDER;
 		Frame.name=(Translate("My Contacts"));
         Frame.height = 200;
@@ -1064,9 +1064,9 @@ LRESULT CALLBACK ContactListWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 
                 _tzset();
                 {
-                    const time_t now = time(NULL);
+                    DWORD now = time(NULL);
                     struct tm gmt = *gmtime(&now);
-                    time_t gmt_time = mktime(&gmt);
+                    DWORD gmt_time = mktime(&gmt);
                     g_CluiData.local_gmt_diff = (int)difftime(now, gmt_time);
                     
                 }
@@ -1245,9 +1245,11 @@ LRESULT CALLBACK ContactListWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                 HRGN rgn = 0;
                 HDC hdcReal = BeginPaint(hwnd, &ps);
                 
-                GetClientRect(hwnd, &rcClient);
+                if(during_sizing)
+                    rcClient = rcWPC;
+                else
+                    GetClientRect(hwnd, &rcClient);
                 CopyRect(&rc, &rcClient);
-                ps.fErase = FALSE;
 
                 if(!g_CluiData.hdcBg || rc.right > g_CluiData.dcSize.cx || rc.bottom + g_CluiData.statusBarHeight > g_CluiData.dcSize.cy) {
                     RECT rcWorkArea;
@@ -1407,18 +1409,10 @@ skipbg:
                 if(wp && wp->flags & SWP_NOSIZE)
                     return FALSE;
 
-                if(g_CluiData.forceResize) {
-                    g_CluiData.forceResize = FALSE;
-                    PostMessage(hwnd, CLUIINTM_REDRAW, 0, 0);
-                }
-
                 //_DebugPopup(0, "sizing: %d, %d, %d, %d : wp: %d, %d, %d, %d", g_SizingRect.left,
                 //            g_SizingRect.top, g_SizingRect.right, g_SizingRect.bottom,
                 //            wp->x, wp->y, wp->x + wp->cx, wp->y + wp->cy);
                 
-                if (IsZoomed(hwnd))
-                    ShowWindow(hwnd, SW_SHOWNORMAL);
-
                 if (g_CluiData.dwFlags & CLUI_FRAME_SBARSHOW) {
                     GetWindowRect(hwndStatus, &rcStatus);
                     g_CluiData.statusBarHeight = (rcStatus.bottom - rcStatus.top);
@@ -1426,7 +1420,9 @@ skipbg:
                     g_CluiData.statusBarHeight = 0;
 
                 if(hwndContactList != NULL) {
-                    if (wp->cx != g_oldSize.cx || wp->cy != g_oldSize.cy || (wParam == 0 && lParam == 0)) {
+                    RECT rcOld;
+                    GetWindowRect(hwnd, &rcOld);
+                    if (wp->cx != rcOld.right - rcOld.left || wp->cy != rcOld.bottom - rcOld.top && !(wp->flags & SWP_NOSIZE)) {
                         HDWP PosBatch;
                         int res;
 
@@ -1440,7 +1436,7 @@ skipbg:
                         dock_prevent_moving=0;
                         LayoutButtons(hwnd, &PosBatch, &new_window_rect);
                         DeferWindowPos(PosBatch, hwndStatus, 0, 0, new_window_rect.bottom - g_CluiData.statusBarHeight, new_window_rect.right,
-                                       g_CluiData.statusBarHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+                                       g_CluiData.statusBarHeight, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW);
                         res=EndDeferWindowPos(PosBatch);
                         if(wp->cx != g_oldSize.cx)
                             PostMessage(hwnd, CLUIINTM_STATUSBARUPDATE, 0, 0);
@@ -1449,12 +1445,14 @@ skipbg:
                         g_oldPos.y = wp->y;
                         g_oldSize.cx = wp->cx;
                         g_oldSize.cy = wp->cy;
+                        rcWPC = new_window_rect;
+                        RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE|RDW_UPDATENOW);
+                        
                         during_sizing = 0;
-                        //return(SendMessage(hwnd, WM_WINDOWPOSCHANGED, wParam, (LPARAM)wp));
+                        return(SendMessage(hwnd, WM_WINDOWPOSCHANGED, wParam, (LPARAM)wp));
                     }
                 }
                 during_sizing = 0;
-                return FALSE;
                 return DefWindowProc(hwnd, msg, wParam, lParam);
             }
         case WM_SIZE:
@@ -1487,6 +1485,10 @@ skipbg:
                     g_oldSize.cy = rcClient.bottom - rcClient.top;
                 }
             }
+            if(g_CluiData.forceResize) {
+                g_CluiData.forceResize = FALSE;
+                PostMessage(hwnd, CLUIINTM_REDRAW, 0, 0);
+            }
             if (wParam == SIZE_MINIMIZED) {
                 if (DBGetContactSettingByte(NULL, "CList", "Min2Tray", SETTING_MIN2TRAY_DEFAULT)) {
                     ShowWindow(hwnd, SW_HIDE);
@@ -1506,7 +1508,7 @@ skipbg:
                 }
                 cluiPos.right = rc.right - rc.left;
             }
-            return FALSE;
+            return TRUE;
         case WM_SETFOCUS:
             SetFocus(hwndContactTree);
             return 0;

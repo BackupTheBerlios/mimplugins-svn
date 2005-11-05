@@ -1107,7 +1107,7 @@ static void ReadItem(StatusItems_t *this_item, char *szItem, char *file)
         int i;
         
         for(i = 0; i <= ID_EXTBK_LAST - ID_STATUS_OFFLINE; i++) {
-            if(!stricmp(StatusItems[i].szName[0] == '{' ? &StatusItems[i].szName[3] : StatusItems[i].szName, buffer)) {
+            if(!_stricmp(StatusItems[i].szName[0] == '{' ? &StatusItems[i].szName[3] : StatusItems[i].szName, buffer)) {
                 defaults = &StatusItems[i];
                 break;
             }
@@ -1223,7 +1223,7 @@ void IMG_ReadItem(const char *itemname, const char *szFileName)
                 continue;
             }
             for(i = 0; i <= ID_EXTBK_LAST - ID_STATUS_OFFLINE; i++) {
-                if(!stricmp(StatusItems[i].szName[0] == '{' ? &StatusItems[i].szName[3] : StatusItems[i].szName, buffer)) {
+                if(!_stricmp(StatusItems[i].szName[0] == '{' ? &StatusItems[i].szName[3] : StatusItems[i].szName, buffer)) {
                     if(!alloced) {
                         IMG_CreateItem(&tmpItem, szFinalName, hdc);
                         if(tmpItem.hbm) {
@@ -1330,8 +1330,14 @@ static void IMG_CreateItem(ImageItem *item, const char *fileName, HDC hdc)
         item->height = bm.bmHeight;
         item->inner_height = item->height - item->bTop - item->bBottom;
         item->inner_width = item->width - item->bLeft - item->bRight;
-        if(item->bTop && item->bBottom && item->bLeft && item->bRight)
+        if(item->bTop && item->bBottom && item->bLeft && item->bRight) {
             item->dwFlags |= IMAGE_FLAG_DIVIDED;
+            if(item->inner_height <= 0 || item->inner_width <= 0) {
+                DeleteObject(hbm);
+                item->hbm = 0;
+                return;
+            }
+        }
         item->hdc = CreateCompatibleDC(hdc);
         item->hbmOld = SelectObject(item->hdc, item->hbm);
     }

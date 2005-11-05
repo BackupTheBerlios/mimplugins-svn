@@ -700,7 +700,7 @@ int GetProtoIndexByPos(PROTOCOLDESCRIPTOR ** proto, int protoCnt, int Pos)
     char buf[10];
     char *b2 = NULL;
 
-    itoa(Pos,buf,10);
+    _itoa(Pos,buf,10);
     b2=DBGetString(NULL,"Protocols",buf);
     //TRACE("GetProtoIndexByPos \r\n");
 

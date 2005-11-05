@@ -22,9 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "commonheaders.h"
-#define AC_SRC_ALPHA 0x01
-#define M_PI 3.1
-#include "crtdbg.h"
 
 extern int g_hottrack;
 extern BOOL g_inCLCpaint;

@@ -94,10 +94,6 @@ int CluiProtocolStatusChanged(WPARAM wParam,LPARAM lParam)
     if (protoCount == 0) 
         return 0;
 
-    //if(!(g_CluiData.dwFlags & CLUI_FRAME_SBARSHOW))
-    //    goto skipsbarconfig;
-    
-    //CheckProtocolOrder();
     storedcount=DBGetContactSettingDword(0,"Protocols","ProtoCount",-1);
     if (storedcount==-1)
         return 0;
@@ -129,7 +125,7 @@ int CluiProtocolStatusChanged(WPARAM wParam,LPARAM lParam)
         rc.right-=borders[0]*2;
         toshow=0;
         for (i=0;i<storedcount;i++) {
-            itoa(OFFSET_VISIBLE+i,(char *)&buf,10);
+            _itoa(OFFSET_VISIBLE+i,(char *)&buf,10);
             if (DBGetContactSettingDword(0,"Protocols",(char *)&buf,1)==0)
                 continue;
             toshow++;
@@ -138,7 +134,7 @@ int CluiProtocolStatusChanged(WPARAM wParam,LPARAM lParam)
         if (toshow>0) {
             for (part=0,i=0;i<storedcount;i++) {
 
-                itoa(OFFSET_VISIBLE+i,(char *)&buf,10);
+                _itoa(OFFSET_VISIBLE+i,(char *)&buf,10);
                 if (DBGetContactSettingDword(0,"Protocols",(char *)&buf,1)==0)
                     continue;
 
@@ -164,12 +160,12 @@ int CluiProtocolStatusChanged(WPARAM wParam,LPARAM lParam)
 
         for (partCount=0,i=0;i<storedcount;i++) {      //count down since built in ones tend to go at the end
 
-            itoa(OFFSET_VISIBLE+i,(char *)&buf,10);
+            _itoa(OFFSET_VISIBLE+i,(char *)&buf,10);
             //show this protocol ?
             if (DBGetContactSettingDword(0,"Protocols",(char *)&buf,1)==0)
                 continue;
 
-            itoa(i,buf,10);
+            _itoa(i,buf,10);
             szStoredName=DBGetString(NULL,"Protocols",buf);
             if (szStoredName==NULL)
                 continue;
@@ -214,14 +210,14 @@ int CluiProtocolStatusChanged(WPARAM wParam,LPARAM lParam)
         ProtocolData    *PD;
         int caps1, caps2;
         
-        itoa(OFFSET_VISIBLE+i,(char *)&buf,10);
+        _itoa(OFFSET_VISIBLE+i,(char *)&buf,10);
             //show this protocol ?
         if (DBGetContactSettingDword(0,"Protocols",(char *)&buf,1)==0) {
             continue;
         }
 
         
-        itoa(i,(char *)&buf,10);
+        _itoa(i,(char *)&buf,10);
         szStoredName=DBGetString(NULL,"Protocols",buf);
         if (szStoredName==NULL)
             continue;
@@ -233,7 +229,7 @@ int CluiProtocolStatusChanged(WPARAM wParam,LPARAM lParam)
         PD=(ProtocolData*)mir_alloc(sizeof(ProtocolData));
         PD->RealName=mir_strdup(curprotocol->szName);
         PD->statusbarpos = partCount;
-        itoa(OFFSET_PROTOPOS+i,(char *)&buf,10);
+        _itoa(OFFSET_PROTOPOS+i,(char *)&buf,10);
         PD->protopos=DBGetContactSettingDword(NULL,"Protocols",(char *)&buf,-1);
         {
             int flags;

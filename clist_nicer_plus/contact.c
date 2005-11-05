@@ -167,7 +167,7 @@ static int __forceinline GetProtoIndex(char * szName)
     
     pc=DBGetContactSettingDword(NULL,"Protocols","ProtoCount",-1);
     for (i=0; i<pc; i++) {
-        itoa(i,buf,10);
+        _itoa(i,buf,10);
         name=DBGetString(NULL,"Protocols",buf);
         if (name) {
             if (!strcmp(name,szName)) {

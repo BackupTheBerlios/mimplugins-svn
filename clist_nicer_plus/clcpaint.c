@@ -305,7 +305,7 @@ static int __fastcall DrawAvatar(HDC hdcMem, RECT *rc, struct ClcContact *contac
     BOOL gdiPlus;
     contact->avatarLeft = -1;
     
-    if(!g_CluiData.bAvatarServiceAvail || dat->bisEmbedded)
+	if(!g_CluiData.bAvatarServiceAvail || dat->bisEmbedded)
         return 0;
 
     if (g_CluiData.bForceRefetchOnPaint) {
@@ -338,6 +338,7 @@ static int __fastcall DrawAvatar(HDC hdcMem, RECT *rc, struct ClcContact *contac
 
     if(bmHeight == 0 || bmWidth == 0 || hbm == 0)
         return 0;
+
 
     gdiPlus = g_gdiPlus && !(contact->ace->dwFlags & AVS_PREMULTIPLIED);
     //gdiPlus = FALSE;
@@ -829,7 +830,7 @@ static void __forceinline PaintItem(HDC hdcMem, struct ClcGroup *group, struct C
     rcContent.right = clRect->right - dat->rightMargin;
     twoRows = ((dat->fontInfo[FONTID_STATUS].fontHeight + fontHeight <= rowHeight + 2) && (g_CluiData.dualRowMode != MULTIROW_NEVER)) && !dat->bisEmbedded;
     pi_avatar = !dat->bisEmbedded && type == CLCIT_CONTACT && (av_wanted) && contact->ace != 0 && !(contact->ace->dwFlags & AVS_HIDEONCLIST);
-        
+    
     //checkboxes
     if (checkboxWidth) {
         RECT rc;
@@ -863,6 +864,7 @@ static void __forceinline PaintItem(HDC hdcMem, struct ClcGroup *group, struct C
         iImage = contact->group->expanded ? IMAGE_GROUPOPEN : IMAGE_GROUPSHUT;
     else if (type == CLCIT_CONTACT)
         iImage = contact->iImage;
+
 
     if(pi_avatar && (av_left || av_right)) {
         RECT rc;
@@ -1119,8 +1121,8 @@ text:
                 DBTIMETOSTRING dbtts;
                 char szResult[80];
                 int  idOldFont;
-                time_t final_time;
-                time_t now = time(NULL);
+                DWORD final_time;
+                DWORD now = time(NULL);
                 SIZE szTime;
                 RECT rc = rcContent;
                 COLORREF oldColor;
@@ -1134,7 +1136,7 @@ text:
                 dbtts.szDest = szResult;
                 dbtts.cbDest = 70;
                 dbtts.szFormat = "t";
-                CallService(MS_DB_TIME_TIMESTAMPTOSTRING, final_time, (LPARAM) & dbtts);
+                CallService(MS_DB_TIME_TIMESTAMPTOSTRING, (WPARAM)final_time, (LPARAM)&dbtts);
                 oldColor = GetTextColor(hdcMem);
                 idOldFont = dat->currentFontID;
                 ChangeToFont(hdcMem, dat, FONTID_TIMESTAMP, &fHeight);
@@ -1351,10 +1353,6 @@ void PaintClc(HWND hwnd, struct ClcData *dat, HDC hdc, RECT *rcPaint)
     mirror_rtl = (g_CluiData.bUseDCMirroring == 2);
     mirror_always = (g_CluiData.bUseDCMirroring == 1);
     
-    //if(!pDrawAlpha)
-    //    pDrawAlpha = g_gdiPlus ? GDIp_DrawAlpha : GDI_DrawAlpha;
-    
-    // groups
     g_center = DBGetContactSettingByte(NULL, "CLCExt", "EXBK_CenterGroupnames", 0) && !dat->bisEmbedded;
     g_ignoreselforgroups = DBGetContactSettingByte(NULL, "CLC", "IgnoreSelforGroups", 0);
     g_selectiveIcon = (g_CluiData.dwFlags & CLUI_FRAME_SELECTIVEICONS) && (g_CluiData.dwFlags & CLUI_FRAME_AVATARS) && !dat->bisEmbedded;
