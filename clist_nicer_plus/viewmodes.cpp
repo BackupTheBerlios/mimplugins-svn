@@ -26,7 +26,6 @@ $Id: viewmodes.cpp,v 1.17 2005/11/01 04:14:27 nightwish2004 Exp $
 */
 
 #include "commonheaders.h"
-#include "IcoLib.h"
 #include "m_variables.h"
 
 #define TIMERID_VIEWMODEEXPIRE 100

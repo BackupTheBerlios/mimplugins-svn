@@ -229,7 +229,7 @@ DWORD _argb_from_cola(COLORREF col, UINT32 alpha)
     return((BYTE) _percent_to_byte(alpha) << 24 | col);
 }
 
-extern "C" void GDIp_DrawAlpha(HDC hdcwnd, PRECT rc, DWORD basecolor, BYTE alpha, DWORD basecolor2, BOOL transparent, DWORD FLG_GRADIENT, DWORD FLG_CORNER, DWORD BORDERSTYLE)
+extern "C" void GDIp_DrawAlpha(HDC hdcwnd, PRECT rc, DWORD basecolor, BYTE alpha, DWORD basecolor2, BOOL transparent, DWORD FLG_GRADIENT, DWORD FLG_CORNER, DWORD BORDERSTYLE, ImageItem *item)
 {
     if (g_hottrack && g_inCLCpaint) {
         StatusItems_t *ht = &StatusItems[ID_EXTBKHOTTRACK - ID_STATUS_OFFLINE];

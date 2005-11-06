@@ -25,10 +25,6 @@ UNICODE - done.
 */
 #include "commonheaders.h"
 #include "resource.h"
-#include "m_metacontacts.h"
-#include "icolib.h"
-#include "m_popup.h"
-#include "crtdbg.h"
 #include "m_userinfo.h"
 
 static LRESULT CALLBACK ContactListControlWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

@@ -24,7 +24,6 @@ UNICODE done
 
 */
 #include "commonheaders.h"
-#include "m_fontservice.h"
 
 #define DBFONTF_BOLD       1
 #define DBFONTF_ITALIC     2

@@ -75,6 +75,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "m_genmenu.h"
 #include "m_cluiframes.h"
 #include "m_clui.h"
+#include "icolib.h"
+#include "m_popup.h"
+#include "m_metacontacts.h"
+#include "m_fontservice.h"
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // NEEDS TO GO AWAY when we get REAL unicode
@@ -127,7 +131,7 @@ __forceinline char * mir_strdup(const char *src)
 }
 
 typedef  int  (__cdecl *pfnDrawAvatar)(HDC hdcOrig, HDC hdcMem, RECT *rc, struct ClcContact *contact, int y, struct ClcData *dat, int selected, WORD cstatus, int rowHeight);
-typedef  void (__cdecl *pfnDrawAlpha)(HDC hdcwnd, PRECT rc, DWORD basecolor, BYTE alpha, DWORD basecolor2, BOOL transparent, DWORD FLG_GRADIENT, DWORD FLG_CORNER, DWORD BORDERSTYLE);
+typedef  void (__cdecl *pfnDrawAlpha)(HDC hdcwnd, PRECT rc, DWORD basecolor, BYTE alpha, DWORD basecolor2, BOOL transparent, DWORD FLG_GRADIENT, DWORD FLG_CORNER, DWORD BORDERSTYLE, ImageItem *item);
 
 static char *DBGetString(HANDLE hContact,const char *szModule,const char *szSetting)
 {

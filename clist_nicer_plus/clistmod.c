@@ -24,10 +24,6 @@ UNICODE done
 
 */
 #include "commonheaders.h"
-#include "clist.h"
-#include "m_metacontacts.h"
-#include "m_popup.h"
-#include "icolib.h"
 
 extern BOOL (WINAPI *MySetLayeredWindowAttributes)(HWND, COLORREF, BYTE, DWORD);
 

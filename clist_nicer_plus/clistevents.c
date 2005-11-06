@@ -21,8 +21,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "commonheaders.h"
-#include "m_popup.h"
-#include "m_metacontacts.h"
 
 void TrayIconSetToBase(char *szPreferredProto);
 int GetContactDisplayName(WPARAM wParam, LPARAM lParam);

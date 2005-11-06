@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "commonheaders.h"
-#include "m_fontservice.h"
 
 static int LastModifiedItem = -1;
 static int last_selcount = 0;

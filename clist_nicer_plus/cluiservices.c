@@ -25,7 +25,6 @@ UNICODE done
 */
 #include "commonheaders.h"
 #include "cluiframes/cluiframes.h"
-#include "icolib.h"
 
 extern HWND hwndContactTree, hwndContactList, hwndStatus;
 extern HIMAGELIST hCListImages, himlExtraImages;;

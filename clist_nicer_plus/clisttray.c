@@ -24,7 +24,6 @@ UNICODE done
 
 */
 #include "commonheaders.h"
-#include "m_metacontacts.h"
 
 #define TRAYICON_ID_BASE    100
 #define TIM_CALLBACK   (WM_USER+1857)

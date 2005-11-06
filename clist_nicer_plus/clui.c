@@ -25,12 +25,8 @@ UNICODE done
 */
 #include "commonheaders.h"
 #include "../../include/m_findadd.h"
-#include "icolib.h"
-#include "m_metacontacts.h"
-#include "m_popup.h"
 #include "m_updater.h"
 #include "cluiframes/cluiframes.h"
-#include "m_fontservice.h"
 #include "urlctrl.h"
 
 #define TM_AUTOALPHA  1
@@ -305,7 +301,7 @@ void CLN_DrawMenuItem(DRAWITEMSTRUCT *dis, HICON hIcon, HICON eventIcon)
                 DrawState(dis->hDC, NULL, NULL, (LPARAM) eventIcon, 0, 2, (dis->rcItem.bottom + dis->rcItem.top - g_cysmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), 0, 0, DST_ICON | (dis->itemState & ODS_INACTIVE ? DSS_DISABLED : DSS_NORMAL));
                 DrawState(dis->hDC, NULL, NULL, (LPARAM) hIcon, 0, 4 + g_cxsmIcon, (dis->rcItem.bottom + dis->rcItem.top - g_cysmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), 0, 0, DST_ICON | (dis->itemState & ODS_INACTIVE ? DSS_DISABLED : DSS_NORMAL));
             } else
-                DrawState(dis->hDC, NULL, N ULL, (LPARAM) hIcon, 0, (dis->rcItem.right + dis->rcItem.left - g_cxsmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), (dis->rcItem.bottom + dis->rcItem.top - g_cysmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), 0, 0, DST_ICON | (dis->itemState & ODS_INACTIVE ? DSS_DISABLED : DSS_NORMAL));
+                DrawState(dis->hDC, NULL, NULL, (LPARAM) hIcon, 0, (dis->rcItem.right + dis->rcItem.left - g_cxsmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), (dis->rcItem.bottom + dis->rcItem.top - g_cysmIcon) / 2 + (dis->itemState & ODS_SELECTED ? 1 : 0), 0, 0, DST_ICON | (dis->itemState & ODS_INACTIVE ? DSS_DISABLED : DSS_NORMAL));
         }
     }
     DestroyIcon(hIcon);

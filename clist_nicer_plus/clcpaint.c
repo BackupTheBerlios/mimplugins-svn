@@ -27,8 +27,6 @@ UNICODE done
 #define _GDITEXTRENDERING
 
 #include "commonheaders.h"
-#include "icolib.h"
-#include "m_popup.h"
 
 extern struct avatarCache *g_avatarCache;
 extern int g_curAvatar;
@@ -310,7 +308,7 @@ static int __fastcall DrawAvatar(HDC hdcMem, RECT *rc, struct ClcContact *contac
     if (g_CluiData.bForceRefetchOnPaint)
         contact->ace = (struct avatarCacheEntry *)CallService(MS_AV_GETAVATARBITMAP, (WPARAM)contact->hContact, 0);
 
-    if(contact->ace != NULL && contact->ace->cbSize == sizeof(struct avatarCacheEntry)) {
+	if(contact->ace != NULL && contact->ace->cbSize == sizeof(struct avatarCacheEntry)) {
         if(contact->ace->dwFlags & AVS_HIDEONCLIST) {
             if (g_CluiData.dwFlags & CLUI_FRAME_ALWAYSALIGNNICK)
                 return avatar_size + 2;
@@ -1154,16 +1152,15 @@ text:
                         rcContent.right = rc.left - 2;
                     }
                 }
-                else {
-                    if(verticalfit)
-                        rc.left = clRect->right - dat->rightMargin - szTime.cx;
-                    else
-                        rc.left = rcContent.right - szTime.cx - 2;
-                }
-                DrawTextA(hdcMem, szResult, -1, &rc, DT_NOPREFIX | DT_NOCLIP | DT_SINGLELINE);
-                ChangeToFont(hdcMem, dat, idOldFont, 0);
-                //SelectObject(hdcMem, hOFont);
-                SetTextColor(hdcMem, oldColor);
+				else {
+					if(verticalfit)
+						rc.left = clRect->right - dat->rightMargin - szTime.cx;
+					else
+						rc.left = rcContent.right - szTime.cx - 2;
+				}
+				DrawTextA(hdcMem, szResult, -1, &rc, DT_NOPREFIX | DT_NOCLIP | DT_SINGLELINE);
+				ChangeToFont(hdcMem, dat, idOldFont, 0);
+				SetTextColor(hdcMem, oldColor);
                 
                 verticalfit = (rowHeight - fontHeight >= g_CluiData.exIconScale + 1);
                 if(verticalfit && av_right)

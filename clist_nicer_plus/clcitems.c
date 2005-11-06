@@ -24,8 +24,6 @@ UNICODE done
 
 */
 #include "commonheaders.h"
-#include "m_metacontacts.h"
-#include "m_popup.h"
 
 static TCHAR *xStatusDescr[] = { _T("Angry"), _T("Duck"), _T("Tired"), _T("Party"), _T("Beer"), _T("Thinking"), _T("Eating"), _T("TV"), _T("Friends"), _T("Coffee"),
                          _T("Music"), _T("Business"), _T("Camera"), _T("Funny"), _T("Phone"), _T("Games"), _T("College"), _T("Shopping"), _T("Sick"), _T("Sleeping"),

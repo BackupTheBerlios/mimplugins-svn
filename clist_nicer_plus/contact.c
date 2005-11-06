@@ -24,8 +24,6 @@ UNICODE done
 
 */
 #include "commonheaders.h"
-#include "m_popup.h"
-#include "m_metacontacts.h"
 
 int GetContactDisplayName(WPARAM wParam, LPARAM lParam);
 extern HANDLE hContactIconChangedEvent;

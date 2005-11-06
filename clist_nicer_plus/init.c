@@ -22,8 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "commonheaders.h"
-#include "m_popup.h"
-#include "m_metacontacts.h"
 
 HINSTANCE g_hInst = 0;
 PLUGINLINK *pluginLink;
