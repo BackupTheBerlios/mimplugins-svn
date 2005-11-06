@@ -831,10 +831,10 @@ done:
         return -1;
     }
     szExt = &szFilename[lstrlenA(szFilename) - 4];
-    if(!(!stricmp(szExt, ".jpg") || (!stricmp(szExt, ".gif") && !g_imgDecoderAvail) || !stricmp(szExt, ".bmp") || !stricmp(szExt, ".dat"))) {
+    if(!(!_stricmp(szExt, ".jpg") || (!_stricmp(szExt, ".gif") && !g_imgDecoderAvail) || !_stricmp(szExt, ".bmp") || !_stricmp(szExt, ".dat"))) {
 		// Gif too can have transparency... image decoder today cant load it, but a gif with tranpsarency load by imagedecoder seens better than
 		// one loaded from MS_UTILS_LOADBITMAP
-        if(!stricmp(szExt, ".png") || !stricmp(szExt, ".gif")) { 
+        if(!_stricmp(szExt, ".png") || !_stricmp(szExt, ".gif")) { 
             struct avatarCacheEntry ace_private = {0};
             
             ace->hbmPic = LoadPNG(&ace_private, szFilename);
