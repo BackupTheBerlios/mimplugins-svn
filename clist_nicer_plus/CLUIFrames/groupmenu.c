@@ -316,8 +316,8 @@ void InitGroupMenus(void)
 
     hMenuOldContext = GetSubMenu(LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_CONTEXT)), 4);
     hMenuEventArea = GetSubMenu(LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_CONTEXT)), 5);
-    CallService(MS_LANGPACK_TRANSLATEMENU, (WPARAM) hMenuOldContext, LPTDF_UNICODE);
-    CallService(MS_LANGPACK_TRANSLATEMENU, (WPARAM) hMenuEventArea, LPTDF_UNICODE);
+    CallService(MS_LANGPACK_TRANSLATEMENU, (WPARAM) hMenuOldContext, 0);
+    CallService(MS_LANGPACK_TRANSLATEMENU, (WPARAM) hMenuEventArea, 0);
 
     CreateServiceFunction("CLISTMENUSGroup/ExecService",GroupMenuExecService);
     CreateServiceFunction("CLISTMENUSGroup/FreeOwnerDataGroupMenu",FreeOwnerDataGroupMenu);

@@ -1171,8 +1171,8 @@ int InitCustomMenus(void)
 
     hMainMenu=GetSubMenu(LoadMenu(GetModuleHandle(NULL),MAKEINTRESOURCE(IDR_CLISTMENU)),0);
     hStatusMenu=GetSubMenu(LoadMenu(GetModuleHandle(NULL),MAKEINTRESOURCE(IDR_CLISTMENU)),1);
-    CallService(MS_LANGPACK_TRANSLATEMENU,(WPARAM)hMainMenu,LPTDF_UNICODE);
-    CallService(MS_LANGPACK_TRANSLATEMENU,(WPARAM)hStatusMenu,LPTDF_UNICODE);
+    CallService(MS_LANGPACK_TRANSLATEMENU,(WPARAM)hMainMenu,0);
+    CallService(MS_LANGPACK_TRANSLATEMENU,(WPARAM)hStatusMenu,0);
 
 
     //	nextMenuId=FIRSTCUSTOMMENUITEMID;

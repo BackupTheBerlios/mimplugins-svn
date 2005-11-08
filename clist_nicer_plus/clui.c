@@ -966,6 +966,9 @@ void ReloadThemedOptions()
     g_CluiData.cornerRadius = DBGetContactSettingByte(NULL, "CLCExt", "CornerRad", 6);
     g_CluiData.gapBetweenFrames = (BYTE)DBGetContactSettingDword(NULL,"CLUIFrames","GapBetweenFrames",1);
     g_CluiData.bUseDCMirroring = (BYTE)DBGetContactSettingByte(NULL, "CLC", "MirrorDC", 0);
+	if(g_CluiData.hBrushColorKey)
+		DeleteObject(g_CluiData.hBrushColorKey);
+	g_CluiData.hBrushColorKey = CreateSolidBrush(RGB(255, 0, 255));
 }
 
 static RECT rcWindow = {0};
@@ -993,14 +996,7 @@ LRESULT CALLBACK ContactListWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             {
                 int i;
                 HICON hIcon;
-                //HMODULE hModule;
                 HMENU hMenuButtonList;
-                /*
-                hModule = GetModuleHandleA("kernel32");
-                MyMultiByteToWideChar = GetProcAddress(hModule, "MultiByteToWideChar");
-                hModule = GetModuleHandleA("user32");
-                MyDrawTextW = GetProcAddress(hModule, "DrawTextW");
-                */
                 //InstallDialogBoxHook();
                 ZeroMemory((void*) &g_CluiData, sizeof(g_CluiData));
                 g_CluiData.bMetaAvail = ServiceExists(MS_MC_GETDEFAULTCONTACT) ? TRUE : FALSE;
@@ -1077,7 +1073,7 @@ LRESULT CALLBACK ContactListWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                 
                 CLN_LoadAllIcons(1);
                 
-                CallService(MS_LANGPACK_TRANSLATEMENU, (WPARAM) GetMenu(hwnd), LPTDF_UNICODE);
+                CallService(MS_LANGPACK_TRANSLATEMENU, (WPARAM) GetMenu(hwnd), 0);
                 DrawMenuBar(hwnd);
                 g_CluiData.dwFlags = DBGetContactSettingDword(NULL, "CLUI", "Frameflags", CLUI_FRAME_SHOWTOPBUTTONS | CLUI_FRAME_USEEVENTAREA | CLUI_FRAME_STATUSICONS | CLUI_FRAME_SHOWBOTTOMBUTTONS);
                 g_CluiData.dwFlags |= (DBGetContactSettingByte(NULL, "CLUI", "ShowSBar", 1) ? CLUI_FRAME_SBARSHOW : 0);
@@ -1093,7 +1089,7 @@ LRESULT CALLBACK ContactListWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                 if(DBGetContactSettingByte(NULL, "Skin", "UseSound", 0) != g_CluiData.soundsOff)
                     DBWriteContactSettingByte(NULL, "Skin", "UseSound", g_CluiData.soundsOff ? 0 : 1);
 
-            //create the status wnd
+				//create the status wnd
                 {
                     int flags = WS_CHILD | CCS_BOTTOM;
                     flags |= DBGetContactSettingByte(NULL, "CLUI", "ShowSBar", 1) ? WS_VISIBLE : 0;
@@ -1277,13 +1273,8 @@ LRESULT CALLBACK ContactListWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                     int docked = Docking_IsDocked();
                     int clip = g_CluiData.bClipBorder;
 
-                    if(!g_CLUISkinnedBkColor) {
-                        HBRUSH br = CreateSolidBrush(RGB(255, 0, 255));
-                        HBRUSH old = SelectObject(hdc, br);
-                        FillRect(hdc, &rcClient, br);
-                        SelectObject(hdc, old);
-                        DeleteObject(br);
-                    }
+                    if(!g_CLUISkinnedBkColor)
+                        FillRect(hdc, &rcClient, g_CluiData.hBrushColorKey);
                     if(g_CluiData.dwFlags & CLUI_FRAME_ROUNDEDFRAME)
                         rgn = CreateRoundRectRgn(clip, docked ? 0 : clip, rcClient.right - clip + 1, rcClient.bottom - (docked ? 0 : clip - 1), 8 + clip, 8 + clip);
                     else
@@ -1297,14 +1288,8 @@ LRESULT CALLBACK ContactListWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                     ClientToScreen(hwnd, &g_CluiData.ptW);
                     goto skipbg;
                 }
-                
-                if(g_clcData != NULL) {
-                    HBRUSH br = CreateSolidBrush(g_clcData->bkColour);
-                    HBRUSH old = SelectObject(hdc, br);
-                    FillRect(hdc, &rcClient, br);
-                    SelectObject(hdc, old);
-                    DeleteObject(br);
-                }
+
+                FillRect(hdc, &rcClient, g_CluiData.hBrushCLCBk);
 
                 rcFrame.left += (g_CluiData.bCLeft - 1);
                 rcFrame.right -= (g_CluiData.bCRight - 1);
@@ -1313,7 +1298,7 @@ LRESULT CALLBACK ContactListWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                 rcFrame.bottom++;
                 rcFrame.bottom -= g_CluiData.statusBarHeight;
                 if (g_CluiData.dwFlags & CLUI_FRAME_SHOWTOPBUTTONS && g_CluiData.dwFlags & CLUI_FRAME_BUTTONBARSUNKEN) {
-                    rc.top = 0 + g_CluiData.bCTop;;
+                    rc.top = g_CluiData.bCTop;;
                     rc.bottom = g_CluiData.dwButtonHeight + 2 + g_CluiData.bCTop;
                     rc.left++;
                     rc.right--;
@@ -2574,7 +2559,10 @@ int LoadCLUIModule(void)
         if (IsWindow(hProgMan))
             SetParent(hwndContactList, hProgMan);
     } 
-    
+
+	SFL_RegisterWindowClass();
+	SFL_Create();
+
 	//laster=GetLastError();
 	PreCreateCLC(hwndContactList);
     LoadCLUIFramesModule();

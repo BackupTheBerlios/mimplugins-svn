@@ -211,10 +211,8 @@ int CluiProtocolStatusChanged(WPARAM wParam,LPARAM lParam)
         
         _itoa(OFFSET_VISIBLE+i,(char *)&buf,10);
             //show this protocol ?
-        if (DBGetContactSettingDword(0,"Protocols",(char *)&buf,1)==0) {
+        if (DBGetContactSettingDword(0,"Protocols",(char *)&buf,1)==0)
             continue;
-        }
-
         
         _itoa(i,(char *)&buf,10);
         szStoredName=DBGetString(NULL,"Protocols",buf);
@@ -298,10 +296,12 @@ int CluiProtocolStatusChanged(WPARAM wParam,LPARAM lParam)
     g_isConnecting = (wStatus >= ID_STATUS_CONNECTING && wStatus < ID_STATUS_OFFLINE);
     szStatus = (char *)CallService(MS_CLIST_GETSTATUSMODEDESCRIPTION, (WPARAM) wStatus, 0);
 
-    //if (DBGetContactSettingByte(NULL, "ICQ", "XStatusEnabled", 0))
-    //    xStatus = DBGetContactSettingByte(NULL, "ICQ", "XStatusId", 0);
+	/*
+	 * set the global status icon and display the global (most online) status mode on the
+	 * status mode button
+	 */
 
-    if (szStatus) {
+	if (szStatus) {
         if(hwndContactList && IsWindow(GetDlgItem(hwndContactList, IDC_TBGLOBALSTATUS)) && IsWindow(GetDlgItem(hwndContactList, IDC_TBTOPSTATUS))) {
             SendMessageA(GetDlgItem(hwndContactList, IDC_TBGLOBALSTATUS), WM_SETTEXT, 0, (LPARAM) szStatus);
             if(!hIcon) {
@@ -314,6 +314,7 @@ int CluiProtocolStatusChanged(WPARAM wParam,LPARAM lParam)
             }
             InvalidateRect(GetDlgItem(hwndContactList, IDC_TBGLOBALSTATUS), NULL, TRUE);
             InvalidateRect(GetDlgItem(hwndContactList, IDC_TBTOPSTATUS), NULL, TRUE);
+			SFL_Update(hIcon, iIcon, hCListImages, szStatus);
         }
     }
     return 0;

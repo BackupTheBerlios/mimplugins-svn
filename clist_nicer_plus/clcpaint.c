@@ -1135,7 +1135,7 @@ text:
                 ChangeToFont(hdcMem, dat, FONTID_TIMESTAMP, &fHeight);
                 GetTextExtentPoint32A(hdcMem, szResult, lstrlenA(szResult), &szTime);
                 verticalfit = (rowHeight - fHeight >= g_CluiData.exIconScale + 1);
-                
+				
                 if(av_right) {
                     if(verticalfit)
                         rc.left = rcContent.right + (rightIcons * g_exIconSpacing) - szTime.cx - 2;

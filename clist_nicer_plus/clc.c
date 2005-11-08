@@ -111,73 +111,6 @@ int AvatarChanged(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-/*
-static int ClcSettingChanged(WPARAM wParam, LPARAM lParam)
-{
-    char *szProto;
-    DBCONTACTWRITESETTING *cws = (DBCONTACTWRITESETTING *) lParam;  
-
-    if (!strcmp(cws->szModule, "CList")) {
-        if (!strcmp(cws->szSetting, "MyHandle"))
-            WindowList_Broadcast(hClcWindowList, INTM_NAMECHANGED, wParam, lParam);
-        else if (!strcmp(cws->szSetting, "Group"))
-            WindowList_Broadcast(hClcWindowList, INTM_GROUPCHANGED, wParam, lParam);
-        else if (!strcmp(cws->szSetting, "Hidden"))
-            WindowList_Broadcast(hClcWindowList, INTM_HIDDENCHANGED, wParam, lParam);
-        else if (!strcmp(cws->szSetting, "NotOnList"))
-            WindowList_Broadcast(hClcWindowList, INTM_NOTONLISTCHANGED, wParam, lParam);
-        else if (!strcmp(cws->szSetting, "Status"))
-            WindowList_Broadcast(hClcWindowList, INTM_INVALIDATE, 0, 0);
-        else if (!strcmp(cws->szSetting, "NameOrder"))
-            WindowList_Broadcast(hClcWindowList, INTM_NAMEORDERCHANGED, 0, 0);
-        else if (!strcmp(cws->szSetting, "StatusMsg"))
-            WindowList_Broadcast(hClcWindowList, INTM_STATUSMSGCHANGED, wParam, lParam);
-    } else if (!strcmp(cws->szModule, "CListGroups")) {
-        WindowList_Broadcast(hClcWindowList, INTM_GROUPSCHANGED, wParam, lParam);
-    } else if (!strcmp(cws->szModule, "UserInfo")) {
-        if (!strcmp(cws->szSetting, "ANSIcodepage"))
-            WindowList_Broadcast(hClcWindowList, INTM_CODEPAGECHANGED, wParam, lParam);
-    } else {
-        szProto = (char*) CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
-        if (szProto != NULL && (HANDLE) wParam != NULL) {
-            char *id = NULL;
-            if (!strcmp(cws->szModule, "Protocol") && !strcmp(cws->szSetting, "p")) {
-                WindowList_Broadcast(hClcWindowList, INTM_PROTOCHANGED, wParam, lParam);
-            }
-    // something is being written to a protocol module
-            if (!strcmp(szProto, cws->szModule)) {
-    // was a unique setting key written?
-                id = (char*) CallProtoService(szProto, PS_GETCAPS, PFLAG_UNIQUEIDSETTING, 0);
-                if ((int) id != CALLSERVICE_NOTFOUND && id != NULL && !strcmp(id, cws->szSetting)) {
-                    WindowList_Broadcast(hClcWindowList, INTM_PROTOCHANGED, wParam, lParam);
-                }
-                else if (!strcmp(szProto, "MetaContacts") && g_CluiData.bMetaAvail && !(g_CluiData.dwFlags & CLUI_USEMETAICONS)) {
-                    if ((lstrlenA(cws->szSetting) > 6 && !strncmp(cws->szSetting, "Status", 6)) || strstr("Default,ForceSend,Nick", cws->szSetting))
-                        WindowList_Broadcast(hClcWindowList, INTM_NAMEORDERCHANGED, wParam, lParam);
-                }
-                else if(!strcmp(cws->szSetting, "YMsg") || !strcmp(cws->szSetting, "StatusDescr"))
-                    WindowList_Broadcast(hClcWindowList, INTM_STATUSMSGCHANGED, wParam, lParam);
-                else if (strstr(cws->szSetting, "XStatus"))
-                    WindowList_Broadcast(hClcWindowList, INTM_XSTATUSCHANGED, wParam, lParam);
-            }
-        }
-        if (szProto == NULL || strcmp(szProto, cws->szModule)) {
-            if(wParam == 0 && !strcmp(cws->szSetting, "XStatusId"))
-                CluiProtocolStatusChanged(0, 0);
-            return 0;
-        }
-        if (!strcmp(cws->szSetting, "Nick") || !strcmp(cws->szSetting, "FirstName") || !strcmp(cws->szSetting, "e-mail") || !strcmp(cws->szSetting, "LastName") || !strcmp(cws->szSetting, "UIN"))
-            WindowList_Broadcast(hClcWindowList, INTM_NAMECHANGED, wParam, lParam);
-        else if (!strcmp(cws->szSetting, "ApparentMode"))
-            WindowList_Broadcast(hClcWindowList, INTM_APPARENTMODECHANGED, wParam, lParam);
-        else if (!strcmp(cws->szSetting, "IdleTS"))
-            WindowList_Broadcast(hClcWindowList, INTM_IDLECHANGED, wParam, lParam);
-        else if (!strcmp(cws->szSetting, "MirVer"))
-            WindowList_Broadcast(hClcWindowList, INTM_CLIENTCHANGED, wParam, lParam);
-    }
-    return 0;
-} */
-
 static int __forceinline __strcmp(const char * src, const char * dst)
 {
     int ret = 0 ;
@@ -405,9 +338,13 @@ static int ClcShutdown(WPARAM wParam, LPARAM lParam)
         DestroyIcon(g_CluiData.hIconInvisible);
     if (g_CluiData.hIconVisible)
         DestroyIcon(g_CluiData.hIconVisible);
+	if (g_CluiData.hIconChatactive)
+		DestroyIcon(g_CluiData.hIconChatactive);
 
+	DeleteObject(g_CluiData.hBrushColorKey);
+	DeleteObject(g_CluiData.hBrushCLCBk);
     DeleteObject(g_CluiData.hBrushAvatarBorder);
-
+	SFL_Destroy();
     ClearIcons(1);
     ShutdownGdiPlus();
     pDrawAlpha = 0;

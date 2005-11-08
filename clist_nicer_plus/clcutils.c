@@ -906,6 +906,9 @@ void LoadClcOptions(HWND hwnd, struct ClcData *dat)
     if (!dat->bkChanged) {
         DBVARIANT dbv;
         dat->bkColour = DBGetContactSettingDword(NULL, "CLC", "BkColour", CLCDEFAULT_BKCOLOUR);
+		if(g_CluiData.hBrushCLCBk)
+			DeleteObject(g_CluiData.hBrushCLCBk);
+		g_CluiData.hBrushCLCBk = CreateSolidBrush(dat->bkColour);
         if (dat->hBmpBackground) {
             if(g_CluiData.hdcPic) {
                 SelectObject(g_CluiData.hdcPic, g_CluiData.hbmPicOld);

@@ -290,7 +290,8 @@ struct CluiData {
     BOOL forceResize;
     BOOL neeedSnap;
     COLORREF avatarBorder;
-    HBRUSH hBrushAvatarBorder;
+    HBRUSH hBrushAvatarBorder, hBrushColorKey;
+	HBRUSH hBrushCLCBk;
     DWORD avatarRadius;
     int avatarSize;
     BOOL bForceRefetchOnPaint;
@@ -487,6 +488,9 @@ void RTL_DetectAndSet(struct ClcContact *contact, HANDLE hContact);
 void RTL_DetectGroupName(struct ClcContact *group);
 void CLN_LoadAllIcons(BOOL mode);
 void ReloadSkinItemsToCache();
+void SFL_RegisterWindowClass();
+void SFL_Create();
+void SFL_Destroy();
 
 //clcopts.c
 int ClcOptInit(WPARAM wParam, LPARAM lParam);

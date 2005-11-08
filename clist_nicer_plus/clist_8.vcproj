@@ -1571,6 +1571,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\statusfloater.c"
+				>
+			</File>
+			<File
 				RelativePath=".\URLCtrl.c"
 				>
 			</File>
