@@ -364,6 +364,8 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 						DBWriteContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG));
 						DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0));
 						DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0));
+						if(IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && DBGetContactSettingByte(NULL, AVS_MODULE, "MakeTransparentBkg", 0))
+							SendMessage(hwndDlg, DM_REALODAVATAR, 0, 0);
                     }
                     DestroyWindow(hwndDlg);
                     break;

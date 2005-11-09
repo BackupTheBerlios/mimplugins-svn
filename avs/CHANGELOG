@@ -5,6 +5,14 @@
 
         + added patch by pescuma for making normal avatars transparent (or semi-
           transparent).
+          There are global (under Customize->Contact pictures) and per contact settings
+          (contact menu -> Contact picture...). In order to get good results, you will need
+          to tweak the settings a bit - it works for most avatar pictures with a uni-color
+          background, but it really depends on the image.
+          
+		+ built with Visual Studio 2005 (Visual C++ 8.0). The DLL is now statically
+		  linked, so they are somewhat bigger, but it avoids error messages because of the
+		  new VC++ 8 runtime which is not installed on most PCs.
 
 0.0.1.10 - 2005/10/19
 

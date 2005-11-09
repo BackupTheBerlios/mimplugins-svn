@@ -65,7 +65,7 @@ pfnImgDeleteDIBSection ImgDeleteDIBSection = 0;
 pfnImgGetHandle ImgGetHandle = 0;
 
 PLUGININFO pluginInfo = {
-    sizeof(PLUGININFO), "Avatar service", PLUGIN_MAKE_VERSION(0, 0, 1, 10), "Load and manage contact pictures for other plugins", "Nightwish", "", "Copyright 2000-2005 Miranda-IM project", "http://www.miranda-im.org", 0, 0
+    sizeof(PLUGININFO), "Avatar service", PLUGIN_MAKE_VERSION(0, 0, 1, 11), "Load and manage contact pictures for other plugins", "Nightwish", "", "Copyright 2000-2005 Miranda-IM project", "http://www.miranda-im.org", 0, 0
 };
 
 extern BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -796,12 +796,6 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, int iInde
         }
     }
 done:    
-    /*
-    {
-        char *szrealProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
-        if(szrealProto && !strcmp(szrealProto, "CCC_DE"))
-            _DebugPopup(hContact, "request for create %s", szFilename);
-    } */
     if(lstrlenA(szFilename) < 4)
         return -1;
     
