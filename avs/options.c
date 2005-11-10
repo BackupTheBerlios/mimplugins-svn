@@ -38,6 +38,7 @@ extern HANDLE hEventChanged;
 extern HINSTANCE g_hInst;
 extern HICON g_hIcon;
 extern BOOL g_imgDecoderAvail;
+extern CRITICAL_SECTION cachecs;
 
 extern int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, int iIndex, char *szProto);
 extern int ProtectAvatar(WPARAM wParam, LPARAM lParam), UpdateAvatar(HANDLE hContact);;
@@ -134,7 +135,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
     
     switch (msg) {
         case WM_INITDIALOG: {
-            LVITEM item = {0};
+            LVITEMA item = {0};
             LVCOLUMN lvc = {0};
             int i = 0, newItem = 0;
             
@@ -151,7 +152,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 if(lstrlenA(g_ProtoPictures[i].szProtoname) == 0)
                     break;
                 item.pszText = g_ProtoPictures[i].szProtoname;
-                newItem = ListView_InsertItem(hwndList, &item);
+				newItem = SendMessageA(hwndList, LVM_INSERTITEMA, 0, (LPARAM)&item);
                 if(newItem >= 0)
                     ListView_SetCheckState(hwndList, newItem, DBGetContactSettingByte(NULL, AVS_MODULE, item.pszText, 1) ? TRUE : FALSE);
             }
@@ -193,7 +194,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     item.pszText = szTemp;
                     item.cchTextMax = 100;
                     item.iItem = iItem;
-                    ListView_GetItem(hwndList, &item);
+					SendMessageA(hwndList, LVM_GETITEMA, 0, (LPARAM)&item);
                     if(lstrlenA(szTemp) > 1) {
                         if(LOWORD(wParam) == IDC_SETPROTOPIC)
                             SetProtoPic(szTemp);
@@ -241,7 +242,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                         case NM_CLICK:
                         {
                             int iItem = ListView_GetSelectionMark(hwndList);
-                            LVITEM item = {0};
+                            LVITEMA item = {0};
                             DBVARIANT dbv = {0};
                             g_selectedProto[0] = 0;
 
@@ -249,7 +250,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                             item.pszText = g_selectedProto;
                             item.cchTextMax = 100;
                             item.iItem = iItem;
-                            ListView_GetItem(hwndList, &item);
+							SendMessageA(hwndList, LVM_GETITEMA, 0, (LPARAM)&item);
                             g_selectedProto[99] = 0;
                             EnableWindow(hwndChoosePic, TRUE);
                             EnableWindow(hwndRemovePic, TRUE);
@@ -262,7 +263,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                                 DBFreeVariant(&dbv);
                             }
                             else {
-                                SetWindowTextA(GetDlgItem(hwndDlg, IDC_PROTOAVATARNAME), _T(""));
+                                SetWindowTextA(GetDlgItem(hwndDlg, IDC_PROTOAVATARNAME), "");
                                 InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
                             }
                             break;
@@ -279,7 +280,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     switch (((LPNMHDR) lParam)->code) {
                         case PSN_APPLY:
                         {
-                            LVITEM item = {0};
+                            LVITEMA item = {0};
                             int i;
                             char szTemp[110];
                             
@@ -288,7 +289,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                             item.cchTextMax = 100;
                             for(i = 0; i < ListView_GetItemCount(hwndList); i++) {
                                 item.iItem = i;
-                                ListView_GetItem(hwndList, &item);
+								SendMessageA(hwndList, LVM_GETITEMA, 0, (LPARAM)&item);
                                 if(ListView_GetCheckState(hwndList, i))
                                     DBWriteContactSettingByte(NULL, AVS_MODULE, item.pszText, 1);
                                 else
@@ -317,14 +318,18 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
         case WM_INITDIALOG:
         {
             TCHAR szTitle[512];
-            char *szNick = NULL;
+            TCHAR *szNick = NULL;
             
             SetWindowLong(hwndDlg, GWL_USERDATA, lParam);
             hContact = (HANDLE)lParam;
             TranslateDialogDefault(hwndDlg);
             if(hContact) {
-                szNick = (char *)CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM)hContact, 0);
-                _snprintf(szTitle, 500, "Set avatar options for %s", szNick);
+#if defined(_UNICODE)
+                szNick = (TCHAR *)CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM)hContact, GCDNF_UNICODE);
+#else
+                szNick = (TCHAR *)CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM)hContact, 0);
+#endif
+                _sntprintf(szTitle, 500, TranslateT("Set avatar options for %s"), szNick);
                 SetWindowText(hwndDlg, szTitle);
             }
             SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
@@ -391,22 +396,33 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                 case IDC_RESET:
                 {
                     char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
+					DBVARIANT dbv = {0};
+
+					EnterCriticalSection(&cachecs);
                     ProtectAvatar((WPARAM)hContact, 0);
+					if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
+						DeleteFileA(dbv.pszVal);
+						DBFreeVariant(&dbv);
+					}
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
                     DBDeleteContactSetting(hContact, szProto, "AvatarHash");
                     DBDeleteContactSetting(hContact, szProto, "AvatarSaved");
-                    DBDeleteContactSetting(hContact, szProto, "PictContext");
+					DeleteAvatar(hContact);
                     UpdateAvatar(hContact);
+					LeaveCriticalSection(&cachecs);
                     DestroyWindow(hwndDlg);
                     break;
                 }
                 case IDC_DELETE:
+					EnterCriticalSection(&cachecs);
+                    ProtectAvatar((WPARAM)hContact, 0);
                     DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0);
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
                     SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
                     InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
                     DeleteAvatar(hContact);
+					LeaveCriticalSection(&cachecs);
                     break;
             }
             break;
@@ -448,7 +464,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                 DBFreeVariant(&dbv);
             }
             szFinalName[MAX_PATH - 1] = 0;
-            SetDlgItemText(hwndDlg, IDC_AVATARNAME, szFinalName);
+            SetDlgItemTextA(hwndDlg, IDC_AVATARNAME, szFinalName);
             break;
         }
         case DM_REALODAVATAR:

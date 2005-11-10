@@ -43,7 +43,8 @@ HICON g_hIcon = 0;
 static struct avatarCacheEntry *g_avatarCache = 0;
 struct protoPicCacheEntry *g_ProtoPictures = 0;
 static int g_curAvatar = 0;
-static CRITICAL_SECTION avcs, cachecs;
+CRITICAL_SECTION cachecs;
+static CRITICAL_SECTION avcs;
 
 BOOL g_imgDecoderAvail = 0;
 
@@ -709,11 +710,6 @@ int UpdateAvatar(HANDLE hContact)
         if(DBGetContactSettingWord(hContact, szProto, "Status", ID_STATUS_OFFLINE) != ID_STATUS_OFFLINE) {
             pCaps = CallProtoService(szProto, PS_GETCAPS, PFLAGNUM_4, 0);
             if(pCaps & PF4_AVATARS && DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1) && DBGetContactSettingWord(hContact, szProto, "ApparentMode", 0) != ID_STATUS_OFFLINE) {
-                /*{
-                    char *szNick = (char *)CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM)hContact, 0);
-                    if(!strcmp(szNick, "Eisregen"))
-                        _DebugPopup(0, "scheduled an update");
-                }*/
                 EnterCriticalSection(&avcs);
                 for (i = 0; i < AV_QUEUESIZE && avatarUpdateQueue[i] != hContact; i++) {
                     if(iFound == -1 && avatarUpdateQueue[i] == 0)
@@ -1038,7 +1034,7 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
         *FileName = '\0';
         ofn.lpstrDefExt="";
         ofn.hInstance = g_hInst;
-        ofn.lpTemplateName = MAKEINTRESOURCE(IDD_OPENSUBCLASS);
+        ofn.lpTemplateName = MAKEINTRESOURCEA(IDD_OPENSUBCLASS);
         ofn.lpfnHook = OpenFileSubclass;
         locking_request = is_locked;
         ofn.lCustData = (LPARAM)&locking_request;
@@ -1544,8 +1540,8 @@ static int LoadAvatarModule()
      * initialize imgdecoder (if available)
      */
     
-    if((hModule = LoadLibrary("imgdecoder.dll")) == 0) {
-        if((hModule = LoadLibrary("plugins\\imgdecoder.dll")) != 0)
+    if((hModule = LoadLibraryA("imgdecoder.dll")) == 0) {
+        if((hModule = LoadLibraryA("plugins\\imgdecoder.dll")) != 0)
             g_imgDecoderAvail = TRUE;
     }
     else

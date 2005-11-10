@@ -94,7 +94,7 @@ __inline char * mir_strdup(const char *src)
 
 typedef  DWORD  (__stdcall *pfnImgNewDecoder)(void ** ppDecoder); 
 typedef DWORD (__stdcall *pfnImgDeleteDecoder)(void * pDecoder);
-typedef  DWORD  (__stdcall *pfnImgNewDIBFromFile)(LPVOID /*in*/pDecoder, LPCTSTR /*in*/pFileName, LPVOID /*out*/*pImg);
+typedef  DWORD  (__stdcall *pfnImgNewDIBFromFile)(LPVOID /*in*/pDecoder, LPCSTR /*in*/pFileName, LPVOID /*out*/*pImg);
 typedef DWORD (__stdcall *pfnImgDeleteDIBSection)(LPVOID /*in*/pImg);
 typedef DWORD (__stdcall *pfnImgGetHandle)(LPVOID /*in*/pImg, HBITMAP /*out*/*pBitmap, LPVOID /*out*/*ppDIBBits);
 
