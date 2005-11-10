@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="ICONS"
 	ProjectGUID="{8CA07E0A-0632-4F95-B411-CDFAF048821B}"
+	RootNamespace="ICONS"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -65,6 +66,7 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/default.pdb"
 				SubSystem="2"
+				ResourceOnlyDLL="true"
 				ImportLibrary="$(OutDir)/default.lib"
 				TargetMachine="1"
 			/>
@@ -143,6 +145,7 @@
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				ResourceOnlyDLL="true"
+				TurnOffAssemblyGeneration="true"
 				ImportLibrary="$(OutDir)/default.lib"
 				TargetMachine="1"
 			/>

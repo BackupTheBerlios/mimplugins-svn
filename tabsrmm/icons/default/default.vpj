@@ -3,12 +3,13 @@
 	Version="10.0"
 	VendorName="SlickEdit"
 	WorkingDir="."
-	AssociatedFile="default.vcproj"
-	AssociatedFileType="microsoft visual studio visual c++">
+	AssociatedFile="default.dsp"
+	AssociatedFileType="microsoft visual c++">
 	<Config
-		Name="Debug|Win32"
+		Name="CFG=ICONS - Win32 Release Unicode 98"
 		OutputFile=""
-		CompilerConfigName="Visual Studio 2003">
+		CompilerConfigName="Visual Studio 2003"
+		ObjectDir="">
 		<Includes>
 			<Include Dir="%(INCLUDE)"/>
 		</Includes>
@@ -87,9 +88,10 @@
 		</Menu>
 	</Config>
 	<Config
-		Name="Release|Win32"
+		Name="CFG=ICONS - Win32 Release"
 		OutputFile=""
-		CompilerConfigName="Visual Studio 2003">
+		CompilerConfigName="Visual Studio 2003"
+		ObjectDir="">
 		<Includes>
 			<Include Dir="%(INCLUDE)"/>
 		</Includes>
@@ -168,9 +170,10 @@
 		</Menu>
 	</Config>
 	<Config
-		Name="Release Unicode 98|Win32"
+		Name="CFG=ICONS - Win32 Debug"
 		OutputFile=""
-		CompilerConfigName="Visual Studio 2003">
+		CompilerConfigName="Visual Studio 2003"
+		ObjectDir="">
 		<Includes>
 			<Include Dir="%(INCLUDE)"/>
 		</Includes>
