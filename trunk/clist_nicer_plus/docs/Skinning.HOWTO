@@ -1,0 +1,5 @@
+First of all: Whil adding a lot of possibilites to skin the contact list, clist_nicer+ skinning is still not as advanced as it is in clist_modern. Some effects (like glassy transparency on borders) isn't possible without converting the plugin to a "layered" application, which I don't want at the moment. The advantage is that clist_nicer+ still supports the "old way" of skinning and can, in fact, work without any skinning at all.
+
+[u]1. Classic skinning[/u]
+
+This should be well known by most users - Most options are on the [color=Red]Background+[/color] page. There are items for each status mode, for various other screen elements like buttons, frame titles, the event area and there are items for each installed protocol to allow "per protocol" skinning. This skinning works "real time" - changing the items will affect the look of the contact list immediatly when hitting Apply.
