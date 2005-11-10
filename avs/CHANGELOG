@@ -17,6 +17,10 @@
 		+ added unicode version (loadavatarsW.dll) which will display unicode nicknames in
 		  the "per user" contact picture dialog.
 		  
+		+ added services and events to manage own avatar pictures. See m_avatars.h for more
+		  information. Also, the drawing service was enhanced to allow drawing your own
+		  avatars.
+		  
 0.0.1.10 - 2005/10/19
 
         ! added support for jabber avatar updates.

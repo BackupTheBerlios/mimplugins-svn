@@ -63,6 +63,7 @@ like MSN don't allow any outbound client communication when in invisible status 
 #define AVS_PROTOPIC 16             // picture is a protocol picture
 #define AVS_CUSTOMTRANSPBKG 32      // Bitmap was changed to set the background color transparent
 #define AVS_HASTRANSPARENCY 64      // Bitmap has at least one pixel transparent
+#define AVS_OWNAVATAR 128			// is own avatar entry
 
 struct avatarCacheEntry {
     DWORD cbSize;                   // set to sizeof(struct)
@@ -85,6 +86,7 @@ typedef struct avatarCacheEntry AVATARCACHEENTRY;
 #define AVDRQ_DRAWBORDER 8                 // draw a border around the picture
 #define AVDRQ_PROTOPICT  16                // draw a protocol picture (if available).
 #define AVDRQ_HIDEBORDERONTRANSPARENCY 32  // hide border if bitmap has transparency
+#define AVDRQ_OWNPIC	64				   // draw own avatar (szProto is valid)
 
 // request to draw a contacts picture. See MS_AV_DRAWAVATAR service description
 
@@ -101,7 +103,7 @@ typedef struct _avatarDrawRequest {
     UCHAR  radius;                  // radius (used with AVDRQ_ROUNDEDCORNER)
     UCHAR  alpha;                   // alpha value for semi-transparent avatars (valid values form 1 to 255, if it is set to 0
                                     // the avatar won't be transparent.
-    char   *szProto;                // only used when AVDRQ_PROTOPICT is set
+    char   *szProto;                // only used when AVDRQ_PROTOPICT or AVDRQ_OWNPIC is set
 } AVATARDRAWREQUEST;
 
 #define INITIAL_AVATARCACHESIZE 300
@@ -119,6 +121,14 @@ typedef struct _avatarDrawRequest {
 // DONT modify the contents of the returned data structure
 
 #define MS_AV_GETAVATARBITMAP "SV_Avatars/GetAvatar"
+
+// obtain a avatar cache entry for one of my own avatars
+// wParam = 0
+// lParam = (char *)szProto  (protocol for which we need to obtain the own avatar information)
+// returns: pointer to a struct avatarCacheEntry *, NULL on failure
+// DONT modify the contents of the returned data structure
+
+#define MS_AV_GETMYAVATAR "SV_Avatars/GetMyAvatar"
 
 // protect the current contact picture from being overwritten by automatic
 // avatar updates. Actually, it only backups the contact picture filename
@@ -169,5 +179,11 @@ typedef struct _avatarDrawRequest {
 // a protocol picture (pseudo - avatar) has been changed. 
  
 #define ME_AV_AVATARCHANGED "SV_Avatars/AvatarChanged"
+
+// fired when one of our own avatars was changed
+// wParam = (char *)szProto (protocol for which a new avatar was set)
+// lParam = AVATARCACHEENTRY *ace (new cache entry, NULL if the new avatar is not valid)
+ 
+#define ME_AV_MYAVATARCHANGED "SV_Avatars/MyAvatarChanged"
 
 #endif
