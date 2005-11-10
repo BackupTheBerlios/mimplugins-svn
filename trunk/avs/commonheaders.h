@@ -63,6 +63,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <m_file.h>
 #include <m_addcontact.h>
 
+#include "m_avatars.h"
+#include <m_popup.h>
+#include "m_metacontacts.h"
+#include "resource.h"
+#include "m_updater.h"
+
 // shared vars
 extern HINSTANCE g_hInst;
 
@@ -87,7 +93,7 @@ __inline char * mir_strdup(const char *src)
     char *p = 0;
     if (src == NULL)
         return NULL;
-    p = mir_alloc(strlen(src) + 1);
+    p = (char *)mir_alloc(strlen(src) + 1);
     strcpy(p, src);
     return p;
 }

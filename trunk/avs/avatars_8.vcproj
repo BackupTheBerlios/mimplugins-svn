@@ -151,15 +151,15 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				UsePrecompiledHeader="0"
+				UsePrecompiledHeader="1"
 				PrecompiledHeaderThrough="commonheaders.h"
-				PrecompiledHeaderFile=".\Release/clist.pch"
+				PrecompiledHeaderFile="$(IntDir/clist.pch"
 				AssemblerListingLocation=".\Release/"
 				ObjectFile=".\Release/"
 				ProgramDataBaseFileName=".\Release/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
-				CompileAs="0"
+				CompileAs="2"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -252,13 +252,13 @@
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="commonheaders.h"
-				PrecompiledHeaderFile=".\Release/clist.pch"
+				PrecompiledHeaderFile="$(IntDir/clist.pch"
 				AssemblerListingLocation=".\Release/"
 				ObjectFile=".\Release/"
 				ProgramDataBaseFileName=".\Release/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
-				CompileAs="0"
+				CompileAs="2"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -318,11 +318,11 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath=".\main.c"
+				RelativePath=".\main.cpp"
 				>
 			</File>
 			<File
-				RelativePath="options.c"
+				RelativePath=".\options.cpp"
 				>
 			</File>
 		</Filter>
