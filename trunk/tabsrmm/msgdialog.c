@@ -1083,6 +1083,18 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 dat->iCurrentQueueError = -1;
                 dat->history[dat->iHistorySize].szText = (TCHAR *)malloc((HISTORY_INITIAL_ALLOCSIZE + 1) * sizeof(TCHAR));
                 dat->history[dat->iHistorySize].lLen = HISTORY_INITIAL_ALLOCSIZE;
+				
+				/*
+				 * message history limit
+				 * hHistoryEvents holds up to n event handles
+				 */
+
+				dat->maxHistory = DBGetContactSettingDword(dat->hContact, SRMSGMOD_T, "maxhist", DBGetContactSettingDword(NULL, SRMSGMOD_T, "maxhist", 0));
+				dat->curHistory = 0;
+				if(dat->maxHistory)
+					dat->hHistoryEvents = (HANDLE *)malloc(dat->maxHistory * sizeof(HANDLE));
+				else
+					dat->hHistoryEvents = NULL;
 
                 if(!DBGetContactSettingByte(NULL, SRMSGMOD_T, "splitteredges", 1)) {
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_SPLITTER), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_SPLITTER), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
@@ -4981,6 +4993,8 @@ verify:
                 DeleteObject(dat->hInputBkgBrush);
             if (dat->sendBuffer != NULL)
                 free(dat->sendBuffer);
+			if (dat->hHistoryEvents)
+				free(dat->hHistoryEvents);
             {
                 int i;
                 // input history stuff (free everything)
