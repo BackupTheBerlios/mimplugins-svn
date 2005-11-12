@@ -37,7 +37,7 @@ extern BOOL g_imgDecoderAvail;
 extern CRITICAL_SECTION cachecs;
 
 extern int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, int iIndex, char *szProto);
-extern int ProtectAvatar(WPARAM wParam, LPARAM lParam), UpdateAvatar(HANDLE hContact);;
+extern int ProtectAvatar(WPARAM wParam, LPARAM lParam), UpdateAvatar(HANDLE hContact);
 extern int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode);
 extern int DeleteAvatar(HANDLE hContact);
 extern int ChangeAvatar(HANDLE hContact);
@@ -131,7 +131,8 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
         case WM_INITDIALOG: {
             LVITEMA item = {0};
             LVCOLUMN lvc = {0};
-            int i = 0, newItem = 0;
+            int i = 0;
+			UINT64 newItem = 0;
             
             dialoginit = TRUE;
             TranslateDialogDefault(hwndDlg);
@@ -289,7 +290,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                                 else
                                     DBWriteContactSettingByte(NULL, AVS_MODULE, item.pszText, 0);
                             }
-                            DBWriteContactSettingDword(NULL, AVS_MODULE, "SizeLimit", SendDlgItemMessage(hwndDlg, IDC_SIZELIMITSPIN, UDM_GETPOS, 0, 0));
+                            DBWriteContactSettingDword(NULL, AVS_MODULE, "SizeLimit", (DWORD)SendDlgItemMessage(hwndDlg, IDC_SIZELIMITSPIN, UDM_GETPOS, 0, 0));
                             DBWriteContactSettingByte(NULL, AVS_MODULE, "warnings", IsDlgButtonChecked(hwndDlg, IDC_SHOWWARNINGS) ? 1 : 0);
                             DBWriteContactSettingByte(NULL, AVS_MODULE, "MakeTransparentBkg", IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG) ? 1 : 0);
 							DBWriteContactSettingWord(NULL, AVS_MODULE, "TranspBkgNumPoints", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0));
@@ -306,7 +307,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 
 BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    HANDLE hContact = (HANDLE)GetWindowLong(hwndDlg, (LONG)GWL_USERDATA);
+    HANDLE hContact = (HANDLE)GetWindowLongPtr(hwndDlg, (LONG)GWL_USERDATA);
 
     switch(msg) {
         case WM_INITDIALOG:
@@ -314,7 +315,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
             TCHAR szTitle[512];
             TCHAR *szNick = NULL;
             
-            SetWindowLong(hwndDlg, GWL_USERDATA, lParam);
+            SetWindowLong(hwndDlg, GWL_USERDATA, (LONG)lParam);
             hContact = (HANDLE)lParam;
             TranslateDialogDefault(hwndDlg);
             if(hContact) {

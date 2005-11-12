@@ -1,6 +1,12 @@
 
         Version history:
 
+0.0.1.12 - 2005/11/10
+
+		+ improved filesystem searches for own avatar pictures at startup.
+		
+		* switched project and sources to C++ 
+		
 0.0.1.11 - 2005/11/10
 
         + added patch by pescuma for making normal avatars transparent (or semi-

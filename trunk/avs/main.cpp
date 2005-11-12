@@ -32,6 +32,8 @@ char g_installed_protos[1030];
 static int AV_QUEUESIZE = 0;
 char *g_MetaName = NULL;
 
+static char g_szDBPath[MAX_PATH];		// database profile path (read at startup only)
+
 HANDLE hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hMyAvatarChanged = 0;
 HICON g_hIcon = 0;
 
@@ -513,9 +515,11 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 			{
 				if (ColorsAreTheSame(colorDiff, px1, (BYTE *) &colors[selectedColor]))
 				{
+					/*
 					px1[3] = (abs(px1[0] - colors[selectedColor][0]) 
 							 + abs(px1[1] - colors[selectedColor][1]) 
-							 + abs(px1[2] - colors[selectedColor][2])) / 3;
+							 + abs(px1[2] - colors[selectedColor][2])) / 3;*/
+					px1[3] = 0;
 
 					// Add 4 neighbours
 
@@ -619,7 +623,7 @@ static void MakePathRelative(HANDLE hContact)
    }
 }
 
-static DWORD WINAPI AvatarUpdateThread(LPVOID vParam)
+static void AvatarUpdateThread(LPVOID vParam)
 {
     PROTO_AVATAR_INFORMATION pai_s;
     int result;
@@ -631,7 +635,7 @@ static DWORD WINAPI AvatarUpdateThread(LPVOID vParam)
         if(dwPendingAvatarJobs == 0 && bAvatarThreadRunning)
             SuspendThread(hAvatarThread);                       // nothing to do...
         if(!bAvatarThreadRunning)                           
-            return 0;
+            _endthread();
         /*
          * the thread is awake, processing the update quque one by one entry with a given delay of 5 seconds. The delay
          * ensures that no protocol will kick us because of flood protection(s)
@@ -689,7 +693,7 @@ static DWORD WINAPI AvatarUpdateThread(LPVOID vParam)
         }
         Sleep(5000L);
     } while ( bAvatarThreadRunning );
-    return 0;
+	_endthread();
 }
 
 int UpdateAvatar(HANDLE hContact)
@@ -732,8 +736,10 @@ HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename)
         return 0;
     
     ImgNewDecoder(&m_pImgDecoder);
-    if (!ImgNewDIBFromFile(m_pImgDecoder, szFilename, &pImg))
-        ImgGetHandle(pImg, &hBitmap, (LPVOID *)&pBitmapBits);
+	if (!ImgNewDIBFromFile(m_pImgDecoder, szFilename, &pImg)) {
+		if(pImg)
+			ImgGetHandle(pImg, &hBitmap, (LPVOID *)&pBitmapBits);
+	}
     ImgDeleteDecoder(m_pImgDecoder);
     if(hBitmap == 0)
         return 0;
@@ -779,13 +785,14 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, int iInde
 
     }
     else {
-		if(hContact == 0) {				// protocol picture
+		if(hContact == 0) {				// create a protocol picture in the proto picture cache
 			if(!DBGetContactSetting(NULL, PPICT_MODULE, szProto, &dbv)) {
 				CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
 				DBFreeVariant(&dbv);
 			}
 		}
-		else if(hContact == (HANDLE)-1) {	// own avatar
+		else if(hContact == (HANDLE)-1) {	// create own picture - note, own avatars are not on demand, they are loaded once at
+											// startup and everytime they are changed.
 			if(!DBGetContactSetting(NULL, szProto, "AvatarFile", &dbv)) {
 				CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
 				DBFreeVariant(&dbv);
@@ -794,22 +801,17 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, int iInde
 				char szTestFile[MAX_PATH];
 				HANDLE hFFD;
 				WIN32_FIND_DATAA ffd = {0};
-
-				_snprintf(szTestFile, MAX_PATH, "MSN\\%s avatar.*", szProto);
+				_snprintf(szTestFile, MAX_PATH, "%s\\MSN\\%s avatar.*", g_szDBPath, szProto);
 				szTestFile[MAX_PATH - 1] = 0;
-				CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)szTestFile, (LPARAM)szFilename);
-				if((hFFD = FindFirstFileA(szFilename, &ffd)) != INVALID_HANDLE_VALUE) {
-					_snprintf(szTestFile, MAX_PATH, "MSN\\%s", ffd.cFileName);
-					CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)szTestFile, (LPARAM)szFilename);
+				if((hFFD = FindFirstFileA(szTestFile, &ffd)) != INVALID_HANDLE_VALUE) {
+					_snprintf(szFilename, MAX_PATH, "%s\\MSN\\%s", g_szDBPath, ffd.cFileName);
 					FindClose(hFFD);
 					goto done;
 				}
-				_snprintf(szTestFile, MAX_PATH, "jabber\\%s avatar.*", szProto);
+				_snprintf(szTestFile, MAX_PATH, "%s\\jabber\\%s avatar.*", g_szDBPath, szProto);
 				szTestFile[MAX_PATH - 1] = 0;
-				CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)szTestFile, (LPARAM)szFilename);
-				if((hFFD = FindFirstFileA(szFilename, &ffd)) != INVALID_HANDLE_VALUE) {
-					_snprintf(szTestFile, MAX_PATH, "jabber\\%s", ffd.cFileName);
-					CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)szTestFile, (LPARAM)szFilename);
+				if((hFFD = FindFirstFileA(szTestFile, &ffd)) != INVALID_HANDLE_VALUE) {
+					_snprintf(szFilename, MAX_PATH, "%s\\jabber\\%s", g_szDBPath, ffd.cFileName);
 					FindClose(hFFD);
 					goto done;
 				}
@@ -1309,13 +1311,12 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-static DWORD WINAPI ReloadMyAvatar(LPVOID lpParam)
+static void ReloadMyAvatar(LPVOID lpParam)
 {
-	int i;
 	char *szProto = (char *)lpParam;
-
+	
 	Sleep(5000);
-	for(i = 0; i < g_protocount; i++) {
+	for(int i = 0; i < g_protocount; i++) {
 		if(!strcmp(g_MyAvatars[i].szProtoname, szProto) && lstrlenA(szProto) == lstrlenA(g_MyAvatars[i].szProtoname)) {
 			if(g_MyAvatars[i].lpDIBSection && ImgDeleteDIBSection)
 				ImgDeleteDIBSection(g_MyAvatars[i].lpDIBSection);
@@ -1329,7 +1330,7 @@ static DWORD WINAPI ReloadMyAvatar(LPVOID lpParam)
 		}
 	}
 	free(lpParam);
-	return 0;
+	_endthread();
 }
 
 static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
@@ -1347,12 +1348,11 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 
 				for(i = 0; i < g_protocount; i++) {
 					if(!strcmp(g_MyAvatars[i].szProtoname, cws->szModule) && lstrlenA(cws->szModule) == lstrlenA(g_MyAvatars[i].szProtoname)) {
-						DWORD dwThreadid;
 						LPVOID lpParam = 0;
 
 						lpParam = (void *)malloc(lstrlenA(g_MyAvatars[i].szProtoname) + 2);
 						strcpy((char *)lpParam, g_MyAvatars[i].szProtoname);
-						CloseHandle(CreateThread(NULL, 16000, ReloadMyAvatar, lpParam, 0, &dwThreadid));
+						_beginthread(ReloadMyAvatar, 0, lpParam);
 						return 0;
 					}
 				}
@@ -1447,7 +1447,9 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
     UnhookEvent(hProtoAckHook);
     UnhookEvent(hEventChanged);
     
-    for(int i = 0; i < g_curAvatar; i++) {
+    EnterCriticalSection(&cachecs);
+
+	for(int i = 0; i < g_curAvatar; i++) {
         if(g_avatarCache[i].lpDIBSection && ImgDeleteDIBSection)
             ImgDeleteDIBSection(g_avatarCache[i].lpDIBSection);
         if(g_avatarCache[i].hbmPic != 0)
@@ -1473,14 +1475,19 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 	if(g_MyAvatars)
 		free(g_MyAvatars);
 
-    bAvatarThreadRunning = FALSE;
+    LeaveCriticalSection(&cachecs);
+
+	bAvatarThreadRunning = FALSE;
     ResumeThread(hAvatarThread);
-    do {
+    /*
+	do {
         Sleep(100);
         GetExitCodeThread(hAvatarThread, &dwExitcode);
     } while (dwExitcode == STILL_ACTIVE);
     if(hAvatarThread)
-        CloseHandle(hAvatarThread);
+        CloseHandle(hAvatarThread);*/
+
+	WaitForSingleObject(hAvatarThread, 6000);
 
     DeleteCriticalSection(&avcs);
     DeleteCriticalSection(&cachecs);
@@ -1679,8 +1686,11 @@ static int LoadAvatarModule()
         ImgDeleteDIBSection=(pfnImgDeleteDIBSection)GetProcAddress(hModule, "ImgDeleteDIBSection");
         ImgGetHandle=(pfnImgGetHandle)GetProcAddress(hModule, "ImgGetHandle");
     }
-    hAvatarThread = CreateThread(NULL, 16000, AvatarUpdateThread, NULL, 0, &dwAvatarThreadID);
 
+    CallService(MS_DB_GETPROFILEPATH, MAX_PATH, (LPARAM)g_szDBPath);
+
+	hAvatarThread = (HANDLE)_beginthread(AvatarUpdateThread, 0, NULL);
+	//hAvatarThread = CreateThread(NULL, 16000, AvatarUpdateThread, NULL, 0, &dwAvatarThreadID);
     return 0;
 }
 

@@ -225,10 +225,10 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat">
 			<File
-				RelativePath=".\main.c">
+				RelativePath=".\main.cpp">
 			</File>
 			<File
-				RelativePath="options.c">
+				RelativePath="options.cpp">
 			</File>
 		</Filter>
 		<Filter
