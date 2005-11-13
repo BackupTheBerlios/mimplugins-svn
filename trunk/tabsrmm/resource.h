@@ -184,6 +184,7 @@
 #define IDC_BKGCOLOUR                   1122
 #define IDC_INPUTBKG                    1123
 #define IDC_MATH_BKGCOLOUR              1124
+#define IDC_INFOPANELBG                 1124
 #define IDC_BKGOUTGOING                 1125
 #define IDC_BKGINCOMING                 1126
 #define IDC_FONTCOLOR                   1127
@@ -281,8 +282,6 @@
 #define IDC_ALWAYS                      1211
 #define IDC_APPARENTMODE                1212
 #define IDC_FULLUSERNAME                1212
-#define IDC_READSTATUS                  1213
-#define IDC_CHECK5                      1213
 #define IDC_TOGGLENOTES                 1214
 #define IDC_NOTES                       1215
 #define IDC_TRANSPARENCY                1215

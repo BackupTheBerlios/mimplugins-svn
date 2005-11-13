@@ -407,6 +407,8 @@ BEGIN
     CONTROL         "",IDC_BKGINCOMING,"ColourPicker",WS_TABSTOP,258,178,39,10
     CONTROL         "",IDC_GRIDLINES,"ColourPicker",WS_TABSTOP,258,192,39,10
     LTEXT           "Horizontal grid lines:",IDC_STATIC,171,192,78,10
+    CONTROL         "",IDC_INFOPANELBG,"ColourPicker",WS_TABSTOP,102,193,39,10
+    LTEXT           "Info panel fields",IDC_STATIC,15,193,80,10
 END
 
 IDD_TEMPLATEEDIT DIALOGEX 0, 0, 368, 231
