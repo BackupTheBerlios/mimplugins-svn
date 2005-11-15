@@ -53,6 +53,7 @@ void CreateImageList(BOOL bInitial);
 void _DBWriteContactSettingWString(HANDLE hContact, const char *szKey, const char *szSetting, wchar_t *value);
 BOOL CALLBACK DlgProcSetupStatusModes(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 static BOOL CALLBACK OptionsDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+void GetDefaultContainerTitleFormat();
 
 struct FontOptionsList
 {
@@ -1191,7 +1192,6 @@ static BOOL CALLBACK DlgProcContainerSettings(HWND hwndDlg, UINT msg, WPARAM wPa
                     switch (((LPNMHDR) lParam)->code) {
 						case PSN_APPLY: {
                             BOOL translated;
-                            char *szDefault = 0;
                             TCHAR szDefaultName[TITLE_FORMATLEN + 2];
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, "useclistgroups", IsDlgButtonChecked(hwndDlg, IDC_CONTAINERGROUPMODE));
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, "limittabs", IsDlgButtonChecked(hwndDlg, IDC_LIMITTABS));
@@ -1223,20 +1223,11 @@ static BOOL CALLBACK DlgProcContainerSettings(HWND hwndDlg, UINT msg, WPARAM wPa
                             }
                             GetDlgItemText(hwndDlg, IDC_DEFAULTTITLEFORMAT, szDefaultName, TITLE_FORMATLEN);
 #if defined(_UNICODE)
-                            szDefault = Utf8_Encode(szDefaultName);
-                            DBWriteContactSettingString(NULL, SRMSGMOD_T, "titleformatW", szDefault);
-                            free(szDefault);
+                            DBWriteContactSettingWString(NULL, SRMSGMOD_T, "titleformatW", szDefaultName);
 #else                            
                             DBWriteContactSettingString(NULL, SRMSGMOD_T, "titleformat", szDefaultName);
 #endif
-                            if(myGlobals.szDefaultTitleFormat)
-                                free(myGlobals.szDefaultTitleFormat);
-#if defined(_UNICODE)
-                            myGlobals.szDefaultTitleFormat = MY_DBGetContactSettingString(NULL, SRMSGMOD_T, "titleformatW");
-#else
-                            myGlobals.szDefaultTitleFormat = MY_DBGetContactSettingString(NULL, SRMSGMOD_T, "titleformat");
-#endif                            
-                            
+							GetDefaultContainerTitleFormat();
                             myGlobals.g_wantSnapping = ServiceExists("Utils/SnapWindowProc") && IsDlgButtonChecked(hwndDlg, IDC_USESNAPPING);
                             BuildContainerMenu();
                             return TRUE;
@@ -2149,4 +2140,30 @@ void MoveFonts()
         DBDeleteContactSetting(NULL, SRMSGMOD_T, colornames[i].szSetting);
         i++;
     }
+}
+
+void GetDefaultContainerTitleFormat()
+{
+	DBVARIANT dbv = {0};
+#if defined(_UNICODE)
+	if(DBGetContactSettingTString(NULL, SRMSGMOD_T, "titleformatW", &dbv)) {
+        DBWriteContactSettingTString(NULL, SRMSGMOD_T, "titleformatW", _T("%n - %s"));
+		_tcsncpy(myGlobals.szDefaultTitleFormat, L"%n - %s", safe_sizeof(myGlobals.szDefaultTitleFormat));
+	}
+	else {
+		_tcsncpy(myGlobals.szDefaultTitleFormat, dbv.ptszVal, safe_sizeof(myGlobals.szDefaultTitleFormat));
+		DBFreeVariant(&dbv);
+	}
+	myGlobals.szDefaultTitleFormat[255] = 0;
+#else
+	if(DBGetContactSetting(NULL, SRMSGMOD_T, "titleformat", &dbv)) {
+        DBWriteContactSettingString(NULL, SRMSGMOD_T, "titleformat", "%n - %s");
+		_tcsncpy(myGlobals.szDefaultTitleFormat, "%n - %s", sizeof(myGlobals.szDefaultTitleFormat));
+	}
+	else {
+		_tcsncpy(myGlobals.szDefaultTitleFormat, dbv.pszVal, sizeof(myGlobals.szDefaultTitleFormat));
+		DBFreeVariant(&dbv);
+	}
+	myGlobals.szDefaultTitleFormat[255] = 0;
+#endif
 }

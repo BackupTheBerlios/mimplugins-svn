@@ -58,7 +58,7 @@ MYGLOBALS myGlobals;
 NEN_OPTIONS nen_options;
 extern PLUGININFO pluginInfo;
 
-TCHAR *MY_DBGetContactSettingString(HANDLE hContact, char *szModule, char *szSetting);
+//TCHAR *MY_DBGetContactSettingString(HANDLE hContact, char *szModule, char *szSetting);
 static void InitREOleCallback(void);
 static int IcoLibIconsChanged(WPARAM wParam, LPARAM lParam);
 static int AvatarChanged(WPARAM wParam, LPARAM lParam);
@@ -85,9 +85,6 @@ BOOL gdiPlusFail = FALSE;
 extern struct SendJob sendJobs[NR_SENDJOBS];
 
 HANDLE g_hEvent_MsgWin;
-#if defined(_UNICODE)
-HHOOK g_hMsgHook = 0;
-#endif
 
 HICON LoadOneIcon(int iconId, char *szName);
 
@@ -117,26 +114,6 @@ void FirstTimeConfig();
  * installed as a WH_GETMESSAGE hook in order to process unicode messages.
  * without this, the rich edit control does NOT accept input for all languages.
  */
-
-#if defined(_UNICODE) && defined(WANT_UGLY_HOOK)
-LRESULT CALLBACK GetMsgHookProc(int iCode, WPARAM wParam, LPARAM lParam)
-{
-    MSG *msg = (MSG *)lParam;
-    if(iCode < 0)
-        return CallNextHookEx(g_hMsgHook, iCode, wParam, lParam);
-
-    if(wParam == PM_REMOVE) {
-        if(IsWindowUnicode(msg->hwnd)) {
-            if(msg->message >= WM_KEYFIRST && msg->message <= WM_KEYLAST) {
-                TranslateMessage(msg);
-                DispatchMessageW(msg);
-                msg->message = WM_NULL;
-            }
-        }
-    }
-    return CallNextHookEx(g_hMsgHook, iCode, wParam, lParam);
-}
-#endif
 
 static int SmileyAddOptionsChanged(WPARAM wParam, LPARAM lParam)
 {
@@ -988,6 +965,7 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
     if(ServiceExists(MS_UPDATE_REGISTER))
         CallService(MS_UPDATE_REGISTER, 0, (LPARAM)&upd);
 
+	//FirstTimeConfig();
 	return 0;
 }
 
@@ -1238,7 +1216,6 @@ int LoadSendRecvMessageModule(void)
 
     LoadTSButtonModule();
     RegisterTabCtrlClass();
-    //FirstTimeConfig();
     ReloadGlobals();
     GetDataDir();
     ReloadTabConfig();
@@ -1253,15 +1230,7 @@ int LoadSendRecvMessageModule(void)
     CacheLogFonts();
     BuildCodePageList();
     myGlobals.m_VSApiEnabled = InitVSApi();
-#if defined(_UNICODE)
-    if(MY_DBGetContactSettingString(NULL, SRMSGMOD_T, "titleformatW") == NULL)
-        DBWriteContactSettingString(NULL, SRMSGMOD_T, "titleformatW", "%n - %s");
-    myGlobals.szDefaultTitleFormat = MY_DBGetContactSettingString(NULL, SRMSGMOD_T, "titleformatW");
-#else
-    if(MY_DBGetContactSettingString(NULL, SRMSGMOD_T, "titleformat") == NULL)
-        DBWriteContactSettingString(NULL, SRMSGMOD_T, "titleformat", "%n - %s");
-    myGlobals.szDefaultTitleFormat = MY_DBGetContactSettingString(NULL, SRMSGMOD_T, "titleformat");
-#endif
+	GetDefaultContainerTitleFormat();
     myGlobals.m_GlobalContainerFlags = DBGetContactSettingDword(NULL, SRMSGMOD_T, "containerflags", CNT_FLAGS_DEFAULT);
     if(!(myGlobals.m_GlobalContainerFlags & CNT_NEWCONTAINERFLAGS))
         myGlobals.m_GlobalContainerFlags = CNT_FLAGS_DEFAULT;

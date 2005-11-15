@@ -346,13 +346,11 @@ char *GetThemeFileName(int iMode)
 {
     static char szFilename[MAX_PATH];
     OPENFILENAMEA ofn={0};
-    char szFilter[MAX_PATH];
 
-    strncpy(szFilter, "tabSRMM themes\0*.tabsrmm\0\0", MAX_PATH);
+    ofn.lpstrFilter = "tabSRMM themes\0*.tabsrmm\0\0";
     ofn.lStructSize= OPENFILENAME_SIZE_VERSION_400;
     ofn.hwndOwner=0;
     ofn.lpstrFile = szFilename;
-    ofn.lpstrFilter = szFilter;
     ofn.lpstrInitialDir = ".";
     ofn.nMaxFile = MAX_PATH;
     ofn.nMaxFileTitle = MAX_PATH;

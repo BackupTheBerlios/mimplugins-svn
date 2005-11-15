@@ -286,9 +286,11 @@ static BOOL CALLBACK DlgProcFirsttime(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
                 }
 				case IDCANCEL:
 					DestroyWindow(hwndDlg);
-                    DBWriteContactSettingByte(NULL, SRMSGMOD_T, "firstrun", 1);
 					return TRUE;
 			}
+			break;
+		case WM_DESTROY:
+            DBWriteContactSettingByte(NULL, SRMSGMOD_T, "firstrun", 1);
 			break;
 	}
 	return FALSE;

@@ -2203,10 +2203,7 @@ void LoadOverrideTheme(HWND hwndDlg, struct MessageWindowData *dat)
             dat->theme.logFonts = dat->pContainer->logFonts;
             dat->theme.fontColors = dat->pContainer->fontColors;
             dat->theme.rtfFonts = dat->pContainer->rtfFonts;
-            if(bReadTemplates)
-                ReadThemeFromINI(dat->pContainer->szThemeFile, dat, 0);
-            else
-                ReadThemeFromINI(dat->pContainer->szThemeFile, dat, 1);
+			ReadThemeFromINI(dat->pContainer->szThemeFile, dat, bReadTemplates ? 0 : 1);
             dat->dwFlags = dat->theme.dwFlags;
             dat->theme.left_indent *= 15;
             dat->theme.right_indent *= 15;

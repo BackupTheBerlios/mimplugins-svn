@@ -407,20 +407,8 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
             }
             GetWindowRect(GetDlgItem(GetParent(hwnd), IDC_LOG), &rc);
             if(PtInRect(&rc, pt)) {
-                if(mwdat->hwndLog != 0) {
-                    /*int i;
-                    WPARAM wParam;
-                    short amount = (short)(HIWORD(wParam));
-                    if(amount > 0)
-                        wParam = (WPARAM)MAKELONG(SB_LINEUP, 0);
-                    else if(amount < 0)
-                        wParam = (WPARAM)MAKELONG(SB_LINEDOWN, 0);
-                    amount = abs(amount) / WHEEL_DELTA;
-                    _DebugPopup(0, "amount: %d", amount);
-                    for(i = 0; i < amount; i++)
-                        SendMessage(mwdat->hwndLog, WM_VSCROLL, wParam, 0);*/
+                if(mwdat->hwndLog != 0)			// doesn't work with IEView
                     return 0;
-                }
                 else
                     SendMessage(GetDlgItem(GetParent(hwnd), IDC_LOG), WM_MOUSEWHEEL, wParam, lParam);
                 return 0;
@@ -938,7 +926,6 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
 }
 
 #ifdef __MATHMOD_SUPPORT
-//mathMod begin
 static void updatePreview(HWND hwndDlg, struct MessageWindowData *dat)
 {	
 	TMathWindowInfo mathWndInfo;
@@ -960,7 +947,7 @@ static void updatePreview(HWND hwndDlg, struct MessageWindowData *dat)
 
 static void updateMathWindow(HWND hwndDlg, struct MessageWindowData *dat)
 {
-    WINDOWPLACEMENT  cWinPlace;
+    WINDOWPLACEMENT cWinPlace;
 
     if(!myGlobals.m_MathModAvail)
         return;
@@ -980,7 +967,6 @@ static void updateMathWindow(HWND hwndDlg, struct MessageWindowData *dat)
             MoveWindow(dat->pContainer->hwnd,rcWindow.left,rcWindow.top,rcWindow.right-rcWindow.left,GetSystemMetrics(SM_CYSCREEN),1);
     }
 }
-//mathMod end
 #endif
 
 static void NotifyTyping(struct MessageWindowData *dat, int mode)
@@ -1689,7 +1675,6 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE),GWL_EXSTYLE,GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE),GWL_EXSTYLE) &~ (WS_EX_RIGHT | WS_EX_RTLREADING | WS_EX_LEFTSCROLLBAR));
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_LOG),GWL_EXSTYLE,GetWindowLong(GetDlgItem(hwndDlg, IDC_LOG),GWL_EXSTYLE) &~ (WS_EX_RIGHT | WS_EX_RTLREADING | WS_EX_LEFTSCROLLBAR));
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_NOTES),GWL_EXSTYLE,GetWindowLong(GetDlgItem(hwndDlg, IDC_NOTES),GWL_EXSTYLE) & ~(WS_EX_RIGHT | WS_EX_RTLREADING | WS_EX_LEFTSCROLLBAR));
-                    //SetWindowLong(GetDlgItem(hwndDlg, IDC_NOTES), GWL_STYLE, (GetWindowLong(GetDlgItem(hwndDlg, IDC_NOTES),GWL_STYLE) & ~ES_RIGHT) | ES_LEFT);
                     SetDlgItemText(hwndDlg, IDC_MESSAGE, _T(""));
                     SendDlgItemMessage(hwndDlg, IDC_MESSAGE, EM_SETPARAFORMAT, 0, (LPARAM)&pf2);
     

@@ -452,7 +452,7 @@ typedef struct _globals {
     BYTE m_ExtraRedraws;
     char szDataPath[MAX_PATH + 1];
     int  m_panelHeight;
-    TCHAR *szDefaultTitleFormat;
+    TCHAR szDefaultTitleFormat[256];
     DWORD m_GlobalContainerFlags;
     DWORD m_GlobalContainerTrans;
     WINDOWPLACEMENT m_GlobalContainerWpos;
