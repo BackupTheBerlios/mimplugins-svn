@@ -74,6 +74,7 @@ int hMsgMenuItemCount = 0;
 extern HINSTANCE g_hInst;
 HMODULE hDLL;
 PSLWA pSetLayeredWindowAttributes;
+PULW pUpdateLayeredWindow;
 
 extern struct ContainerWindowData *pFirstContainer;
 extern BOOL CALLBACK DlgProcUserPrefs(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -159,10 +160,16 @@ static int GetWindowData(WPARAM wParam, LPARAM lParam)
 	if(mwid->uFlags != MSG_WINDOW_UFLAG_MSG_BOTH) 
         return 1;
 	hwnd = WindowList_Find(hMessageWindowList, mwid->hContact);
-	mwod->uFlags = MSG_WINDOW_UFLAG_MSG_BOTH;
-	mwod->hwndWindow = hwnd;
-	mwod->local = 0;
-	mwod->uState = SendMessage(hwnd, DM_GETWINDOWSTATE, 0, 0);
+	if(hwnd) {
+		mwod->uFlags = MSG_WINDOW_UFLAG_MSG_BOTH;
+		mwod->hwndWindow = hwnd;
+		mwod->local = 0;
+		SendMessage(hwnd, DM_GETWINDOWSTATE, 0, 0);
+		mwod->uState = GetWindowLong(hwnd, DWL_MSGRESULT);
+	}
+	else
+		mwod->uState = 0;
+		
 	return 0;
 }
 
@@ -859,7 +866,8 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
 #endif    
 	hDLL = LoadLibraryA("user32");
 	pSetLayeredWindowAttributes = (PSLWA) GetProcAddress(hDLL,"SetLayeredWindowAttributes");
-    
+	pUpdateLayeredWindow = (PULW) GetProcAddress(hDLL, "UpdateLayeredWindow");
+
     mii.cbSize = sizeof(mii);
     mii.fMask = MIIM_BITMAP;
     mii.hbmpItem = HBMMENU_CALLBACK;
@@ -966,6 +974,9 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
         CallService(MS_UPDATE_REGISTER, 0, (LPARAM)&upd);
 
 	//FirstTimeConfig();
+	IMG_InitDecoder();
+	LoadSkinItems("h:\\s\\miranda\\skin\\tabsrmm\\tabsrmm.tsk");
+	IMG_LoadItems("h:\\s\\miranda\\skin\\tabsrmm\\tabsrmm.tsk");
 	return 0;
 }
 
@@ -1068,6 +1079,8 @@ int SplitmsgShutdown(void)
     
     if(myGlobals.szDefaultTitleFormat)
         free(myGlobals.szDefaultTitleFormat);
+
+	IMG_DeleteItems();
     return 0;
 }
 

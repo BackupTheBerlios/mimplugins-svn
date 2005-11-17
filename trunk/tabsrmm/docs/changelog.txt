@@ -102,7 +102,20 @@ Version 0.9.9.99 - 2005/11/11
 		  "per container settings". It also skips the "Sync sounds" option.
 
 		+ added the per contact infopanel setting to the per contact settings dialog.
-						  		  		  		  		  
+
+		+ added option to specify the type of border for the avatar(s) in the message window.
+		  There are 4 options:
+		  * None
+		  * Automatic
+		  * Sunken
+		  * 1 pixel solid
+		  
+		  Automatic means that it will draw a solid border for normal avatars, while for transparent
+		  or semi-transparent images, a sunken frame will be drawn.
+		  The color for solid borders can be configured aswell. 
+		  
+		  The options are on the "General" tab, in the "Avatar options" section.
+		  
 Version 0.9.9.98 - 2005/11/07
 
         * several sanity checks added (pointers, window handles)

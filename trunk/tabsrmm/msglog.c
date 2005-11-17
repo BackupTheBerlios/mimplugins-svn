@@ -1437,7 +1437,7 @@ void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG startAt, int
             SendMessage(hwndrtf, EM_GETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf2);
             crDefault = cf2.crBackColor == 0 ? (dat->dwFlags & MWF_LOG_INDIVIDUALBKG ? (bDirection == '>' ? dat->theme.outbg : dat->theme.inbg) : dat->theme.bg) : cf2.crBackColor;
             CacheIconToBMP(&theIcon, Logicons[bIconIndex], crDefault, 0, 0);
-            //ImageDataInsertBitmap(ole, theIcon.hBmp);
+            ImageDataInsertBitmap(ole, theIcon.hBmp);
             DeleteCachedIcon(&theIcon);
             fi.chrg.cpMin = cr.cpMax + 6;
         }

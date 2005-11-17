@@ -373,11 +373,14 @@ static BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                 i++;
             }
             
-            SendDlgItemMessageA(hwndDlg, IDC_NOTIFYTYPE, CB_INSERTSTRING, -1, (LPARAM)Translate("None"));
-            SendDlgItemMessageA(hwndDlg, IDC_NOTIFYTYPE, CB_INSERTSTRING, -1, (LPARAM)Translate("Tray notifications"));
-            SendDlgItemMessageA(hwndDlg, IDC_NOTIFYTYPE, CB_INSERTSTRING, -1, (LPARAM)Translate("Popups"));
+            SendDlgItemMessage(hwndDlg, IDC_AVATARBORDER, CB_INSERTSTRING, -1, (LPARAM)TranslateT("None"));
+            SendDlgItemMessage(hwndDlg, IDC_AVATARBORDER, CB_INSERTSTRING, -1, (LPARAM)TranslateT("Automatic"));
+            SendDlgItemMessage(hwndDlg, IDC_AVATARBORDER, CB_INSERTSTRING, -1, (LPARAM)TranslateT("Sunken"));
+            SendDlgItemMessage(hwndDlg, IDC_AVATARBORDER, CB_INSERTSTRING, -1, (LPARAM)TranslateT("1 pixel solid"));
+            SendDlgItemMessage(hwndDlg, IDC_AVATARBORDER, CB_INSERTSTRING, -1, (LPARAM)TranslateT("Rounded border"));
+			SendDlgItemMessage(hwndDlg, IDC_BKGCOLOUR, CPM_SETCOLOUR, 0, DBGetContactSettingDword(NULL, SRMSGMOD_T, "avborderclr", RGB(0, 0, 0)));
 
-            SendDlgItemMessage(hwndDlg, IDC_NOTIFYTYPE, CB_SETCURSEL, (WPARAM)DBGetContactSettingByte(NULL, SRMSGMOD_T, "debuginfo", 0), 0);
+            SendDlgItemMessage(hwndDlg, IDC_AVATARBORDER, CB_SETCURSEL, (WPARAM)DBGetContactSettingByte(NULL, SRMSGMOD_T, "avbordertype", 1), 0);
 
             SendDlgItemMessageA(hwndDlg, IDC_AVATARMODE, CB_INSERTSTRING, -1, (LPARAM)Translate("Globally on"));
             SendDlgItemMessageA(hwndDlg, IDC_AVATARMODE, CB_INSERTSTRING, -1, (LPARAM)Translate("On for protocols with avatar support"));
@@ -429,7 +432,7 @@ static BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                         return TRUE;
                     break;
                 }
-                case IDC_NOTIFYTYPE:
+                case IDC_AVATARBORDER:
                 case IDC_AVATARDISPLAY:
                     if(HIWORD(wParam) != CBN_SELCHANGE || (HWND)lParam != GetFocus())
                         return TRUE;
@@ -476,7 +479,8 @@ static BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                             TVITEMA item = {0};
                             int i = 0;
                             
-                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, "debuginfo", (BYTE) SendDlgItemMessage(hwndDlg, IDC_NOTIFYTYPE, CB_GETCURSEL, 0, 0));
+                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, "avbordertype", (BYTE) SendDlgItemMessage(hwndDlg, IDC_AVATARBORDER, CB_GETCURSEL, 0, 0));
+							DBWriteContactSettingDword(NULL, SRMSGMOD_T, "avborderclr", SendDlgItemMessage(hwndDlg, IDC_BKGCOLOUR, CPM_GETCOLOUR, 0, 0));
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, "avatarmode", (BYTE) SendDlgItemMessage(hwndDlg, IDC_AVATARMODE, CB_GETCURSEL, 0, 0));
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, "avatardisplaymode", (BYTE) SendDlgItemMessage(hwndDlg, IDC_AVATARDISPLAY, CB_GETCURSEL, 0, 0));
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, "tbarhidemode", (BYTE)SendDlgItemMessage(hwndDlg, IDC_TOOLBARHIDEMODE, CB_GETCURSEL, 0, 0));
@@ -1206,21 +1210,6 @@ static BOOL CALLBACK DlgProcContainerSettings(HWND hwndDlg, UINT msg, WPARAM wPa
 
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, "brounded", IsDlgButtonChecked(hwndDlg, IDC_ROUNDEDCORNERS) ? 1 : 0);
                             myGlobals.bRoundedCorner = IsDlgButtonChecked(hwndDlg, IDC_ROUNDEDCORNERS) ? 1 : 0;
-                            {
-                                struct ContainerWindowData *pContainer = pFirstContainer;
-                                while(pContainer) {
-                                    RECT rcWindow;
-                                    GetWindowRect(pContainer->hwnd, &rcWindow);
-                                    if(myGlobals.bClipBorder == 0 && myGlobals.bRoundedCorner == 0) {
-                                        SetWindowRgn(pContainer->hwnd, NULL, TRUE);
-                                        SetWindowPos(pContainer->hwnd, 0, rcWindow.left, rcWindow.top, rcWindow.right - rcWindow.left, rcWindow.bottom - rcWindow.top - 1, SWP_NOZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
-                                        SetWindowPos(pContainer->hwnd, 0, rcWindow.left, rcWindow.top, rcWindow.right - rcWindow.left, rcWindow.bottom - rcWindow.top, SWP_NOZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
-                                    }
-                                    else
-                                        SendMessage(pContainer->hwnd, WM_SIZE, 0, 0);
-                                    pContainer = pContainer->pNextContainer;
-                                }
-                            }
                             GetDlgItemText(hwndDlg, IDC_DEFAULTTITLEFORMAT, szDefaultName, TITLE_FORMATLEN);
 #if defined(_UNICODE)
                             DBWriteContactSettingWString(NULL, SRMSGMOD_T, "titleformatW", szDefaultName);
@@ -2046,6 +2035,18 @@ void ReloadGlobals()
      myGlobals.m_PasteAndSend = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "pasteandsend", 0);
      myGlobals.m_szNoStatus = TranslateT("No status message available");
      myGlobals.ipConfig.borderStyle = (BYTE)DBGetContactSettingByte(NULL, SRMSGMOD_T, "ipfieldborder", IPFIELD_SUNKEN);
+	 myGlobals.bAvatarBoderType = (BYTE)DBGetContactSettingByte(NULL, SRMSGMOD_T, "avbordertype", 1);
+
+	 {
+		 NONCLIENTMETRICS ncm = {0};
+
+		 ncm.cbSize = sizeof(ncm);
+		 SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
+		 if(myGlobals.hFontCaption)
+			 DeleteObject(myGlobals.hFontCaption);
+		 myGlobals.hFontCaption = CreateFontIndirect(&ncm.lfCaptionFont);
+	 }
+
      switch(myGlobals.ipConfig.borderStyle) {
          case IPFIELD_SUNKEN:
              myGlobals.ipConfig.edgeType = BDR_SUNKENINNER;

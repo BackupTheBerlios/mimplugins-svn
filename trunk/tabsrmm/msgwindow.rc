@@ -84,8 +84,6 @@ BEGIN
     CONTROL         "",IDC_FONTFACE,"TSButtonClass",WS_TABSTOP,105,33,14,12,
                     0x18000000L
     CONTROL         "",IDC_CONTACTPIC,"Button",BS_OWNERDRAW,155,55,34,25
-    CONTROL         "",IDC_SPLITTER5,"Static",SS_ENHMETAFILE,0,30,187,2,
-                    WS_EX_STATICEDGE
     CONTROL         "",IDC_RETRY,"TSButtonClass",WS_TABSTOP,26,10,55,12
     CONTROL         "",IDC_CANCELSEND,"TSButtonClass",WS_TABSTOP,86,10,55,12
     CONTROL         "",IDC_MSGSENDLATER,"TSButtonClass",WS_TABSTOP,146,10,55,
@@ -103,8 +101,6 @@ BEGIN
     ICON            "",IDC_MULTIPLEICON,0,64,21,20,SS_CENTERIMAGE
     CONTROL         "",IDC_LOGFROZEN,"TSButtonClass",WS_TABSTOP,171,0,16,14,
                     0x18000000L
-    CONTROL         "",IDC_TOGGLESIDEBAR,"Button",BS_OWNERDRAW | WS_TABSTOP,
-                    0,48,6,31
     LTEXT           "",IDC_LOGFROZENTEXT,10,3,200,10
     CONTROL         "",IDC_PANELPIC,"Button",BS_OWNERDRAW,154,0,34,25
     CONTROL         "",IDC_PANELSTATUS,"Static",SS_OWNERDRAW | 
