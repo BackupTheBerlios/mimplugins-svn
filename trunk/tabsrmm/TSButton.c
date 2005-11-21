@@ -77,7 +77,7 @@ int LoadTSButtonModule(void)
 	wc.hCursor        = LoadCursor(NULL, IDC_ARROW);
 	wc.cbWndExtra     = sizeof(MButtonCtrl*);
 	wc.hbrBackground  = 0;
-	wc.style          = CS_GLOBALCLASS;
+	wc.style          = CS_GLOBALCLASS | CS_PARENTDC;
 	RegisterClassExA(&wc);
 	InitializeCriticalSection(&csTips);
 	return 0;
@@ -194,8 +194,10 @@ static void PaintWorker(MButtonCtrl *ctl, HDC hdcPaint) {
 					HBRUSH hbr;
 					RECT rc = rcClient;
 					
-					if (ctl->stateId==PBS_PRESSED||ctl->stateId==PBS_HOT)
+					if (ctl->stateId==PBS_PRESSED||ctl->stateId==PBS_HOT) {
 						hbr = GetSysColorBrush(COLOR_3DLIGHT);
+						FillRect(hdcMem, &rc, hbr);
+					}
 					else {
 						HDC dc;
 						HWND hwndParent;
@@ -204,12 +206,10 @@ static void PaintWorker(MButtonCtrl *ctl, HDC hdcPaint) {
 						dc=GetDC(hwndParent);
 						hbr = (HBRUSH)SendMessage(hwndParent, WM_CTLCOLORDLG, (WPARAM)dc, (LPARAM)hwndParent);
 						ReleaseDC(hwndParent,dc);
-					}
-					if(rc.right < 20 || rc.bottom < 20);
-						//InflateRect(&rc, 1, 1);
-					if (hbr) {
-						FillRect(hdcMem, &rc, hbr);
-						DeleteObject(hbr);
+						if(hbr) {
+							FillRect(hdcMem, &rc, hbr);
+							DeleteObject(hbr);
+						}
 					}
 					if (ctl->stateId==PBS_HOT||ctl->focus) {
 						if (ctl->pbState)
@@ -385,6 +385,17 @@ static LRESULT CALLBACK TSButtonWndProc(HWND hwndDlg, UINT msg,  WPARAM wParam, 
 			}
 			break;
 		}
+		case WM_KEYUP:
+			if (bct->stateId!=PBS_DISABLED && wParam == VK_SPACE && !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_SHIFT) & 0x8000)) {
+				if (bct->pushBtn) {
+					if (bct->pbState) bct->pbState = 0;
+					else bct->pbState = 1;
+					InvalidateRect(bct->hwnd, NULL, TRUE);
+				}
+				SendMessage(GetParent(hwndDlg), WM_COMMAND, MAKELONG(GetDlgCtrlID(hwndDlg), BN_CLICKED), (LPARAM)hwndDlg);
+				return 0;
+			}
+			break;
 		case WM_SYSKEYUP:
 			if (bct->stateId!=PBS_DISABLED && bct->cHot && bct->cHot == tolower((int)wParam)) {
 				if (bct->pushBtn) {

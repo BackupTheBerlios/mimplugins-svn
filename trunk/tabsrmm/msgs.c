@@ -73,8 +73,9 @@ int hMsgMenuItemCount = 0;
 
 extern HINSTANCE g_hInst;
 HMODULE hDLL;
-PSLWA pSetLayeredWindowAttributes;
-PULW pUpdateLayeredWindow;
+PSLWA pSetLayeredWindowAttributes = 0;
+PULW pUpdateLayeredWindow = 0;
+PFWEX MyFlashWindowEx = 0;
 
 extern struct ContainerWindowData *pFirstContainer;
 extern BOOL CALLBACK DlgProcUserPrefs(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -864,9 +865,11 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
 #if defined(_UNICODE)
     ConvertAllToUTF8();
 #endif    
-	hDLL = LoadLibraryA("user32");
+	//hDLL = LoadLibraryA("user32");
+	hDLL = GetModuleHandleA("user32");
 	pSetLayeredWindowAttributes = (PSLWA) GetProcAddress(hDLL,"SetLayeredWindowAttributes");
 	pUpdateLayeredWindow = (PULW) GetProcAddress(hDLL, "UpdateLayeredWindow");
+	MyFlashWindowEx = (PFWEX) GetProcAddress(hDLL, "FlashWindowEx");
 
     mii.cbSize = sizeof(mii);
     mii.fMask = MIIM_BITMAP;
@@ -975,17 +978,50 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
 
 	//FirstTimeConfig();
 	IMG_InitDecoder();
-	LoadSkinItems("h:\\s\\miranda\\skin\\tabsrmm\\tabsrmm.tsk");
-	IMG_LoadItems("h:\\s\\miranda\\skin\\tabsrmm\\tabsrmm.tsk");
+	//LoadSkinItems("h:\\tabsrmm\\miranda\\plugins\\tabsrmm_svn\\skin\\tabsrmm.tsk");
+	//IMG_LoadItems("h:\\tabsrmm\\miranda\\plugins\\tabsrmm_svn\\skin\\tabsrmm.tsk");
 	return 0;
 }
 
 int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
 {
-    NEN_WriteOptions(&nen_options);
+    UnhookEvent(hEventDbEventAdded);
+    UnhookEvent(hEventDispatch);
+    UnhookEvent(hEventDbSettingChange);
+    UnhookEvent(hEventContactDeleted);
+    UnhookEvent(hEvent_FontService);
+
+    DestroyServiceFunction(MS_MSG_SENDMESSAGE);
+#if defined(_UNICODE)
+    DestroyServiceFunction(MS_MSG_SENDMESSAGE "W");
+#endif
+    DestroyServiceFunction(MS_MSG_FORWARDMESSAGE);
+    DestroyServiceFunction(MS_MSG_GETWINDOWAPI);
+    DestroyServiceFunction(MS_MSG_GETWINDOWCLASS);
+    DestroyServiceFunction(MS_MSG_GETWINDOWDATA);
+    DestroyServiceFunction("SRMsg/ReadMessage");
+    DestroyServiceFunction("SRMsg/TypingMessage");
+
+    /*
+     * tabSRMM - specific services
+     */
+    
+    DestroyServiceFunction(MS_MSG_MOD_MESSAGEDIALOGOPENED);
+    DestroyServiceFunction(MS_TABMSG_SETUSERPREFS);
+    DestroyServiceFunction(MS_TABMSG_TRAYSUPPORT);
+    DestroyServiceFunction(MS_MSG_MOD_GETWINDOWFLAGS);
+
+    /*
+     * the event API
+     */
+
+	DestroyHookableEvent(g_hEvent_MsgWin);
+
+	NEN_WriteOptions(&nen_options);
     DestroyWindow(myGlobals.g_hwndHotkeyHandler);
     while(pFirstContainer)
         SendMessage(pFirstContainer->hwnd, WM_CLOSE, 0, 1);
+
     return 0;
 }
 
@@ -1032,11 +1068,6 @@ int SplitmsgShutdown(void)
     DestroyCursor(myGlobals.hCurHyperlinkHand);
     DestroyCursor(myGlobals.hCurSplitWE);
     DeleteObject(myGlobals.m_hFontWebdings);
-    UnhookEvent(hEventDbEventAdded);
-    UnhookEvent(hEventDispatch);
-    UnhookEvent(hEventDbSettingChange);
-    UnhookEvent(hEventContactDeleted);
-    UnhookEvent(hEvent_FontService);
     FreeLibrary(GetModuleHandleA("riched20"));
 	FreeLibrary(GetModuleHandleA("user32"));
     FreeVSApi();

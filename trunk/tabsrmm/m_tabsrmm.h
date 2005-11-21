@@ -134,7 +134,7 @@ typedef struct {
 #define AVATARMODE_STATIC 1
 
 #define MSGDLGFONTCOUNT 22
-#define IPFONTCOUNT 5
+#define IPFONTCOUNT 6
 
 /*
  * info panel field edges
@@ -478,6 +478,7 @@ typedef struct _globals {
     BOOL bRoundedCorner;
 	BYTE bAvatarBoderType;
 	HFONT hFontCaption;
+	COLORREF skinDefaultFontColor;
 } MYGLOBALS;
 
 typedef struct _tag_ICONDESC {

@@ -103,7 +103,7 @@ int RegisterTabCtrlClass(void)
 	wc.hCursor        = LoadCursor(NULL, IDC_ARROW);
 	wc.cbWndExtra     = sizeof(struct TabControlData *);
 	wc.hbrBackground  = 0;
-	wc.style          = CS_GLOBALCLASS | CS_DBLCLKS;
+	wc.style          = CS_GLOBALCLASS | CS_DBLCLKS | CS_PARENTDC;
 	RegisterClassExA(&wc);
 	return 0;
 }

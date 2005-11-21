@@ -127,9 +127,12 @@ static struct SIDEBARITEM sbarItems[] = {
 };
 
 extern StatusItems_t StatusItems[];
-BOOL g_skinnedContainers = TRUE;
+BOOL g_skinnedContainers = FALSE;
+BOOL g_framelessSkinmode = FALSE;
+
 extern HBRUSH g_ContainerColorKeyBrush;
 extern COLORREF g_ContainerColorKey;
+extern SIZE g_titleBarButtonSize;
 
 /*
  * CreateContainer MUST malloc() a struct ContainerWindowData and pass its address
@@ -143,6 +146,7 @@ extern COLORREF g_ContainerColorKey;
 extern HMODULE hDLL;
 extern PSLWA pSetLayeredWindowAttributes;
 extern PULW pUpdateLayeredWindow;
+extern PFWEX MyFlashWindowEx;
 
 struct ContainerWindowData *CreateContainer(const TCHAR *name, int iTemp, HANDLE hContactFrom) {
     DBVARIANT dbv;
@@ -238,6 +242,47 @@ static LRESULT CALLBACK StatusBarSubclassProc(HWND hWnd, UINT msg, WPARAM wParam
 				}
 				break;
 			}
+		case WM_PAINT:
+			if(!g_skinnedContainers)
+				break;
+			else {
+				PAINTSTRUCT ps;
+				char szText[512];
+				int i;
+				RECT itemRect;
+				HICON hIcon;
+				LONG height, width;
+				HDC hdc = BeginPaint(hWnd, &ps);
+				HFONT hFontOld = SelectObject(hdc, GetStockObject(DEFAULT_GUI_FONT));
+				UINT nParts = SendMessage(hWnd, SB_GETPARTS, 0, 0);
+				LRESULT result;
+
+				SetBkMode(hdc, TRANSPARENT);
+				SetTextColor(hdc, myGlobals.skinDefaultFontColor);
+
+				for(i = 0; i < (int)nParts; i++) {
+					SendMessage(hWnd, SB_GETRECT, (WPARAM)i, (LPARAM)&itemRect);
+					height = itemRect.bottom - itemRect.top;
+					width = itemRect.right - itemRect.left;
+					hIcon = (HICON)SendMessage(hWnd, SB_GETICON, i, 0);
+					szText[0] = 0;
+					result = SendMessageA(hWnd, SB_GETTEXTA, i, (LPARAM)szText);
+					if(hIcon) {
+						if(LOWORD(result) > 1) {				// we have a text
+							DrawIconEx(hdc, itemRect.left + 3, (height - 16) / 2, hIcon, 16, 16, 0, 0, DI_NORMAL);
+							itemRect.left += 20;
+							DrawTextA(hdc, szText, -1, &itemRect, DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
+						}
+						else
+							DrawIconEx(hdc, itemRect.left + ((width - 16) / 2), (height - 16) / 2, hIcon, 16, 16, 0, 0, DI_NORMAL);
+					}
+					else
+						DrawTextA(hdc, szText, -1, &itemRect, DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+				}
+				SelectObject(hdc, hFontOld);
+				EndPaint(hWnd, &ps);
+				return 0;
+			}
         case WM_CONTEXTMENU:
         {
             RECT rc;
@@ -312,13 +357,14 @@ BOOL CALLBACK DlgProcContainerSubClass(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 		case WM_NCPAINT:
 			{
 				PAINTSTRUCT ps;
-				HDC hdcReal = BeginPaint(hwndDlg, &ps);
+				HDC hdcReal;
 				RECT rcClient;
 				LONG width, height;
 				HDC hdc;
+				RECT rcText;
 				StatusItems_t *item = &StatusItems[0];
 				struct ContainerWindowData *pContainer = (struct ContainerWindowData *)GetWindowLong(hwndDlg, GWL_USERDATA);
-				HWND hwndDlg = pContainer->hwnd;
+				//HWND hwndDlg = pContainer->hwnd;
 				HRGN rgn = 0;
 				HICON hIcon;
 				TCHAR szWindowText[512];
@@ -331,23 +377,34 @@ BOOL CALLBACK DlgProcContainerSubClass(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 				if(!pContainer->bSkinned)
 					break;
 
+				hdcReal = BeginPaint(hwndDlg, &ps);
+
+				if(!g_framelessSkinmode)
+					CallWindowProc(DefDlgProc, hwndDlg, msg, wParam, lParam);
+
 				GetClientRect(hwndDlg, &rcClient);
 				width = rcClient.right - rcClient.left;
 				height = rcClient.bottom - rcClient.top;
 				if(width != pContainer->oldDCSize.cx || height != pContainer->oldSize.cy) {
 					pContainer->oldDCSize.cx = width;
 					pContainer->oldDCSize.cy = height;
+					/*
 					if(pContainer->cachedDC) {
 						SelectObject(pContainer->cachedDC, pContainer->oldHBM);
 						DeleteObject(pContainer->cachedHBM);
 						DeleteDC(pContainer->cachedDC);
+					}*/
+					if(!pContainer->cachedDC) {
+						HDC dc = GetDC(NULL);
+						int wscreen = GetDeviceCaps(dc, HORZRES);
+						int hscreen = GetDeviceCaps(dc, VERTRES);
+						pContainer->cachedDC = CreateCompatibleDC(hdcReal);
+						pContainer->cachedHBM = CreateCompatibleBitmap(hdcReal, wscreen, hscreen);
+						pContainer->oldHBM = SelectObject(pContainer->cachedDC, pContainer->cachedHBM);
 					}
-					pContainer->cachedDC = CreateCompatibleDC(hdcReal);
-					pContainer->cachedHBM = CreateCompatibleBitmap(hdcReal, width, height);
-					pContainer->oldHBM = SelectObject(pContainer->cachedDC, pContainer->cachedHBM);
 					hdc = pContainer->cachedDC;
-
 					FillRect(hdc, &rcClient, g_ContainerColorKeyBrush);
+					/*
 					if(myGlobals.bClipBorder != 0 || myGlobals.bRoundedCorner) {
 						int clip = myGlobals.bClipBorder;
 
@@ -356,7 +413,7 @@ BOOL CALLBACK DlgProcContainerSubClass(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 						else
 							rgn = CreateRectRgn(clip, clip, rcClient.right - clip, rcClient.bottom - clip);
 						SelectClipRgn(hdc, rgn);
-					}
+					}*/
 					DrawAlpha(hdc, &rcClient, item->COLOR, item->ALPHA, item->COLOR2, item->COLOR2_TRANSPARENT,
 							  item->GRADIENT, item->CORNER, item->RADIUS, item->imageItem);
 					
@@ -369,26 +426,37 @@ BOOL CALLBACK DlgProcContainerSubClass(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 				/*
 				 * title bar text
 				 */
-				GetWindowText(hwndDlg, szWindowText, 512);
-				szWindowText[511] = 0;
-				hOldFont = SelectObject(hdc, myGlobals.hFontCaption);
-				GetTextMetrics(hdc, &tm);
-				SetTextColor(hdc, GetSysColor(COLOR_CAPTIONTEXT));
-				SetBkMode(hdc, TRANSPARENT);
-				TextOut(hdc, 22, 3 + myGlobals.bClipBorder, szWindowText, lstrlen(szWindowText));
-				SelectObject(hdc, hOldFont);
+				if(g_framelessSkinmode) {
+					GetWindowText(hwndDlg, szWindowText, 512);
+					szWindowText[511] = 0;
+					hOldFont = SelectObject(hdc, myGlobals.hFontCaption);
+					GetTextMetrics(hdc, &tm);
+					SetTextColor(hdc, myGlobals.ipConfig.isValid ? myGlobals.ipConfig.clrs[IPFONTCOUNT - 1] : GetSysColor(COLOR_CAPTIONTEXT));
+					SetBkMode(hdc, TRANSPARENT);
+					rcText.left = 22; rcText.right = rcClient.right - 3 * g_titleBarButtonSize.cx - 11;
+					rcText.top = 3 + myGlobals.bClipBorder; rcText.bottom = rcText.top + tm.tmHeight;
+					DrawText(hdc, szWindowText, -1, &rcText, DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
+					SelectObject(hdc, hOldFont);
+					/*
+					 * icon
+					 */
 
-				/*
-				 * icon
-				 */
-
-				hIcon = (HICON)SendMessage(hwndDlg, WM_GETICON, ICON_BIG, 0);
-				DrawIconEx(hdc, 3, 3 + myGlobals.bClipBorder + (tm.tmHeight - 16) / 2, hIcon, 16, 16, 0, 0, DI_NORMAL);
-
+					hIcon = (HICON)SendMessage(hwndDlg, WM_GETICON, ICON_BIG, 0);
+					DrawIconEx(hdc, 3, 3 + myGlobals.bClipBorder + (tm.tmHeight - 16) / 2, hIcon, 16, 16, 0, 0, DI_NORMAL);
+				}
 				BitBlt(hdcReal, 0, 0, width, height, pContainer->cachedDC, 0, 0, SRCCOPY);
-				ReleaseDC(pContainer->hwnd, hdcReal);
 				EndPaint(hwndDlg, &ps);
 				return 0;
+			}
+		case WM_SETTEXT:
+			{
+				struct ContainerWindowData *pContainer = (struct ContainerWindowData *)GetWindowLong(hwndDlg, GWL_USERDATA);
+
+				if(pContainer->bSkinned) {
+					DefDlgProc(hwndDlg, msg, wParam, lParam);
+					return 0;
+				}
+				break;
 			}
         case WM_NCHITTEST:
             {
@@ -467,14 +535,14 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                 pContainer = (struct ContainerWindowData *) lParam;
                 SetWindowLong(hwndDlg, GWL_USERDATA, (LONG) pContainer);
                 pContainer->iLastClick = 0xffffffff;
+				pContainer->hwnd = hwndDlg;
                 dwCreateFlags = pContainer->dwFlags;
 
-                pContainer->isCloned = (pContainer->dwFlags & CNT_CREATE_CLONED);
+				pContainer->isCloned = (pContainer->dwFlags & CNT_CREATE_CLONED);
                 
                 SendMessage(hwndDlg, DM_OPTIONSAPPLIED, 0, 0);          // set options...
                 pContainer->dwFlags |= dwCreateFlags;
 				SetWindowLong(hwndDlg, GWL_WNDPROC, (LONG)DlgProcContainerSubClass);
-               
                 /*
                  * create the sidebar buttons
                  */
@@ -486,7 +554,12 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                     pContainer->sb_NrBottomButtons += (sbarItems[i].dwFlags & SBI_BOTTOM) ? 1 : 0;
                 }*/
                 pContainer->sb_FirstButton = 0;
-				pContainer->bSkinned = 1;
+				pContainer->bSkinned = g_skinnedContainers;
+				if(pContainer->bSkinned) {
+					SetClassLong(hwndDlg, GCL_STYLE, GetClassLong(hwndDlg, GCL_STYLE) & ~(CS_VREDRAW | CS_HREDRAW));
+					//SetClassLong(hwndDlg, GCL_STYLE, GetClassLong(hwndDlg, GCL_STYLE) | CS_DROPSHADOW);
+					SetClassLong(hwndTab, GCL_STYLE, GetClassLong(hwndTab, GCL_STYLE) & ~(CS_VREDRAW | CS_HREDRAW));
+				}
 				/*
 				 * additional system menu items...
 				 */
@@ -930,23 +1003,34 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                     SendMessage(pContainer->hwndActive, DM_SCROLLLOGTOBOTTOM, 0, 1);
                 
                 RedrawWindow(hwndTab, NULL, NULL, RDW_INVALIDATE | (pContainer->bSizingLoop ? RDW_ERASE : 0));
-                if(pContainer->bSkinned)
-					RedrawWindow(hwndDlg, NULL, NULL, RDW_UPDATENOW | RDW_FRAME | RDW_INVALIDATE | (pContainer->bSizingLoop ? RDW_ERASE : 0));
+				if(pContainer->bSkinned) {
+					/*
+					if(myGlobals.bClipBorder != 0 || myGlobals.bRoundedCorner) {
+						int clip = myGlobals.bClipBorder;
+						HRGN rgn;
+
+						if(myGlobals.bRoundedCorner)
+							rgn = CreateRoundRectRgn(clip, clip, rcUnadjusted.right - clip + 1, rcUnadjusted.bottom - clip, 8 + clip, 8 + clip);
+						else
+							rgn = CreateRectRgn(clip, clip, rcUnadjusted.right - clip, rcUnadjusted.bottom - clip);
+						SetWindowRgn(hwndDlg, rgn, TRUE);
+					}
+					else*/
+						RedrawWindow(hwndDlg, NULL, NULL, RDW_UPDATENOW | RDW_FRAME | RDW_INVALIDATE);
+				}
 				else
 					RedrawWindow(hwndDlg, NULL, NULL, RDW_INVALIDATE | (pContainer->bSizingLoop || wParam == SIZE_RESTORED ? RDW_ERASE : 0));
                 
                 if(pContainer->hwndStatus)
                     InvalidateRect(pContainer->hwndStatus, NULL, FALSE);
 				
-				if(pContainer->bSkinned) {
-					SIZE titleBarButtonSize = {26, 14};
-					MoveWindow(GetDlgItem(hwndDlg, IDC_CLOSE), rcUnadjusted.right - titleBarButtonSize.cx - 10, 1, titleBarButtonSize.cx,
-							   titleBarButtonSize.cy, TRUE);
-					MoveWindow(GetDlgItem(hwndDlg, IDC_MAXIMIZE), rcUnadjusted.right - (2 * titleBarButtonSize.cx) - 13, 1, titleBarButtonSize.cx,
-							   titleBarButtonSize.cy, TRUE);
-					MoveWindow(GetDlgItem(hwndDlg, IDC_MINIMIZE), rcUnadjusted.right - (3 * titleBarButtonSize.cx) - 18, 1, titleBarButtonSize.cx,
-							   titleBarButtonSize.cy, TRUE);
-
+				if(pContainer->bSkinned && g_framelessSkinmode) {
+					MoveWindow(GetDlgItem(hwndDlg, IDC_CLOSE), rcUnadjusted.right - g_titleBarButtonSize.cx - 10, 1, g_titleBarButtonSize.cx,
+							   g_titleBarButtonSize.cy, TRUE);
+					MoveWindow(GetDlgItem(hwndDlg, IDC_MAXIMIZE), rcUnadjusted.right - (2 * g_titleBarButtonSize.cx) - 11, 1, g_titleBarButtonSize.cx,
+							   g_titleBarButtonSize.cy, TRUE);
+					MoveWindow(GetDlgItem(hwndDlg, IDC_MINIMIZE), rcUnadjusted.right - (3 * g_titleBarButtonSize.cx) - 14, 1, g_titleBarButtonSize.cx,
+							   g_titleBarButtonSize.cy, TRUE);
 				}
                 //if(pContainer->dwFlags & CNT_SIDEBAR)
                 //    DrawSideBar(hwndDlg, pContainer, &rcUnadjusted, menuSep);
@@ -963,7 +1047,6 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
     						CallService(MTH_RESIZE,0,(LPARAM) &mathWndInfo);
     			}
 #endif          
-                //UpdateContainerWindowImage(pContainer);
 				break;
             } 
             case DM_UPDATETITLE:
@@ -1440,6 +1523,8 @@ panel_found:
                 if(GetMenu(hwndDlg) != 0)
                     DrawMenuBar(hwndDlg);
                 break;
+				if(pContainer->bSkinned)
+					return TRUE;
             }
         case WM_ENTERMENULOOP: {
             POINT pt;
@@ -1650,6 +1735,7 @@ panel_found:
 			HANDLE hContact = 0;
             int i = 0;
             BYTE bFlat = DBGetContactSettingByte(NULL, SRMSGMOD_T, "nlflat", 0);
+			UINT sBarHeight;
 
             ShowWindow(GetDlgItem(hwndDlg, IDC_STATICCONTROL), SW_HIDE);
             
@@ -1668,7 +1754,7 @@ panel_found:
             }*/
 
             ws = wsold = GetWindowLong(hwndDlg, GWL_STYLE);
-			ws = (pContainer->dwFlags & CNT_NOTITLE) ? ((IsWindowVisible(hwndDlg) ? WS_VISIBLE : 0) | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_CLIPCHILDREN) : ws | WS_CAPTION;
+			ws = (pContainer->dwFlags & CNT_NOTITLE) ? ((IsWindowVisible(hwndDlg) ? WS_VISIBLE : 0) | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_CLIPCHILDREN) : ws | WS_CAPTION | WS_OVERLAPPEDWINDOW;
 			SetWindowLong(hwndDlg, GWL_STYLE, ws);
 
             pContainer->tBorder = DBGetContactSettingByte(NULL, SRMSGMOD_T, "tborder", 2);
@@ -1676,11 +1762,12 @@ panel_found:
             pContainer->tBorder_outer_right = DBGetContactSettingByte(NULL, SRMSGMOD_T, "tborder_outer_right", 2);
             pContainer->tBorder_outer_top = DBGetContactSettingByte(NULL, SRMSGMOD_T, "tborder_outer_top", 2);
             pContainer->tBorder_outer_bottom = DBGetContactSettingByte(NULL, SRMSGMOD_T, "tborder_outer_bottom", 2);
-			
+			sBarHeight = (UINT)DBGetContactSettingByte(NULL, SRMSGMOD_T, "sbarheight", 0);
+
 			{
 				static UINT _tbid[] = {IDC_CLOSE, IDC_MINIMIZE, IDC_MAXIMIZE};
 				for(i = 0; i < 3; i++) {
-					ShowWindow(GetDlgItem(hwndDlg, _tbid[i]), pContainer->bSkinned ? SW_SHOW : SW_HIDE);
+					ShowWindow(GetDlgItem(hwndDlg, _tbid[i]), (pContainer->bSkinned && g_framelessSkinmode) ? SW_SHOW : SW_HIDE);
 					SendDlgItemMessage(hwndDlg, _tbid[i], BUTTONSETASFLATBTN + 13, 0, 0);
 					SendDlgItemMessage(hwndDlg, _tbid[i], BUTTONSETASFLATBTN + 12, 0, (LPARAM)pContainer);
 					SendDlgItemMessage(hwndDlg, _tbid[i], BUTTONSETASFLATBTN, 0, 0);
@@ -1693,7 +1780,8 @@ panel_found:
 			if (LOBYTE(LOWORD(GetVersion())) >= 5  && pSetLayeredWindowAttributes != NULL) {
                 DWORD exold;
 				ex = exold = GetWindowLong(hwndDlg, GWL_EXSTYLE);
-				ex = (pContainer->dwFlags & CNT_TRANSPARENCY || pContainer->bSkinned) ? ex | (WS_EX_LAYERED | WS_EX_COMPOSITED) : ex & ~(WS_EX_LAYERED | WS_EX_COMPOSITED);
+				ex = (pContainer->dwFlags & CNT_TRANSPARENCY || (pContainer->bSkinned && g_framelessSkinmode)) ? ex | WS_EX_LAYERED : ex & ~WS_EX_LAYERED;
+				ex = (pContainer->bSkinned && g_framelessSkinmode) ? ex | WS_EX_COMPOSITED : ex & ~WS_EX_COMPOSITED;
 				SetWindowLong(hwndDlg, GWL_EXSTYLE, ex);
 				if (pContainer->dwFlags & CNT_TRANSPARENCY || pContainer->bSkinned) {
 					DWORD trans = LOWORD(pContainer->dwTransparency);
@@ -1747,6 +1835,10 @@ panel_found:
                     pContainer->hwndSlist = CreateWindowExA(0, "TSButtonClass", "", BS_PUSHBUTTON | WS_CHILD | WS_VISIBLE | WS_TABSTOP, 1, 2, 18, 18, pContainer->hwndStatus, (HMENU)1001, g_hInst, NULL);
                 else
                     pContainer->hwndSlist = 0;
+				
+				if(sBarHeight && pContainer->bSkinned)
+					SendMessage(pContainer->hwndStatus, SB_SETMINHEIGHT, sBarHeight, 0);
+
                 OldStatusBarproc = (WNDPROC) SetWindowLong(pContainer->hwndStatus, GWL_WNDPROC, (LONG)StatusBarSubclassProc);                
                 SendMessage(pContainer->hwndSlist, BUTTONSETASFLATBTN, 0, 0);
                 SendMessage(pContainer->hwndSlist, BUTTONSETASFLATBTN + 10, 0, 0);
@@ -1894,12 +1986,6 @@ panel_found:
                 pContainer->hIcon = (lParam == (LPARAM)hIconMsg) ? STICK_ICON_MSG : 0;
                 break;
             }
-		/*
-        case WM_CTLCOLORSTATIC:
-            if((HWND)lParam == GetDlgItem(hwndDlg, IDC_SIDEBAR))
-                return (BOOL)GetSysColorBrush(COLOR_3DFACE);
-            break;
-			*/
         case WM_DRAWITEM:
         {
             int cx = myGlobals.m_smcxicon;
@@ -2736,7 +2822,10 @@ void FlashContainer(struct ContainerWindowData *pContainer, int iMode, int iCoun
 {
     FLASHWINFO fwi;
     
-    if(pContainer->bInTray && iMode != 0 && nen_options.iAutoRestore > 0) {
+    if(MyFlashWindowEx == NULL)
+		return;
+
+	if(pContainer->bInTray && iMode != 0 && nen_options.iAutoRestore > 0) {
         BOOL old = nen_options.bMinimizeToTray;
         nen_options.bMinimizeToTray = FALSE;
         ShowWindow(pContainer->hwnd, SW_HIDE);
@@ -2767,7 +2856,7 @@ void FlashContainer(struct ContainerWindowData *pContainer, int iMode, int iCoun
 
     fwi.hwnd = pContainer->hwnd;
     pContainer->dwFlashingStarted = GetTickCount();
-    FlashWindowEx(&fwi);
+    MyFlashWindowEx(&fwi);
 }
 
 void ReflashContainer(struct ContainerWindowData *pContainer)

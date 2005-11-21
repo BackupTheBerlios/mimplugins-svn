@@ -1,4 +1,4 @@
-es/*
+/*
 
 Miranda IM: the free IM client for Microsoft* Windows*
 
@@ -1711,7 +1711,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         return 0;
     if(dat->dwFlags & MWF_INITMODE)
         return 0;
-    
+
     /*if(dis->CtlType == ODT_BUTTON && dis->CtlID == IDC_TOGGLESIDEBAR) {
         HICON hIcon;
         DWORD bStyle = 0;
@@ -2039,11 +2039,14 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 		GetTextExtentPoint32A(dis->hDC, "Name:", 5, &dat->szLabel);
         rc.right = rc.left + dat->szLabel.cx + 3;
         SetBkMode(dis->hDC, TRANSPARENT);
-        if(dat->pContainer->bSkinned)
+		if(dat->pContainer->bSkinned) {
 			SkinDrawBG(dis->hwndItem, dat->pContainer->hwnd, dat->pContainer, &dis->rcItem, dis->hDC);
-		else
+			SetTextColor(dis->hDC, myGlobals.skinDefaultFontColor);
+		}
+		else {
 			FillRect(dis->hDC, &rc, GetSysColorBrush(COLOR_3DFACE));
-		SetTextColor(dis->hDC, GetSysColor(COLOR_BTNTEXT));
+			SetTextColor(dis->hDC, GetSysColor(COLOR_BTNTEXT));
+		}
         DrawTextA(dis->hDC, "Name:", 5, &dis->rcItem, DT_SINGLELINE | DT_VCENTER);
         dis->rcItem.left += (dat->szLabel.cx + 3);
 		if(dat->pContainer->bSkinned) {
@@ -2101,13 +2104,16 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         HFONT hOldFont = 0;
         RECT rc = dis->rcItem;
 
-        if(dat->pContainer->bSkinned)
+		if(dat->pContainer->bSkinned) {
 			SkinDrawBG(dis->hwndItem, dat->pContainer->hwnd, dat->pContainer, &dis->rcItem, dis->hDC);
-		else
+			SetTextColor(dis->hDC, myGlobals.skinDefaultFontColor);
+		}
+		else {
 			FillRect(dis->hDC, &dis->rcItem, GetSysColorBrush(COLOR_3DFACE));
+			SetTextColor(dis->hDC, GetSysColor(COLOR_BTNTEXT));
+		}
 
 		SetBkMode(dis->hDC, TRANSPARENT);
-		SetTextColor(dis->hDC, RGB(0, 0, 0));
         DrawTextA(dis->hDC, "UIN:", 4, &dis->rcItem, DT_SINGLELINE | DT_VCENTER);
 
 		rc.right = rc.left + dat->szLabel.cx + 3;
@@ -2184,7 +2190,33 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         if(config && hOldFont)
             SelectObject(dis->hDC, hOldFont);
         return TRUE;
-    }
+	}
+	else if(dis->hwndItem == GetDlgItem(hwndDlg, IDC_STATICTEXT) || dis->hwndItem == GetDlgItem(hwndDlg, IDC_LOGFROZENTEXT)) {
+		TCHAR szWindowText[256];
+		if(dat->pContainer->bSkinned) {
+			SetTextColor(dis->hDC, myGlobals.skinDefaultFontColor);
+			SkinDrawBG(dis->hwndItem, dat->pContainer->hwnd, dat->pContainer, &dis->rcItem, dis->hDC);
+		}
+		else {
+			SetTextColor(dis->hDC, GetSysColor(COLOR_BTNTEXT));
+			FillRect(dis->hDC, &dis->rcItem, GetSysColorBrush(COLOR_3DFACE));
+		}
+		GetWindowText(dis->hwndItem, szWindowText, 255);
+		szWindowText[255] = 0;
+		SetBkMode(dis->hDC, TRANSPARENT);
+		DrawText(dis->hDC, szWindowText, -1, &dis->rcItem, DT_SINGLELINE | DT_VCENTER | DT_NOCLIP | DT_END_ELLIPSIS);
+		return TRUE;
+	}
+	else if(dis->hwndItem == GetDlgItem(hwndDlg, IDC_STATICERRORICON) || dis->hwndItem == GetDlgItem(hwndDlg, IDC_MULTIPLEICON)) {
+		_DebugPopup(0, "draw icon");
+		if(dat->pContainer->bSkinned)
+			SkinDrawBG(dis->hwndItem, dat->pContainer->hwnd, dat->pContainer, &dis->rcItem, dis->hDC);
+		else
+			FillRect(dis->hDC, &dis->rcItem, GetSysColorBrush(COLOR_3DFACE));
+		DrawIconEx(dis->hDC, (dis->rcItem.right - dis->rcItem.left) / 2 - 8, (dis->rcItem.bottom - dis->rcItem.top) / 2 - 8,
+				   (HICON)SendMessage(dis->hwndItem, STM_GETICON, 0, 0), 16, 16, 0, 0, DI_NORMAL);
+		return TRUE;
+	}
     return CallService(MS_CLIST_MENUDRAWITEM, wParam, lParam);
 }
 

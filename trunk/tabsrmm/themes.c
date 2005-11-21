@@ -72,13 +72,17 @@ static void __inline gradientHorizontal( UCHAR *ubRedFinal, UCHAR *ubGreenFinal,
 static ImageItem *g_ImageItems = NULL;
 HBRUSH g_ContainerColorKeyBrush = 0;
 COLORREF g_ContainerColorKey = 0;
+SIZE g_titleBarButtonSize = {0};
+
+extern BOOL g_skinnedContainers;
+extern BOOL g_framelessSkinmode;
 
 StatusItems_t StatusItems[] = {
     {"Container", "TSKIN_Container", ID_EXTBKCONTAINER,
         CLCDEFAULT_GRADIENT, CLCDEFAULT_CORNER,
         CLCDEFAULT_COLOR, CLCDEFAULT_COLOR2, CLCDEFAULT_COLOR2_TRANSPARENT, CLCDEFAULT_TEXTCOLOR, CLCDEFAULT_ALPHA, CLCDEFAULT_MRGN_LEFT, 
         CLCDEFAULT_MRGN_TOP, CLCDEFAULT_MRGN_RIGHT, CLCDEFAULT_MRGN_BOTTOM, CLCDEFAULT_IGNORE
-    }, {"Tool bar", "TSKIN_Container", ID_EXTBKBUTTONBAR,
+    }, {"Toolbar", "TSKIN_Container", ID_EXTBKBUTTONBAR,
         CLCDEFAULT_GRADIENT,CLCDEFAULT_CORNER,
         CLCDEFAULT_COLOR, CLCDEFAULT_COLOR2, CLCDEFAULT_COLOR2_TRANSPARENT, CLCDEFAULT_TEXTCOLOR, CLCDEFAULT_ALPHA, CLCDEFAULT_MRGN_LEFT, 
         CLCDEFAULT_MRGN_TOP, CLCDEFAULT_MRGN_RIGHT, CLCDEFAULT_MRGN_BOTTOM, CLCDEFAULT_IGNORE
@@ -234,7 +238,6 @@ void WriteThemeToINI(const char *szIniFilename, struct MessageWindowData *dat)
         DWORD style;
         char bSize;
         DWORD dwSize;
-        HDC hDC = GetDC(NULL);
         for(i = 0; i < MSGDLGFONTCOUNT; i++) {
             sprintf(szTemp, "Font%d", i);
             strcpy(szAppname, szTemp);
@@ -250,7 +253,6 @@ void WriteThemeToINI(const char *szIniFilename, struct MessageWindowData *dat)
             WritePrivateProfileStringA(szAppname, "Set", _itoa(dat->theme.logFonts[i].lfCharSet, szBuf, 10), szIniFilename);
             WritePrivateProfileStringA(szAppname, "Inherit", _itoa(DBGetContactSettingWord(NULL, FONTMODULE, szTemp, 0), szBuf, 10), szIniFilename);
         }
-        ReleaseDC(NULL, hDC);
         WritePrivateProfileStringA("Message Log", "BackgroundColor", _itoa(dat->theme.bg, szBuf, 10), szIniFilename);
         WritePrivateProfileStringA("Message Log", "IncomingBG", _itoa(dat->theme.inbg, szBuf, 10), szIniFilename);
         WritePrivateProfileStringA("Message Log", "OutgoingBG", _itoa(dat->theme.outbg, szBuf, 10), szIniFilename);
@@ -768,7 +770,19 @@ void __fastcall IMG_RenderImageItem(HDC hdc, ImageItem *item, RECT *rc)
         // middle 3 items
 
         AlphaBlend(hdc, rc->left, rc->top + t, l, height - t - b, item->hdc, 0, t, l, item->inner_height, item->bf);
-        AlphaBlend(hdc, rc->left + l, rc->top + t, width - l - r, height - t - b, item->hdc, l, t, item->inner_width, item->inner_height, item->bf);
+		/*
+		 * use solid fill for the "center" area -> better performance when only the margins of an item
+		 * are usually visible (like the background of the tab pane)
+		 */
+		if(item->dwFlags & IMAGE_FILLSOLID && item->fillBrush) {
+			RECT rcFill;
+			rcFill.left = rc->left + l; rcFill.top = rc->top +t;
+			rcFill.right = rc->right - r; rcFill.bottom = rc->bottom - b;
+			FillRect(hdc, &rcFill, item->fillBrush);
+		}
+		else
+			AlphaBlend(hdc, rc->left + l, rc->top + t, width - l - r, height - t - b, item->hdc, l, t, item->inner_width, item->inner_height, item->bf);
+
         AlphaBlend(hdc, rc->right - r, rc->top + t, r, height - t - b, item->hdc, item->width - r, t, r, item->inner_height, item->bf);
 
         // bottom 3 items
@@ -955,7 +969,14 @@ void IMG_ReadItem(const char *itemname, const char *szFileName)
         tmpItem.bRight = GetPrivateProfileIntA(itemname, "Right", 0, szFileName);
         tmpItem.bTop = GetPrivateProfileIntA(itemname, "Top", 0, szFileName);
         tmpItem.bBottom = GetPrivateProfileIntA(itemname, "Bottom", 0, szFileName);
-
+		GetPrivateProfileStringA(itemname, "Fillcolor", "None", buffer, 500, szFileName);
+		if(strcmp(buffer, "None")) {
+			COLORREF fillColor = HexStringToLong(buffer);
+			tmpItem.fillBrush = CreateSolidBrush(fillColor);
+			tmpItem.dwFlags |= IMAGE_FILLSOLID;
+		}
+		else
+			tmpItem.fillBrush = 0;
 		GetPrivateProfileStringA(itemname, "Colorkey", "None", buffer, 500, szFileName);
 		if(strcmp(buffer, "None")) {
 			g_ContainerColorKey = HexStringToLong(buffer);
@@ -1104,6 +1125,8 @@ static void IMG_DeleteItem(ImageItem *item)
     DeleteDC(item->hdc);
     if(item->lpDIBSection && ImgDeleteDIBSection)
         ImgDeleteDIBSection(item->lpDIBSection);
+	if(item->fillBrush)
+		DeleteObject(item->fillBrush);
 }
 
 void IMG_DeleteItems()
@@ -1117,6 +1140,17 @@ void IMG_DeleteItems()
         pItem = pNextItem;
     }
     g_ImageItems = NULL;
+	
+	if(myGlobals.g_closeGlyph)
+		DestroyIcon(myGlobals.g_closeGlyph);
+	if(myGlobals.g_minGlyph)
+		DestroyIcon(myGlobals.g_minGlyph);
+	if(myGlobals.g_maxGlyph)
+		DestroyIcon(myGlobals.g_maxGlyph);
+	if(g_ContainerColorKeyBrush)
+		DeleteObject(g_ContainerColorKeyBrush);
+	if(myGlobals.hFontCaption)
+		DeleteObject(myGlobals.hFontCaption);
 
 	if(g_imgDecoderAvail && g_hModuleImgDecoder) {
 		FreeLibrary(g_hModuleImgDecoder);
@@ -1186,8 +1220,18 @@ void LoadSkinItems(char *file)
     char *p;
     char *szSections = malloc(3002);
     int i = 1;
-    
-    ZeroMemory(szSections, 3000);
+    UINT data;
+	char buffer[500];
+
+    if(!(GetPrivateProfileIntA("Global", "Version", 0, file) >= 1 && GetPrivateProfileIntA("Global", "Signature", 0, file) == 101))
+		return;
+
+	if(!g_imgDecoderAvail)
+		return;
+
+	g_skinnedContainers = TRUE;
+
+	ZeroMemory(szSections, 3000);
     p = szSections;
     GetPrivateProfileSectionNamesA(szSections, 3000, file);
     szSections[3001] = szSections[3000] = 0;
@@ -1209,6 +1253,17 @@ void LoadSkinItems(char *file)
 	SkinLoadIcon(file, "CloseGlyph", &myGlobals.g_closeGlyph);
 	SkinLoadIcon(file, "MaximizeGlyph", &myGlobals.g_maxGlyph);
 	SkinLoadIcon(file, "MinimizeGlyph", &myGlobals.g_minGlyph);
+	data = GetPrivateProfileIntA("Global", "SbarHeight", 0, file);
+	DBWriteContactSettingByte(0, SRMSGMOD_T, "sbarheight", (BYTE)data);
+	GetPrivateProfileStringA("Global", "FontColor", "None", buffer, 500, file);
+	g_titleBarButtonSize.cx = GetPrivateProfileIntA("Global", "TitleButtonWidth", 24, file);
+	g_titleBarButtonSize.cy = GetPrivateProfileIntA("Global", "TitleButtonHeight", 12, file);
+	g_framelessSkinmode = GetPrivateProfileIntA("Global", "framelessmode", 0, file);
+	if(strcmp(buffer, "None"))
+		myGlobals.skinDefaultFontColor = HexStringToLong(buffer);
+	else
+		myGlobals.skinDefaultFontColor = GetSysColor(COLOR_BTNTEXT);
+	buffer[499] = 0;
     free(szSections);
 }
 

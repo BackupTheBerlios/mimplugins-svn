@@ -92,7 +92,6 @@ void LoadLogfont(int i, LOGFONTA * lf, COLORREF * colour)
         *colour = DBGetContactSettingDword(NULL, FONTMODULE, str, GetSysColor(COLOR_BTNTEXT));
     }
     if (lf) {
-        HDC hdc = GetDC(NULL);
         mir_snprintf(str, sizeof(str), "Font%dSize", i);
         if(i == H_MSGFONTID_DIVIDERS)
             lf->lfHeight = 5;
@@ -103,8 +102,6 @@ void LoadLogfont(int i, LOGFONTA * lf, COLORREF * colour)
             else
                 lf->lfHeight = (LONG)bSize;
         }
-
-        ReleaseDC(NULL,hdc);				
         
         lf->lfWidth = 0;
         lf->lfEscapement = 0;
@@ -169,11 +166,12 @@ static const char *szFontIdDescr[MSGDLGFONTCOUNT] = {
         "* Symbols (outgoing)"};
 
 static const char *szIPFontDescr[IPFONTCOUNT] = {
-        "Nickname", 
-        "UIN",
-        "Status",
-        "Protocol",
-        "Contacts local time"};
+        "Infopanel / Nickname", 
+        "Infopanel / UIN",
+        "Infopanel / Status",
+        "Infopanel / Protocol",
+        "Infopanel / Contacts local time",
+		"Window caption (skinned mode"};
 
         /*
  * Font Service support
@@ -213,7 +211,7 @@ void FS_RegisterFonts()
     }
 
     fid.cbSize = sizeof(fid);
-    strncpy(fid.group, "TabSRMM", sizeof(fid.group));
+    strncpy(fid.group, "TabSRMM Message log", sizeof(fid.group));
     strncpy(fid.dbSettingsGroup, FONTMODULE, sizeof(fid.dbSettingsGroup));
     fid.flags = FIDF_DEFAULTVALID | FIDF_ALLOWEFFECTS;
     for(i = 0; i < MSGDLGFONTCOUNT; i++) {
@@ -254,7 +252,7 @@ void FS_RegisterFonts()
         CallService(MS_FONT_REGISTER, (WPARAM)&fid, 0);
     }
 
-    strncpy(cid.group, "TabSRMM - Infopanel", sizeof(cid.group));
+    strncpy(cid.group, "TabSRMM - other", sizeof(cid.group));
     strncpy(cid.name, "Background - Infopanel fields", sizeof(cid.name));
     strncpy(cid.setting, "ipfieldsbg", sizeof(cid.setting));
     cid.defcolour = DBGetContactSettingDword(NULL, FONTMODULE, "ipfieldsbg", GetSysColor(COLOR_3DFACE));
@@ -265,7 +263,7 @@ void FS_RegisterFonts()
     cid.defcolour = DBGetContactSettingDword(NULL, FONTMODULE, "col_clock", GetSysColor(COLOR_WINDOWTEXT));
     CallService(MS_COLOUR_REGISTER, (WPARAM)&cid, 0);
     
-    strncpy(fid.group, "TabSRMM - Infopanel", sizeof(fid.group));
+    strncpy(fid.group, "TabSRMM - other", sizeof(fid.group));
     fid.flags = FIDF_DEFAULTVALID | FIDF_ALLOWEFFECTS | FIDF_SAVEACTUALHEIGHT;
     myGlobals.ipConfig.isValid = TRUE;
     for(i = 0; i < IPFONTCOUNT; i++) {
@@ -2036,16 +2034,6 @@ void ReloadGlobals()
      myGlobals.m_szNoStatus = TranslateT("No status message available");
      myGlobals.ipConfig.borderStyle = (BYTE)DBGetContactSettingByte(NULL, SRMSGMOD_T, "ipfieldborder", IPFIELD_SUNKEN);
 	 myGlobals.bAvatarBoderType = (BYTE)DBGetContactSettingByte(NULL, SRMSGMOD_T, "avbordertype", 1);
-
-	 {
-		 NONCLIENTMETRICS ncm = {0};
-
-		 ncm.cbSize = sizeof(ncm);
-		 SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
-		 if(myGlobals.hFontCaption)
-			 DeleteObject(myGlobals.hFontCaption);
-		 myGlobals.hFontCaption = CreateFontIndirect(&ncm.lfCaptionFont);
-	 }
 
      switch(myGlobals.ipConfig.borderStyle) {
          case IPFIELD_SUNKEN:

@@ -193,7 +193,18 @@ void CacheLogFonts()
             myGlobals.ipConfig.hFonts[i] = CreateFontIndirectA(&lf);
             myGlobals.ipConfig.clrs[i] = clr;
         }
+		myGlobals.hFontCaption = myGlobals.ipConfig.hFonts[IPFONTCOUNT - 1];
     }
+	else {
+		 NONCLIENTMETRICS ncm = {0};
+
+		 ncm.cbSize = sizeof(ncm);
+		 SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
+		 if(myGlobals.hFontCaption)
+			 DeleteObject(myGlobals.hFontCaption);
+		 myGlobals.hFontCaption = CreateFontIndirect(&ncm.lfCaptionFont);
+	}
+
     if(myGlobals.ipConfig.bkgBrush)
         DeleteObject(myGlobals.ipConfig.bkgBrush);
     

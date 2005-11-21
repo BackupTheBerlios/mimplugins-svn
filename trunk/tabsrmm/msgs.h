@@ -378,6 +378,7 @@ extern const int msgDlgFontCount;
 
 typedef DWORD (WINAPI *PSLWA)(HWND, DWORD, BYTE, DWORD);
 typedef BOOL (WINAPI *PULW)(HWND, HDC, POINT *, SIZE *, HDC, POINT *, COLORREF, BLENDFUNCTION *, DWORD);
+typedef BOOL (WINAPI *PFWEX)(FLASHWINFO *);
 
 // constants for the container management functions
 
@@ -533,6 +534,7 @@ typedef struct _tagImageItem {
     LPVOID lpDIBSection;
     BYTE bStretch;
     struct _tagImageItem *nextItem;
+	HBRUSH fillBrush;
 } ImageItem;
 
 typedef struct {
@@ -612,6 +614,7 @@ typedef struct {
 
 #define IMAGE_PERPIXEL_ALPHA 1
 #define IMAGE_FLAG_DIVIDED 2
+#define IMAGE_FILLSOLID 4
 
 #define IMAGE_STRETCH_V 1
 #define IMAGE_STRETCH_H 2

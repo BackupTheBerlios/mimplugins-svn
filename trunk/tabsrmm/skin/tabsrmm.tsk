@@ -1,0 +1,282 @@
+; skinning tabSRMM - how it works
+; this is a sample skin definition file for tabSRMM. It needs tabSRMM 0.9.9.99
+; or later
+
+; tabSRMM skin files are simple .ini - style text files. You can use any text
+; editor you want to edit them.
+
+; image path names are *RELATIVE* to the directory in which the skin file is
+; located. The best way is to put all images and this skin definition file
+; into a single directory.
+
+; The FORMAT
+; ==========
+
+; there are basically 2 types of entries in this file.
+
+; 1) item definitions
+; 2) image items
+
+; Item definitions MUST start with a % character and the name must be one of  
+; the rcognized item names. Currently, tabsrmm knows the following item types:
+
+; items which are not configured in the skin definition file are ignored by
+; the skinning engine (that is, these items are then rendered unskinned)
+
+; Container
+; Button
+; Buttonpressed
+; Buttonmouseover
+; Infopanelfield
+; Titlebutton
+; Titlebuttonpressed
+; Titlebuttonmouseover
+; Tabpage
+; Tabitem
+; Tabitem_bottom
+; Tabitem_active
+; Tabitem_active_bottom
+
+; Item records contain information about the item itself. It offers similar options
+; like the skinning sytem in clist_nicer+
+
+; COLOR1:    First color
+; COLOR2:    2nd color
+; TEXTCOLOR: color for the text - note only useful for a few items like buttons. The text
+;            color for Tab items can be set in tabSRMM directly with more flexibility.
+; TOP/LEFT/RIGHT/BOTTOM: the item margins (in pixels)
+; ALPHA:     The transparency value (alpha). Values go from 0 (completely transparent)
+;            to 100 (completely opaque - values are therefore in percent).
+; GRADIENT:  Set this to one of "up", "down", "right", "left" (without the quotes) to 
+;            specify the gradient direction.
+; CORNER:    A string which may contain the values "tl", "tr", "bl", "br" (again, w/o
+;            quotes). Separate multiple entries by commas.
+;            tl = top left, tr = top right, bl = bottom left, br = bottom right.
+;            Example: Corner=tl,tr  (will result in rounded corners for the top left and
+;                     top right corner).
+; COLOR2_TRANSPARENT: Set it to 1 if you want to have the 2nd color transparent, so that
+                      the gradient will blend with the background.
+; RADIUS:    A numeric value specifying the corner radius when rounded corners are used.
+
+; For more, see the examples below.
+                      
+[%Container]
+ALPHA=100
+COLOR1=ffffff
+COLOR2=202020
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=0
+GRADIENT=none
+RADIUS=0
+
+; This is a special Item. %Default is read automatically and its values 
+; are used as defaults when reading the other skin items later. With %Default, you
+; can set fallback values.
+
+[%Default]
+ALPHA=100
+COLOR1=ffffff
+COLOR2=ffffff
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=None
+GRADIENT=None
+BOTTOM=2
+LEFT=2
+RIGHT=2
+TOP=2
+BRDERSTYLE=0
+
+[%Tabpage]
+ALPHA=30
+COLOR1=ffffff
+COLOR2=ffffff
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=None
+GRADIENT=None
+BRDERSTYLE=0
+
+[%Tabitem_active_bottom]
+ALPHA=100
+COLOR1=888888
+COLOR2=444444
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=bl,br
+GRADIENT=down
+radius=12
+
+[%Tabitem_bottom]
+ALPHA=100
+COLOR1=888888
+COLOR2=444444
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=bl,br
+GRADIENT=down
+radius=12
+
+[%Tabitem_active]
+ALPHA=100
+COLOR1=a3A5FC
+COLOR2=202080
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=tl,tr
+GRADIENT=up
+radius=6
+
+[%Tabitem]
+ALPHA=100
+COLOR1=a3A5FC
+COLOR2=202080
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=tl,tr
+GRADIENT=up
+radius=6
+
+[%Buttonnotpressed]
+ALPHA=100
+COLOR1=888888
+COLOR2=444444
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=tl,tr,br,bl
+GRADIENT=down
+RADIUS=6
+Left=1
+Right=1
+
+[%InfoPanelfield]
+ALPHA=100
+COLOR1=444444
+COLOR2=aaaaaa
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=tl,tr,br,bl
+GRADIENT=down
+RADIUS=8
+top=1
+bottom=1
+
+
+[%Titlebutton]
+ALPHA=100
+COLOR1=888888
+COLOR2=444444
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=tl,tr,br,bl
+GRADIENT=down
+RADIUS=6
+Left=1
+Right=1
+
+[%Toolbar]
+ALPHA=100
+COLOR1=aaaaaa
+COLOR2=666666
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=tl,tr,br,bl
+GRADIENT=down
+RADIUS=6
+
+; 2. Image items
+; --------------
+; 
+; image items are separated from the normal item definitions. This allows to
+; use a single image for multiple items. Images are optional, because the skinning
+; engine can work without them and draw skin items in a traditional way, using gradients
+; and such.
+;
+; images have to be 32bit PNG images - other formats are not supported. Thex can be
+; partially transparent using per-pixel alpha values.
+;
+; Image item definitions MUST start with a $ character. The name is free - you can use
+; any name you want.
+;
+; sizing margins:
+; 
+; sizing margins have to be specified as Left, Right, Top and Bottom. These margins
+; divide the image into 9 parts. The corner parts are rendered without stretching
+; or shrinking, other parts of the image are stretched to make it fit the target
+; area. Sizing margins are only valid and used when ALL 4 margin values are specified.
+; 
+; ALPHA is a constant alpha value which is applied AFTER per pixel alpha values- this
+; can be used to make a non-transparent image translucent. Alpha values are in percent,
+; so the valid range is from 0 (completely transparent) to 100 (completely opaque).
+;
+; assign images to actual skin item(s).
+; 
+; This is done with the ItemX=Itemname value. X is a 0-based index number, so the first
+; assignment has to be Item0=foo, the 2nd Item1=bar and so on. Itemname refers to one of
+; the skin item names listed at the beginning of this document, WITHOUT the % character. 
+;
+; ColorKey
+; this is a special color value which will be used to make areas of the containe transparent
+; (e.g. it can be used for rounded corners). The color key can be any value you want, but 
+; remember that any pixel with this color will appear completely transparent.
+; the color key DOES ONLY MAKE SENSE for the container skin item and is ignored elsewhere.
+;
+; FillColor
+; This is a color value, which, if present, will be used to fill the inner part of the 
+; target area. You can use this if you only "need" the margin areas of the image (one example
+; would be the Tabpage which is usually invisible (covered by the message log and other
+; message window elements). The advantage is that by using a fill color, rendering will
+; be faster. Only makes sense for a "divided" image item (all 4 sizing margins present).
+
+[$Window]
+Image=back2.png
+Left=1
+Right=1
+Top=1
+Bottom=1
+Item0=Container
+Alpha=80
+Colorkey=020308
+Stretch=both
+
+[$tabarea]
+Image=contact.png
+Left=4
+Right=4
+Top=4
+Bottom=4
+Alpha=50
+Item0=Tabpage
+FillColor=202020
+
+[$Titlebutton]
+Image=CloseDn.png
+Right=2
+Top=2
+Bottom=2
+Left=2
+Alpha=80
+Item0=Titlebutton
+
+
+; the global section has some general settings for the skin.
+; the 3 glyphs are used for the min/max/close button on the title bar.
+
+; SbarHeight = height of the status bar in pixels. Using this, you can override the systems
+; default status bar height and make your status bar "match" the background skin image for
+; the container window
+
+; FontColor is the color for text output in the message window which is normally printed
+; with the system text color (black).
+; this affects: the info panel labels, the status bar text, text on buttons and elsewhere.
+
+[Global]
+CloseGlyph=close.ico
+MinimizeGlyph=minimize.ico
+MaximizeGlyph=maximize.ico
+;SbarHeight=22
+FontColor=cccccc
+Version=1
+Signature=101
+FrameLessMode=0
