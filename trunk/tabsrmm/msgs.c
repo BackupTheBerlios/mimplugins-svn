@@ -117,6 +117,12 @@ void FirstTimeConfig();
  * without this, the rich edit control does NOT accept input for all languages.
  */
 
+static int IEViewOptionsChanged(WPARAM wParam, LPARAM lParam)
+{
+	WindowList_Broadcast(hMessageWindowList, DM_IEVIEWOPTIONSCHANGED, 0, 0);
+	return 0;
+}
+
 static int SmileyAddOptionsChanged(WPARAM wParam, LPARAM lParam)
 {
     WindowList_Broadcast(hMessageWindowList, DM_SMILEYOPTIONSCHANGED, 0, 0);
@@ -895,6 +901,10 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
         hEventSmileyAdd = HookEvent(ME_SMILEYADD_OPTIONSCHANGED, SmileyAddOptionsChanged);
     }
     myGlobals.g_WantIEView = ServiceExists(MS_IEVIEW_WINDOW) && DBGetContactSettingByte(NULL, SRMSGMOD_T, "want_ieview", 0);
+	
+	if(ServiceExists(MS_IEVIEW_WINDOW))
+		HookEvent(ME_IEVIEW_OPTIONSCHANGED, IEViewOptionsChanged);
+
     myGlobals.m_hwndClist = (HWND)CallService(MS_CLUI_GETHWND, 0, 0);
 #ifdef __MATHMOD_SUPPORT    		
      myGlobals.m_MathModAvail = ServiceExists(MATH_RTF_REPLACE_FORMULAE) && DBGetContactSettingByte(NULL, SRMSGMOD_T, "wantmathmod", 0);
@@ -977,9 +987,9 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
         CallService(MS_UPDATE_REGISTER, 0, (LPARAM)&upd);
 
 	//FirstTimeConfig();
+    CacheLogFonts();
 	IMG_InitDecoder();
-	//LoadSkinItems("h:\\tabsrmm\\miranda\\plugins\\tabsrmm_svn\\skin\\tabsrmm.tsk");
-	//IMG_LoadItems("h:\\tabsrmm\\miranda\\plugins\\tabsrmm_svn\\skin\\tabsrmm.tsk");
+	ReloadContainerSkin();
 	return 0;
 }
 
@@ -1108,10 +1118,8 @@ int SplitmsgShutdown(void)
     if(ttb_Traymenu.hBmp)
         DeleteCachedIcon(&ttb_Traymenu);
     
-    if(myGlobals.szDefaultTitleFormat)
-        free(myGlobals.szDefaultTitleFormat);
-
 	IMG_DeleteItems();
+	IMG_FreeDecoder();
     return 0;
 }
 
@@ -1271,7 +1279,6 @@ int LoadSendRecvMessageModule(void)
     LoadDefaultTemplates();
 
     MoveFonts();
-    CacheLogFonts();
     BuildCodePageList();
     myGlobals.m_VSApiEnabled = InitVSApi();
 	GetDefaultContainerTitleFormat();
