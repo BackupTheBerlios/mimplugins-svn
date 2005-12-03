@@ -58,6 +58,10 @@
                       the gradient will blend with the background.
 ; RADIUS:    A numeric value specifying the corner radius when rounded corners are used.
 
+; It is possible to skin only some items and leave the others unskinned. If a skin is laoded,
+; items which are left out by the skin definition will be rendered in a standard way, so
+; they will look like ordinary windows screen elements.
+
 ; For more, see the examples below.
                       
 [%Container]
@@ -281,6 +285,12 @@ Item0=Titlebutton
 ; FontColor is the color for text output in the message window which is normally printed
 ; with the system text color (black).
 ; this affects: the info panel labels, the status bar text, text on buttons and elsewhere.
+; Version=1			 mandatory, don't remove or change, or the skin won't load.
+; Signature=101		 same - don't remove or change.
+
+; FrameLessMode		 If set to a value not equal to zero, containers will enter frameless mode.
+;					 That means, they do not have a window border or title bar. The entire back-
+;					 ground is then skinned by the container window background skin.
 
 [Global]
 CloseGlyph=close.ico
