@@ -638,7 +638,7 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 #else
                 char *szSetting = "CNT_";
 #endif                
-                char szCName[CONTAINER_NAMELEN + 10];
+                char szCName[CONTAINER_NAMELEN + 20];
                 /*
                  * retrieve the container window geometry information from the database.
                  */
@@ -657,7 +657,7 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                                 SetWindowPos(hwndDlg, 0, 50, 50, 450, 300, SWP_NOZORDER | SWP_NOACTIVATE);
                     }
                     else {
-                        mir_snprintf(szCName, 40, "%s%d", szSetting, pContainer->iContainerIndex);
+                        mir_snprintf(szCName, sizeof(szCName), "%s%d", szSetting, pContainer->iContainerIndex);
                         if (Utils_RestoreWindowPosition(hwndDlg, NULL, SRMSGMOD_T, szCName)) {
                             if (Utils_RestoreWindowPositionNoMove(hwndDlg, NULL, SRMSGMOD_T, szCName))
                                 if(Utils_RestoreWindowPosition(hwndDlg, NULL, SRMSGMOD_T, "split"))
