@@ -366,13 +366,23 @@ LRESULT ProcessExternalMessages(HWND hwnd, struct ClcData *dat, UINT msg, WPARAM
         case CLM_SETSTICKY:
             {
                 struct ClcContact *contact;
+				struct ClcGroup *group;
 
-                if (wParam == 0 || !FindItem(hwnd, dat, (HANDLE) wParam, &contact, NULL, NULL))
+                if (wParam == 0 || !FindItem(hwnd, dat, (HANDLE) wParam, &contact, &group, NULL))
                     return 0;
-                if (lParam)
+				if (lParam) {
                     contact->flags |= CONTACTF_STICKY;
-                else
+					if(group && g_CluiData.bAutoExpandGroups) {
+						group->old_expanded = group->expanded;
+						SetGroupExpand(hwnd, dat, group, 1);
+						EnsureVisible(hwnd, dat, wParam, 0);
+					}
+				}
+				else {
+					if(group && g_CluiData.bAutoExpandGroups)
+						SetGroupExpand(hwnd, dat, group, group->old_expanded);
                     contact->flags &= ~CONTACTF_STICKY;
+				}
                 break;
             }
 
@@ -434,6 +444,23 @@ LRESULT ProcessExternalMessages(HWND hwnd, struct ClcData *dat, UINT msg, WPARAM
                 }
                 break;
             }
+		case CLM_GETSTATUSMSG:
+			{
+                struct ClcContact *contact = NULL;
+                
+                if (wParam == 0)
+                    return 0;
+
+                if (!FindItem(hwnd, dat, (HANDLE)wParam, &contact, NULL, NULL))
+                    return 0;
+                if(contact->type != CLCIT_CONTACT)
+                    return 0;
+				if(contact->extraCacheEntry >= 0 && contact->extraCacheEntry <= g_nextExtraCacheEntry) {
+					if(g_ExtraCache[contact->extraCacheEntry].bStatusMsgValid != STATUSMSG_NOTFOUND)
+						return((int)g_ExtraCache[contact->extraCacheEntry].statusMsg);
+				}
+				return 0;
+			}
         case CLM_SETEXTRAIMAGELIST:
             dat->himlExtraColumns = (HIMAGELIST) lParam;
             InvalidateRect(hwnd, NULL, FALSE);

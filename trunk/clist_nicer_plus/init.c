@@ -31,7 +31,7 @@ extern HWND hwndContactList;
 
 PLUGININFO pluginInfo = {
 #if defined(_UNICODE)
-    sizeof(PLUGININFO), "CList Nicer+ (Unicode)", PLUGIN_MAKE_VERSION(0, 5, 1, 15), 
+    sizeof(PLUGININFO), "CList Nicer+ (Unicode)", PLUGIN_MAKE_VERSION(0, 5, 1, 16), 
 #else
     sizeof(PLUGININFO), "CList Nicer+", PLUGIN_MAKE_VERSION(0, 5, 1, 15), 
 #endif    
@@ -78,6 +78,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstDLL, DWORD dwReason, LPVOID reserved)
 __declspec(dllexport) PLUGININFO * MirandaPluginInfo(DWORD mirandaVersion)
 {
 #if defined(_UNICODE)
+	pluginInfo.isTransient |= UNICODE_AWARE;
     if (mirandaVersion < PLUGIN_MAKE_VERSION(0, 4, 2, 0))
 #else
     if (mirandaVersion < PLUGIN_MAKE_VERSION(0, 4, 0, 1))

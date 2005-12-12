@@ -186,11 +186,11 @@ BEGIN
     CONTROL         "Sort contacts by name",IDC_SORTBYNAME,"Button",BS_AUTORADIOBUTTON | WS_GROUP,153,12,144,10
     CONTROL         "Sort contacts by status",IDC_SORTBYSTATUS,"Button",BS_AUTORADIOBUTTON,153,24,149,10
     CONTROL         "Sort contacts by protocol",IDC_SORTBYPROTO,"Button",BS_AUTORADIOBUTTON,153,36,151,10
-    CONTROL         "Single click interface",IDC_ONECLK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,152,83,150,10
-    CONTROL         "Always show status in tooltip",IDC_ALWAYSSTATUS,"Button",BS_AUTOCHECKBOX | BS_TOP | BS_MULTILINE | WS_TABSTOP,152,96,151,11
-    CONTROL         "Disable icon blinking",IDC_DISABLEBLINK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,152,107,86,9
-    EDITTEXT        IDC_BLINKTIME,153,124,35,12,ES_NUMBER
-    LTEXT           "ms delay",IDC_STATIC,192,126,113,8
+    CONTROL         "Single click interface",IDC_ONECLK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,152,93,150,10
+    CONTROL         "Always show status in tooltip",IDC_ALWAYSSTATUS,"Button",BS_AUTOCHECKBOX | BS_TOP | BS_MULTILINE | WS_TABSTOP,152,106,151,11
+    CONTROL         "Disable icon blinking",IDC_DISABLEBLINK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,152,117,86,9
+    EDITTEXT        IDC_BLINKTIME,153,130,35,12,ES_NUMBER
+    LTEXT           "ms delay",IDC_STATIC,192,132,113,8
     CONTROL         "Show",IDC_DONTCYCLE,"Button",BS_AUTORADIOBUTTON | WS_GROUP,10,156,97,10
     COMBOBOX        IDC_PRIMARYSTATUS,107,155,78,70,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "icon when statuses differ",IDC_STATIC,189,157,116,8,NOT WS_GROUP
@@ -201,7 +201,7 @@ BEGIN
     CONTROL         "Show multiple icons",IDC_MULTITRAY,"Button",BS_AUTORADIOBUTTON,10,190,98,10
     CONTROL         "Only when statuses differ",IDC_ALWAYSMULTI,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,108,190,198,10
     GROUPBOX        "Contact List",IDC_STCLISTGROUP,2,2,135,128
-    GROUPBOX        "System tray icon",IDC_STATIC,143,72,169,70
+    GROUPBOX        "System tray icon",IDC_STATIC,143,79,169,63
     GROUPBOX        "System tray icon when using multiple protocols",IDC_STATIC,2,144,310,85
     GROUPBOX        "Contact List Sorting",IDC_STATIC,143,2,169,68,WS_GROUP
     CONTROL         "Spin5",IDC_BLINKSPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS | UDS_HOTTRACK,173,116,11,21
@@ -212,6 +212,7 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,206,289,12
     CONTROL         "Do not separate offline contacts",IDC_DONTSEPARATE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,154,58,149,10
+    CONTROL         "Auto expand groups",IDC_GROUPAUTOEXPAND,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,99,123,12
 END
 
 IDD_OPT_PLUS DIALOGEX 0, 0, 313, 245
@@ -895,8 +896,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,5,1,15
- PRODUCTVERSION 0,5,1,15
+ FILEVERSION 0,5,1,16
+ PRODUCTVERSION 0,5,1,16
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x21L
@@ -914,12 +915,12 @@ BEGIN
             VALUE "Comments", "Licensed under the terms of the GNU General Public License"
             VALUE "CompanyName", "Copyright © 2000-2004 Richard Hughes, Roland Rabien, Tristan Van de Vreede, Martin Öberg, Robert Rainwater, Sam Kothari and Lyon Lim and others."
             VALUE "FileDescription", "Miranda IM Contact List"
-            VALUE "FileVersion", "0.5.1.15"
+            VALUE "FileVersion", "0.5.1.16"
             VALUE "InternalName", "clist_nicer+"
             VALUE "LegalCopyright", "Copyright © 2000-2005 The Miranda IM project members."
             VALUE "OriginalFilename", "clist_nicer_plus.dll"
             VALUE "ProductName", "Miranda IM Contact List"
-            VALUE "ProductVersion", "0.5.1.15"
+            VALUE "ProductVersion", "0.5.1.16"
             VALUE "SpecialBuild", "213"
         END
     END

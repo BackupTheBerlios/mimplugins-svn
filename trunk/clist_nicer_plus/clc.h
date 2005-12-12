@@ -140,6 +140,7 @@ struct ClcGroup {
     int contactCount, allocedCount;
     struct ClcContact *contact;
     int expanded, hideOffline, groupId;
+	int old_expanded;
     struct ClcGroup *parent;
     int scanIndex;
     int totalMembers;
@@ -353,9 +354,10 @@ struct CluiData {
     HPEN hPen3DBright, hPen3DDark;
     BYTE bSkinnedButtonMode;
     BYTE bFirstRun;
-    BOOL bUseDCMirroring;
+    BYTE bUseDCMirroring;
     BYTE bCLeft, bCRight, bCTop, bCBottom;
 	BYTE bUseFloater;
+	BYTE bAutoExpandGroups;
 };
 
 struct IconDesc {
@@ -574,7 +576,7 @@ int RenameGroupT(int idx, TCHAR *tszNewName);
 #define CLM_SETSTICKY (CLM_FIRST+100)
 #define CLM_ISMULTISELECT (CLM_FIRST+102)
 #define CLM_SETEXTRAIMAGEINTMETA   (CLM_FIRST+104)
-
+#define CLM_GETSTATUSMSG (CLM_FIRST+105)
 #define IDC_RESETMODES 110
 #define IDC_SELECTMODE 108
 #define IDC_CONFIGUREMODES 109

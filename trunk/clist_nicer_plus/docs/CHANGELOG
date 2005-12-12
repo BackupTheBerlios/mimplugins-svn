@@ -7,6 +7,15 @@
 + = new feature
 - = removed
 
+0.5.1.17 - 2005/11/20
+
+		! fixed a few minimize/maximize issues with various border styles.
+		  Minimize now always follow the "miniemize to tray" setting
+
+0.5.1.16 - 2005/11/20
+
+		+ added UNICODE_AWARE so that a unicode core will not reject the contact list.
+
 0.5.1.15 - 2005/11/05
 
         ! toolbar icon bugs (introduced in .14) fixed.
@@ -75,7 +84,18 @@
 		  Floater) in which case it will only be visible when the contact list is minimized
 		  or hidden.
 		  And finally, the floater can show a copy of the event area.
-                
+
+		+ changed RTL behaviour a bit. When rtl alignment is set to "Never", RTL text will
+		  be printed left to right, that is, no RTL alignment will be made in any case and the
+		  contact list will look like normal (left to right aligned) for all contacts.
+		  A new option "RTL TEXT only" has been added to the alignment options which will,
+		  when active, only align the text label, but not "mirror" the entire contact.
+		  
+		  RTL text is still autodetected, but the formatting depends on the setting of the
+		  "Right align" combo box.
+
+		+ added UNICODE_AWARE flag so that the clist will load with new unicode cores
+		
 0.5.1.14 - 2005/10/15
 
         ! fixed misising status messages (rarely happening, but still possible)

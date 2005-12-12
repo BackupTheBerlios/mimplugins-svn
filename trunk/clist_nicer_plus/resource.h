@@ -819,6 +819,8 @@
 #define ID_BUTTONBAR_DECREASEBUTTONSIZE 40035
 #define IDC_BORDERSTYLE                 -25501
 #define ID_BUTTONBAR_FLATBUTTONS        40036
+#define IDC_CHECK2                      40036
+#define IDC_GROUPAUTOEXPAND             40036
 #define ID_BUTTONBAR_NOVISUALSTYLES     40037
 #define ID_TRAY_HIDE                    40038
 #define ID_TRAY_EXIT                    40039
@@ -849,7 +851,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        3
 #define _APS_NEXT_COMMAND_VALUE         40061
-#define _APS_NEXT_CONTROL_VALUE         40036
+#define _APS_NEXT_CONTROL_VALUE         40037
 #define _APS_NEXT_SYMED_VALUE           40154
 #endif
 #endif

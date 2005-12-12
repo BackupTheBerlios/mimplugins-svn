@@ -434,7 +434,7 @@ static RECT rcContent;
 static BOOL pi_selectiveIcon;
 
 static BOOL av_left, av_right, av_rightwithnick;
-static BOOL av_wanted, mirror_rtl, mirror_always;
+static BOOL av_wanted, mirror_rtl, mirror_always, mirror_rtltext;
 
 DWORD savedCORNER = -1;
 
@@ -489,10 +489,12 @@ static void __forceinline PaintItem(HDC hdcMem, struct ClcGroup *group, struct C
             g_RTL = TRUE;
             bg_indent_r = g_CluiData.bApplyIndentToBg ? indent * dat->groupIndent : 0;
         }
-        else {
+        else if(mirror_rtltext) {
             bg_indent_l = g_CluiData.bApplyIndentToBg ? indent * dat->groupIndent : 0;
             dt_nickflags = DT_RTLREADING | DT_RIGHT;
         }
+		else
+            bg_indent_l = g_CluiData.bApplyIndentToBg ? indent * dat->groupIndent : 0;
     }
     else if((type == CLCIT_GROUP && contact->isRtl) || mirror_always) {
         g_RTL = TRUE;
@@ -1204,7 +1206,7 @@ nodisplay:
 #else
                 szText = statusNames[cstatus - ID_STATUS_OFFLINE];
 #endif
-                if(cEntry->dwCFlags & ECF_RTLSTATUSMSG && !g_CluiData.bUseDCMirroring)
+                if(cEntry->dwCFlags & ECF_RTLSTATUSMSG && g_CluiData.bUseDCMirroring == 3)
                     dt_2ndrowflags |= (DT_RTLREADING | DT_RIGHT);
                 
                 if(rightIcons == 0) {
@@ -1344,7 +1346,8 @@ void PaintClc(HWND hwnd, struct ClcData *dat, HDC hdc, RECT *rcPaint)
 
     mirror_rtl = (g_CluiData.bUseDCMirroring == 2);
     mirror_always = (g_CluiData.bUseDCMirroring == 1);
-    
+    mirror_rtltext = (g_CluiData.bUseDCMirroring == 3);
+
     g_center = DBGetContactSettingByte(NULL, "CLCExt", "EXBK_CenterGroupnames", 0) && !dat->bisEmbedded;
     g_ignoreselforgroups = DBGetContactSettingByte(NULL, "CLC", "IgnoreSelforGroups", 0);
     g_selectiveIcon = (g_CluiData.dwFlags & CLUI_FRAME_SELECTIVEICONS) && (g_CluiData.dwFlags & CLUI_FRAME_AVATARS) && !dat->bisEmbedded;

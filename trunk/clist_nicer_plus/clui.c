@@ -38,7 +38,7 @@ int g_fading_active = 0;
 
 static RECT g_PreSizeRect, g_SizingRect;
 static int g_sizingmethod;
-static LONG g_CLUI_x_off, g_CLUI_y_off, g_CLUI_y1_off;
+static LONG g_CLUI_x_off, g_CLUI_y_off, g_CLUI_y1_off, g_CLUI_x1_off;
 static RECT rcWPC;
 
 static HMODULE hUserDll;
@@ -335,6 +335,11 @@ void GetClientID(struct ClcContact *contact, char *client)
     }
 }
 
+/*
+ * create the CLC control, but not yet the frame. The frame containing the CLC should be created as the
+ * last frame of all.
+ */
+
 int PreCreateCLC(HWND parent)
 {
     hwndContactTree=CreateWindow(CLISTCONTROL_CLASS,_T(""),
@@ -350,9 +355,12 @@ int PreCreateCLC(HWND parent)
 	return((int)hwndContactTree);
 }
 
+/*
+ * create internal frames, including the last frame (actual CLC control)
+ */
+
 int CreateCLC(HWND parent)
 {
-	Sleep(0);
 	{
 	   // create contact list frame
         DWORD flags;
@@ -380,40 +388,38 @@ int CreateCLC(HWND parent)
         flags ^= F_NOBORDER;
         CallService(MS_CLIST_FRAMES_SETFRAMEOPTIONS, MAKEWPARAM(FO_FLAGS, hFrameContactTree), flags);
 	}
-	{
-		//lastreqh=0;
-        CallService(MS_CLIST_SETHIDEOFFLINE,(WPARAM)oldhideoffline,0);
-		{	
-            int state=DBGetContactSettingByte(NULL,"CList","State",SETTING_STATE_NORMAL);
-			if(state==SETTING_STATE_NORMAL) ShowWindow(hwndContactList, SW_SHOW);
-			else if(state==SETTING_STATE_MINIMIZED) ShowWindow(hwndContactList, SW_SHOWMINIMIZED);
-		}
-		//lastreqh=0;
-		disableautoupd=0;
 
-        ReloadExtraIcons();
-        {
-            CLISTFrame frame = {0};
-            frame.cbSize = sizeof(frame);
-            frame.name = "EventArea";
-            frame.hIcon = 0;
-            frame.height = 18;
-            frame.TBname = "Event Area";
-            frame.Flags=F_VISIBLE|F_SHOWTBTIP;
-            frame.align = alBottom;
-            frame.hWnd = g_hwndEventArea = CreateWindowExA(0, "EventAreaClass", "evt", WS_VISIBLE | WS_CHILD | WS_TABSTOP, 0, 0, 20, 20, hwndContactList, (HMENU) 0, g_hInst, NULL);
-            hNotifyFrame = (HWND)CallService(MS_CLIST_FRAMES_ADDFRAME,(WPARAM)&frame,(LPARAM)0);
-            CallService(MS_CLIST_FRAMES_UPDATEFRAME, (WPARAM)hNotifyFrame, FU_FMPOS);
-            if(!g_CluiData.bFirstRun)
-                HideShowNotifyFrame();
-            CreateViewModeFrame();
-        }
-        SetButtonToSkinned();
+	CallService(MS_CLIST_SETHIDEOFFLINE,(WPARAM)oldhideoffline,0);
+	{	
+        int state=DBGetContactSettingByte(NULL,"CList","State",SETTING_STATE_NORMAL);
+		if(state==SETTING_STATE_NORMAL) ShowWindow(hwndContactList, SW_SHOW);
+		else if(state==SETTING_STATE_MINIMIZED) ShowWindow(hwndContactList, SW_SHOWMINIMIZED);
 	}
-    //MenuModulesLoaded(0, 0);
+	//lastreqh=0;
+	disableautoupd=0;
+	Sleep(0);
+    ReloadExtraIcons();
+    {
+        CLISTFrame frame = {0};
+        frame.cbSize = sizeof(frame);
+        frame.name = "EventArea";
+        frame.hIcon = 0;
+        frame.height = 18;
+        frame.TBname = "Event Area";
+        frame.Flags=F_VISIBLE|F_SHOWTBTIP;
+        frame.align = alBottom;
+        frame.hWnd = g_hwndEventArea = CreateWindowExA(0, "EventAreaClass", "evt", WS_VISIBLE | WS_CHILD | WS_TABSTOP, 0, 0, 20, 20, hwndContactList, (HMENU) 0, g_hInst, NULL);
+        hNotifyFrame = (HWND)CallService(MS_CLIST_FRAMES_ADDFRAME,(WPARAM)&frame,(LPARAM)0);
+        CallService(MS_CLIST_FRAMES_UPDATEFRAME, (WPARAM)hNotifyFrame, FU_FMPOS);
+        if(!g_CluiData.bFirstRun)
+            HideShowNotifyFrame();
+        CreateViewModeFrame();
+    }
+    SetButtonToSkinned();
+
+	Sleep(0);
     return(0);
 }
-
 
 static int CluiModulesLoaded(WPARAM wParam, LPARAM lParam)
 {
@@ -1051,6 +1057,8 @@ LRESULT CALLBACK ContactListWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                 g_CluiData.bShowXStatusOnSbar = DBGetContactSettingByte(NULL, "CLUI", "xstatus_sbar", 0);
                 g_CluiData.bLayeredHack = DBGetContactSettingByte(NULL, "CLUI", "layeredhack", 1);
                 g_CluiData.bFirstRun = DBGetContactSettingByte(NULL, "CLUI", "firstrun", 1);
+				g_CluiData.bAutoExpandGroups = DBGetContactSettingByte(NULL, "CList", "GroupAutoExpand", 0);
+
                 if(g_CluiData.bFirstRun)
                     DBWriteContactSettingByte(NULL, "CLUI", "firstrun", 0);
                 if(!pDrawAlpha)
@@ -1362,6 +1370,10 @@ skipbg:
                 ClientToScreen(hwnd, &pt);
                 g_CLUI_x_off = pt.x - g_PreSizeRect.left;
                 g_CLUI_y_off = pt.y - g_PreSizeRect.top;
+				pt.x = rc.right;
+				ClientToScreen(hwnd, &pt);
+				g_CLUI_x1_off = g_PreSizeRect.right - pt.x;
+				pt.x = 0;
                 pt.y = rc.bottom;
                 ClientToScreen(hwnd, &pt);
                 g_CLUI_y1_off = g_PreSizeRect.bottom - pt.y;
@@ -1411,7 +1423,7 @@ skipbg:
 
                         during_sizing = 1;
                         new_window_rect.left = 0;
-                        new_window_rect.right = wp->cx - (2 * g_CLUI_x_off);
+                        new_window_rect.right = wp->cx - (g_CLUI_x_off + g_CLUI_x1_off);
                         new_window_rect.top = 0;
                         new_window_rect.bottom = wp->cy - g_CLUI_y_off - g_CLUI_y1_off;
                         PosBatch = BeginDeferWindowPos(25);
@@ -1479,6 +1491,15 @@ skipbg:
                 } else
                     DBWriteContactSettingByte(NULL, "CList", "State", SETTING_STATE_MINIMIZED);
             }
+			else if(wParam == SIZE_RESTORED) {
+				if(DBGetContactSettingByte(NULL, "CList", "State", 0) == SETTING_STATE_MINIMIZED || DBGetContactSettingByte(NULL, "CList", "State", 0) == SETTING_STATE_HIDDEN) {
+					ShowWindow(hwnd, SW_RESTORE);
+					_DebugPopup(0, "restored");
+					DBWriteContactSettingByte(NULL, "CList", "State", SETTING_STATE_NORMAL);
+					PostMessage(hwnd, WM_SIZE, 0, 0);
+					PostMessage(hwnd, CLUIINTM_REDRAW, 0, 0);
+				}
+			}
         case WM_MOVE:
             if (!IsIconic(hwnd)) {
                 RECT rc;
@@ -1497,11 +1518,12 @@ skipbg:
             return 0;
 
         case CLUIINTM_REMOVEFROMTASKBAR:
-            RemoveFromTaskBar(hwnd);
-            return 0;
-        case WM_NCACTIVATE:
-            //PostMessage(hwnd, CLUIINTM_REMOVEFROMTASKBAR, 0, 0);
-            break;
+			{
+				BYTE windowStyle = DBGetContactSettingByte(NULL, "CLUI", "WindowStyle", SETTING_WINDOWSTYLE_DEFAULT);
+				if(windowStyle == SETTING_WINDOWSTYLE_DEFAULT)
+					RemoveFromTaskBar(hwnd);
+				return 0;
+			}
         case WM_ACTIVATE:
             if(g_fading_active) {
                 if(wParam != WA_INACTIVE && g_CluiData.isTransparent)
@@ -1521,6 +1543,7 @@ skipbg:
                     transparentFocus = 1;
                 }
             }
+			PostMessage(hwnd, CLUIINTM_REMOVEFROMTASKBAR, 0, 0);
             return DefWindowProc(hwnd, msg, wParam, lParam);
 
         case WM_SETCURSOR:
@@ -1622,7 +1645,8 @@ skipbg:
 				if (!g_CluiData.fadeinout || !IsWinVer2000Plus())
                     break;
 
-                g_fading_active = 1;
+                PostMessage(hwnd, CLUIINTM_REMOVEFROMTASKBAR, 0, 0);
+				g_fading_active = 1;
                 if (wParam) {
                     sourceAlpha = 0;
                     destAlpha = g_CluiData.isTransparent ? g_CluiData.alpha : 255;
@@ -1679,6 +1703,12 @@ skipbg:
         case WM_SYSCOMMAND:
             if (wParam == SC_MAXIMIZE)
                 return 0;
+			else if(wParam == SC_MINIMIZE) {
+				if(DBGetContactSettingByte(NULL, "CLUI", "WindowStyle", SETTING_WINDOWSTYLE_DEFAULT) == SETTING_WINDOWSTYLE_DEFAULT) {
+					CallService(MS_CLIST_SHOWHIDE, 0, 0);
+					return 0;
+				}
+			}
             return DefWindowProc(hwnd, msg, wParam, lParam);
 
         case WM_COMMAND:
@@ -1761,7 +1791,6 @@ skipbg:
                 switch (LOWORD(wParam)) {
                     case ID_TRAY_EXIT:
                     case ID_ICQ_EXIT:
-						CLUIFramesStoreAllFrames();
                         g_shutDown = 1;
                         if (CallService(MS_SYSTEM_OKTOEXIT, 0, 0))
                             DestroyWindow(hwnd);
@@ -2306,8 +2335,9 @@ skipbg:
                 return 0;
             }
         case WM_CLOSE:
-            if (DBGetContactSettingByte(NULL, "CList", "ToolWindow", SETTING_TOOLWINDOW_DEFAULT))
-                CallService(MS_CLIST_SHOWHIDE, 0, 0);
+            if (DBGetContactSettingByte(NULL, "CLUI", "WindowStyle", SETTING_WINDOWSTYLE_DEFAULT) != SETTING_WINDOWSTYLE_DEFAULT || 
+                DBGetContactSettingByte(NULL, "CList", "Min2Tray", SETTING_MIN2TRAY_DEFAULT))
+				CallService(MS_CLIST_SHOWHIDE, 0, 0);
             else
                 SendMessage(hwnd, WM_COMMAND, ID_ICQ_EXIT, 0);
 

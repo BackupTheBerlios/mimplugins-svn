@@ -111,6 +111,11 @@ void InvalidateDisplayNameCacheEntry(HANDLE hContact)
 	}
 }
 
+int GetContactStatusMessage(WPARAM wParam, LPARAM lParam)
+{
+	return((int)SendMessage(hwndContactTree, CLM_GETSTATUSMSG, wParam, lParam));
+}
+
 int GetContactDisplayName(WPARAM wParam, LPARAM lParam)
 {
 	CONTACTINFO ci;

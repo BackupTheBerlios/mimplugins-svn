@@ -565,6 +565,8 @@ static BOOL CALLBACK DlgProcPlusOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
             SendDlgItemMessageA(hwndDlg, IDC_CLISTALIGN, CB_INSERTSTRING, -1, (LPARAM)Translate("Never"));
             SendDlgItemMessageA(hwndDlg, IDC_CLISTALIGN, CB_INSERTSTRING, -1, (LPARAM)Translate("Always"));
             SendDlgItemMessageA(hwndDlg, IDC_CLISTALIGN, CB_INSERTSTRING, -1, (LPARAM)Translate("For RTL only"));
+            SendDlgItemMessageA(hwndDlg, IDC_CLISTALIGN, CB_INSERTSTRING, -1, (LPARAM)Translate("RTL TEXT only"));
+
             SendDlgItemMessage(hwndDlg, IDC_CLISTALIGN, CB_SETCURSEL, g_CluiData.bUseDCMirroring, 0);
                                
             CheckDlgButton(hwndDlg, IDC_STATUSICONSCENTERED, g_CluiData.bCenterStatusIcons ? 1 : 0);
@@ -623,7 +625,8 @@ static BOOL CALLBACK DlgProcPlusOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
                 {
                     BOOL translated;
                     LRESULT sel = SendDlgItemMessage(hwndDlg, IDC_ALIGNMENT, CB_GETCURSEL, 0, 0);
-                    
+                    BYTE bOldMirrorMode = g_CluiData.bUseDCMirroring;
+
                     __setFlag(CLUI_FRAME_STATUSICONS, IsDlgButtonChecked(hwndDlg, IDC_SHOWSTATUSICONS));
                     __setFlag(CLUI_SHOWVISI, IsDlgButtonChecked(hwndDlg, IDC_SHOWVISIBILITY));
                     __setFlag(CLUI_USEMETAICONS, IsDlgButtonChecked(hwndDlg, IDC_SHOWMETA));
@@ -673,7 +676,7 @@ static BOOL CALLBACK DlgProcPlusOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
                     g_CluiData.bCenterStatusIcons = IsDlgButtonChecked(hwndDlg, IDC_STATUSICONSCENTERED) ? TRUE : FALSE;
                     g_CluiData.bShowLocalTime = IsDlgButtonChecked(hwndDlg, IDC_SHOWLOCALTIME) ? 1 : 0;
                     g_CluiData.bShowLocalTimeSelective = IsDlgButtonChecked(hwndDlg, IDC_SHOWLOCALTIMEONLYWHENDIFFERENT) ? 1 : 0;
-                    g_CluiData.bUseDCMirroring = SendDlgItemMessage(hwndDlg, IDC_CLISTALIGN, CB_GETCURSEL, 0, 0);
+                    g_CluiData.bUseDCMirroring = (BYTE)SendDlgItemMessage(hwndDlg, IDC_CLISTALIGN, CB_GETCURSEL, 0, 0);
                     DBWriteContactSettingByte(NULL, "CLC", "MirrorDC", g_CluiData.bUseDCMirroring);
                     DBWriteContactSettingByte(NULL, "CLC", "ShowLocalTime", g_CluiData.bShowLocalTime);
                     DBWriteContactSettingByte(NULL, "CLC", "SelectiveLocalTime", g_CluiData.bShowLocalTimeSelective);
@@ -695,6 +698,8 @@ static BOOL CALLBACK DlgProcPlusOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
                     ConfigureEventArea(hwndContactList);
                     SendMessage(hwndContactTree, WM_SIZE, 0, 0);
                     SendMessage(hwndContactList, WM_SIZE, 0, 0);
+					if(bOldMirrorMode != g_CluiData.bUseDCMirroring)
+						WindowList_Broadcast(hClcWindowList, CLM_AUTOREBUILD, 0, 0);
                     PostMessage(hwndContactList, CLUIINTM_REDRAW, 0, 0);
                     return TRUE;
                 }
@@ -711,7 +716,7 @@ DWORD GetCLUIWindowStyle(BYTE style)
     if(style == SETTING_WINDOWSTYLE_THINBORDER)
         return dwBasic | WS_BORDER;
     else if(style == SETTING_WINDOWSTYLE_TOOLWINDOW || style == 0)
-        return dwBasic | (WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_POPUPWINDOW | WS_THICKFRAME);
+        return dwBasic | (WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_OVERLAPPEDWINDOW | WS_THICKFRAME);
     else if(style == SETTING_WINDOWSTYLE_NOBORDER)
         return dwBasic;
 
@@ -727,13 +732,13 @@ void ApplyCLUIBorderStyle(HWND hwnd)
         p.length = sizeof(p);
         GetWindowPlacement(hwndContactList, &p);
         ShowWindow(hwndContactList, SW_HIDE);
-        SetWindowLong(hwndContactList, GWL_STYLE, GetWindowLong(hwndContactList, GWL_STYLE) | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPCHILDREN | WS_POPUPWINDOW | WS_THICKFRAME);
+        SetWindowLong(hwndContactList, GWL_STYLE, GetWindowLong(hwndContactList, GWL_STYLE) | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPCHILDREN | WS_OVERLAPPEDWINDOW | WS_THICKFRAME);
         p.showCmd = SW_HIDE;
         SetWindowPlacement(hwndContactList, &p);
     } else if(windowStyle == SETTING_WINDOWSTYLE_THINBORDER) {
-        SetWindowLong(hwndContactList, GWL_STYLE, GetWindowLong(hwndContactList, GWL_STYLE) & ~(WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_POPUPWINDOW | WS_THICKFRAME));
+        SetWindowLong(hwndContactList, GWL_STYLE, GetWindowLong(hwndContactList, GWL_STYLE) & ~(WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_OVERLAPPEDWINDOW | WS_THICKFRAME));
         SetWindowLong(hwndContactList, GWL_STYLE, GetWindowLong(hwndContactList, GWL_STYLE) | WS_BORDER);
     }
     else
-        SetWindowLong(hwndContactList, GWL_STYLE, GetWindowLong(hwndContactList, GWL_STYLE) & ~(WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_POPUPWINDOW | WS_THICKFRAME));
+        SetWindowLong(hwndContactList, GWL_STYLE, GetWindowLong(hwndContactList, GWL_STYLE) & ~(WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_OVERLAPPEDWINDOW | WS_THICKFRAME));
 }

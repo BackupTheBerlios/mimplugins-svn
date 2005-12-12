@@ -194,6 +194,7 @@ int HitTest(HWND hwnd, struct ClcData *dat, int testx, int testy, struct ClcCont
     RECT clRect;
     HFONT hFont;
     DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+	BYTE mirror_mode = g_CluiData.bUseDCMirroring;
 
     if (flags)
         *flags = 0;
@@ -234,7 +235,8 @@ int HitTest(HWND hwnd, struct ClcData *dat, int testx, int testy, struct ClcCont
         ;
     }
 
-    if(hitcontact->type == CLCIT_CONTACT && g_ExtraCache[hitcontact->extraCacheEntry].dwCFlags & ECF_RTLNICK && g_CluiData.bUseDCMirroring)
+    if(mirror_mode == 1 || (mirror_mode == 2 && ((hitcontact->type == CLCIT_CONTACT && g_ExtraCache[hitcontact->extraCacheEntry].dwCFlags & ECF_RTLNICK) ||
+		(hitcontact->type == CLCIT_GROUP && hitcontact->isRtl))) || (mirror_mode == 3 && hitcontact->type == CLCIT_GROUP && hitcontact->isRtl))
         return RTL_HitTest(hwnd, dat, testx, testy, hitcontact, flags, indent, hit);
     
     // avatar check
@@ -314,29 +316,15 @@ int HitTest(HWND hwnd, struct ClcData *dat, int testx, int testy, struct ClcCont
     }
     SelectObject(hdc, hFont);
     ReleaseDC(hwnd, hdc);
-    if(g_ExtraCache[hitcontact->extraCacheEntry].dwCFlags & ECF_RTLNICK) {
-        if (testx > clRect.right - (width + 4 + (g_CluiData.dwFlags & CLUI_FRAME_AVATARS ? g_CluiData.avatarSize : 0))) {
-            if (flags)
-                *flags |= CLCHT_ONITEMLABEL;
-            return hit;
-        }
-        if (g_CluiData.dwFlags & CLUI_FULLROWSELECT && !(GetKeyState(VK_SHIFT) & 0x8000) && testx > dat->leftMargin + indent * dat->groupIndent + checkboxWidth + dat->iconXSpace + (g_CluiData.dwFlags & CLUI_FRAME_AVATARS ? g_CluiData.avatarSize : 0)) {
-            if (flags)
-                *flags |= CLCHT_ONITEMSPACE;
-            return hit;
-        }
+    if (g_CluiData.dwFlags & CLUI_FULLROWSELECT && !(GetKeyState(VK_SHIFT) & 0x8000) && testx > dat->leftMargin + indent * dat->groupIndent + checkboxWidth + dat->iconXSpace + width + 4 + (g_CluiData.dwFlags & CLUI_FRAME_AVATARS ? g_CluiData.avatarSize : 0)) {
+        if (flags)
+            *flags |= CLCHT_ONITEMSPACE;
+        return hit;
     }
-    else {
-        if (g_CluiData.dwFlags & CLUI_FULLROWSELECT && !(GetKeyState(VK_SHIFT) & 0x8000) && testx > dat->leftMargin + indent * dat->groupIndent + checkboxWidth + dat->iconXSpace + width + 4 + (g_CluiData.dwFlags & CLUI_FRAME_AVATARS ? g_CluiData.avatarSize : 0)) {
-            if (flags)
-                *flags |= CLCHT_ONITEMSPACE;
-            return hit;
-        }
-        if (testx< dat->leftMargin + indent * dat->groupIndent + checkboxWidth + dat->iconXSpace + width + 4 + (g_CluiData.dwFlags & CLUI_FRAME_AVATARS ? g_CluiData.avatarSize : 0)) {
-            if (flags)
-                *flags |= CLCHT_ONITEMLABEL;
-            return hit;
-        }
+    if (testx< dat->leftMargin + indent * dat->groupIndent + checkboxWidth + dat->iconXSpace + width + 4 + (g_CluiData.dwFlags & CLUI_FRAME_AVATARS ? g_CluiData.avatarSize : 0)) {
+        if (flags)
+            *flags |= CLCHT_ONITEMLABEL;
+        return hit;
     }
     if (flags)
         *flags |= CLCHT_NOWHERE;

@@ -39,6 +39,7 @@ int ContactSettingChanged(WPARAM wParam, LPARAM lParam);
 int ContactAdded(WPARAM wParam, LPARAM lParam);
 int ContactDeleted(WPARAM wParam, LPARAM lParam);
 int GetContactDisplayName(WPARAM wParam, LPARAM lParam);
+int GetContactStatusMessage(WPARAM wParam, LPARAM lParam);
 int InvalidateDisplayName(WPARAM wParam, LPARAM lParam);
 int CListOptInit(WPARAM wParam, LPARAM lParam);
 void TrayIconUpdateBase(const char *szChangedProto);
@@ -432,6 +433,7 @@ int LoadContactListModule(void)
     CreateServiceFunction(MS_CLIST_GETSTATUSMODE, GetStatusMode);
     CreateServiceFunction(MS_CLIST_GETSTATUSMODEDESCRIPTION, GetStatusModeDescription);
     CreateServiceFunction(MS_CLIST_GETCONTACTDISPLAYNAME, GetContactDisplayName);
+	CreateServiceFunction("CList/GetContactStatusMsg", GetContactStatusMessage);
     CreateServiceFunction(MS_CLIST_INVALIDATEDISPLAYNAME, InvalidateDisplayName);
     CreateServiceFunction(MS_CLIST_TRAYICONPROCESSMESSAGE, TrayIconProcessMessage);
     CreateServiceFunction(MS_CLIST_PAUSEAUTOHIDE, TrayIconPauseAutoHide);
@@ -592,9 +594,8 @@ int ShowHide(WPARAM wParam, LPARAM lParam)
         RECT rcScreen, rcWindow;
         int offScreen = 0;
 
-        SystemParametersInfo(SPI_GETWORKAREA, 0, &rcScreen, FALSE);
-        ShowWindow(hwndContactList, SW_SHOWNORMAL);
-        SetWindowPos(hwndContactList, DBGetContactSettingByte(NULL, "CList", "OnTop", SETTING_ONTOP_DEFAULT) ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		ShowWindow(hwndContactList, SW_SHOWNORMAL);
+		SetWindowPos(hwndContactList, DBGetContactSettingByte(NULL, "CList", "OnTop", SETTING_ONTOP_DEFAULT) ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
         SetForegroundWindow(hwndContactList);
         DBWriteContactSettingByte(NULL, "CList", "State", SETTING_STATE_NORMAL);
     //this forces the window onto the visible screen

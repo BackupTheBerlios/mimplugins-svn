@@ -892,7 +892,7 @@ void ReloadExtraInfo(HANDLE hContact)
         int index = GetExtraCache(hContact, NULL);
         if(index >= 0 && index < g_nextExtraCacheEntry) {
             char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
-            g_ExtraCache[index].timezone = (DWORD)DBGetContactSettingByte(hContact,"UserInfo","Timezone", DBGetContactSettingByte(hContact, szProto,"Timezone",-1));
+            g_ExtraCache[index].timezone = (DWORD)(DBGetContactSettingByte(hContact,"UserInfo","Timezone", DBGetContactSettingByte(hContact, szProto,"Timezone",-1)));
             if(g_ExtraCache[index].timezone != -1) {
                 DWORD contact_gmt_diff;
                 contact_gmt_diff = g_ExtraCache[index].timezone > 128 ? 256 - g_ExtraCache[index].timezone : 0 - g_ExtraCache[index].timezone;
@@ -946,7 +946,7 @@ void RTL_DetectGroupName(struct ClcContact *group)
 
     group->isRtl = 0;
     
-    if(group->szText) {
+    if(group->szText && g_CluiData.bUseDCMirroring != 0) {
         iLen = min(lstrlenW(group->szText), 10);
         GetStringTypeW(CT_CTYPE2, group->szText, iLen, infoTypeC2);
         for(i = 0; i < 10; i++) {
@@ -1025,7 +1025,7 @@ void GetExtendedInfo(struct ClcContact *contact, struct ClcData *dat)
         (g_ExtraCache[index].iExtraImage[EIMG_SMS] != 0xff ? EIMG_SHOW_SMS : 0));
 
 
-    g_ExtraCache[index].timezone = (DWORD)DBGetContactSettingByte(contact->hContact,"UserInfo","Timezone", DBGetContactSettingByte(contact->hContact, contact->proto,"Timezone",-1));
+    g_ExtraCache[index].timezone = (DWORD)(DBGetContactSettingByte(contact->hContact,"UserInfo","Timezone", DBGetContactSettingByte(contact->hContact, contact->proto,"Timezone",-1)));
     if(g_ExtraCache[index].timezone != -1) {
         DWORD contact_gmt_diff;
         contact_gmt_diff = g_ExtraCache[index].timezone > 128 ? 256 - g_ExtraCache[index].timezone : 0 - g_ExtraCache[index].timezone;
