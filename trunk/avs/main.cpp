@@ -955,7 +955,7 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 {
     ACKDATA *ack = (ACKDATA *) lParam;
 
-    if (ack->type == ACKTYPE_AVATAR && ack->hContact != 0) {
+    if (ack != NULL && ack->type == ACKTYPE_AVATAR && ack->hContact != 0) {
         PROTO_AVATAR_INFORMATION *pai = (PROTO_AVATAR_INFORMATION *) ack->hProcess;
         if(pai == NULL)
             return 0;
@@ -1363,9 +1363,6 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
     if(!strcmp(cws->szModule, "ContactPhoto")) {
         DBVARIANT dbv = {0};
         
-        if(!strcmp(cws->szSetting, "Hidden") || !strcmp(cws->szSetting, "Locked"))
-            return 0;
-        
         if(!strcmp(cws->szSetting, "File") && !DBGetContactSetting((HANDLE)wParam, "ContactPhoto", "File", &dbv)) {
             HANDLE hFile;
             if(strcmp(dbv.pszVal, "****")) {
@@ -1380,13 +1377,11 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
         return 0;
     }
     szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
-    if(szProto) {
-        if(!strcmp(cws->szModule, szProto)) {
-            if(!strcmp(cws->szSetting, "PictContext"))
-                UpdateAvatar((HANDLE)wParam);
-            if(!strcmp(cws->szSetting, "AvatarHash")) {
-                UpdateAvatar((HANDLE)wParam);
-            }
+    if(szProto && !strcmp(cws->szModule, szProto)) {
+        if(!strcmp(cws->szSetting, "PictContext"))
+            UpdateAvatar((HANDLE)wParam);
+        if(!strcmp(cws->szSetting, "AvatarHash")) {
+            UpdateAvatar((HANDLE)wParam);
         }
     }
     return 0;
