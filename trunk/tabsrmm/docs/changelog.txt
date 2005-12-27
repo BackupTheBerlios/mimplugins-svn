@@ -15,6 +15,13 @@ Support: http://www.miranda.or.at/forums/
 ! : bufgix						
 - : feature removed or disabled because of pending bugs
 
+Version 0.9.9.99(1) - 2005/12/27
+
+		+ added option to enable/disable drop shadows (options->Message Window->containers)
+		
+		! fix: the options to set message log background colors were disabled when using font
+		       service.
+
 Version 0.9.9.99 - 2005/12/23 - happy Xmas :)
 
 		* improvments for own avatar display. Now, this uses the avatar service (minimum
