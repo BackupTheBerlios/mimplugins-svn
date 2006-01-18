@@ -656,7 +656,7 @@ int CheckValidSmileyPack(char *szProto, HICON *hButtonIcon)
     if(myGlobals.g_SmileyAddAvail) {
         smainfo.cbSize = sizeof(smainfo);
         smainfo.Protocolname = szProto;
-        CallService(MS_SMILEYADD_GETINFO, 0, (LPARAM)&smainfo);
+        CallService(MS_SMILEYADD_GETINFO2, 0, (LPARAM)&smainfo);
         *hButtonIcon = smainfo.ButtonIcon;
         return smainfo.NumberOfVisibleSmileys;
     }
@@ -1979,7 +1979,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         if(config)
             hOldFont = SelectObject(dis->hDC, myGlobals.ipConfig.hFonts[IPFONTID_STATUS]);
 
-        if(dat->szStatus)
+        if(dat->szStatus[0])
             GetTextExtentPoint32A(dis->hDC, dat->szStatus, lstrlenA(dat->szStatus), &sStatus);
         if(szProto) {
             if(config)
@@ -2009,7 +2009,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
             DrawEdge(dis->hDC, &rc, myGlobals.ipConfig.edgeType, myGlobals.ipConfig.edgeFlags);
         
 		rc.left += 3;
-        if(dat->szStatus) {
+        if(dat->szStatus[0]) {
             if(config) {
                 SelectObject(dis->hDC, myGlobals.ipConfig.hFonts[IPFONTID_STATUS]);
                 SetTextColor(dis->hDC, myGlobals.ipConfig.clrs[IPFONTID_STATUS]);
@@ -2081,10 +2081,9 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
                 hOldFont = SelectObject(dis->hDC, myGlobals.ipConfig.hFonts[IPFONTID_NICK]);
                 SetTextColor(dis->hDC, myGlobals.ipConfig.clrs[IPFONTID_NICK]);
             }
-            DrawText(dis->hDC, dat->szNickname, -1, &dis->rcItem, DT_SINGLELINE | DT_VCENTER | DT_WORD_ELLIPSIS);
+            DrawText(dis->hDC, dat->szNickname, -1, &dis->rcItem, DT_SINGLELINE | DT_VCENTER | DT_WORD_ELLIPSIS | DT_NOPREFIX);
 			if(szStatusMsg && szStatusMsg[0]) {
 				SIZE szNick;
-
 				GetTextExtentPoint32(dis->hDC, dat->szNickname, lstrlen(dat->szNickname), &szNick);
 				if(myGlobals.ipConfig.isValid) {
 					SelectObject(dis->hDC, myGlobals.ipConfig.hFonts[IPFONTID_STATUS]);
@@ -2096,7 +2095,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 					DrawText(dis->hDC, _T(" - "), -1, &rc, DT_SINGLELINE | DT_VCENTER | DT_CALCRECT);
 					DrawText(dis->hDC, _T(" - "), -1, &rc, DT_SINGLELINE | DT_VCENTER);
 					dis->rcItem.left += (rc.right - rc.left);
-					DrawText(dis->hDC, szStatusMsg, -1, &dis->rcItem, DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
+					DrawText(dis->hDC, szStatusMsg, -1, &dis->rcItem, DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
 				}
 			}
             if(hOldFont)

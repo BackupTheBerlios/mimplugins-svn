@@ -160,7 +160,7 @@ static void ResizeIeView(HWND hwndDlg, struct MessageWindowData *dat, DWORD px, 
     POINT pt;
     IEVIEWWINDOW ieWindow;
 
-    GetWindowRect(GetDlgItem(hwndDlg, IDC_LOG), &rcRichEdit);
+	GetWindowRect(GetDlgItem(hwndDlg, IDC_LOG), &rcRichEdit);
     pt.x = rcRichEdit.left;
     pt.y = rcRichEdit.top;
     ScreenToClient(hwndDlg, &pt);
@@ -649,6 +649,8 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
                                 SendMessage(hwndClist, CLM_SETHIDEEMPTYGROUPS, (WPARAM) TRUE, 0);
                             else
                                 SendMessage(hwndClist, CLM_SETHIDEEMPTYGROUPS, (WPARAM) FALSE, 0);
+							SendMessage(hwndClist, CLM_FIRST + 106, 0, 1);
+							SendMessage(hwndClist, CLM_AUTOREBUILD, 0, 0);
                         }
 						else {
 							if(IsWindow(GetDlgItem(GetParent(hwnd), IDC_CLIST)))
@@ -1140,7 +1142,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 #else
                     mir_snprintf(dat->szNickname, 80, "%s", (char *) CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM) dat->hContact, 0));
 #endif                    
-                    dat->szStatus = (char *) CallService(MS_CLIST_GETSTATUSMODEDESCRIPTION, dat->szProto == NULL ? ID_STATUS_OFFLINE : dat->wStatus, 0);
+                    mir_snprintf(dat->szStatus, safe_sizeof(dat->szStatus), "%s", (char *) CallService(MS_CLIST_GETSTATUSMODEDESCRIPTION, dat->szProto == NULL ? ID_STATUS_OFFLINE : dat->wStatus, 0));
+					//_DebugPopup(dat->hContact, "retrieve status: %s", dat->szStatus);
                     dat->avatarbg = DBGetContactSettingDword(dat->hContact, SRMSGMOD_T, "avbg", GetSysColor(COLOR_3DFACE));
                 }
                 else
@@ -1799,7 +1802,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 
                 ZeroMemory((void *)newcontactname,  sizeof(newcontactname));
                 dat->szNickname[0] = 0;
-                dat->szStatus = NULL;
+                dat->szStatus[0] = 0;
                 
                 pszNewTitleEnd = "Message Session";
                 
@@ -1836,7 +1839,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                             iHash += (*(temp++) * (int)(temp - dat->szNickname + 1));
 
                         dat->wStatus = DBGetContactSettingWord(dat->hContact, dat->szProto, "Status", ID_STATUS_OFFLINE);
-                        dat->szStatus = (char *) CallService(MS_CLIST_GETSTATUSMODEDESCRIPTION, dat->szProto == NULL ? ID_STATUS_OFFLINE : dat->wStatus, 0);
+	                    mir_snprintf(dat->szStatus, safe_sizeof(dat->szStatus), "%s", (char *) CallService(MS_CLIST_GETSTATUSMODEDESCRIPTION, dat->szProto == NULL ? ID_STATUS_OFFLINE : dat->wStatus, 0));
                         wOldApparentMode = dat->wApparentMode;
                         dat->wApparentMode = DBGetContactSettingWord(hActContact, szActProto, "ApparentMode", 0);
                         
@@ -3804,7 +3807,7 @@ quote_from_last:
                     EnableMenuItem(submenu, ID_SENDMENU_SENDLATER, MF_BYCOMMAND | (ServiceExists("BuddyPounce/AddToPounce") ? MF_ENABLED : MF_GRAYED));
                     CheckMenuItem(submenu, ID_SENDMENU_SENDLATER, MF_BYCOMMAND | (dat->sendMode & SMODE_SENDLATER ? MF_CHECKED : MF_UNCHECKED));
                     CheckMenuItem(submenu, ID_SENDMENU_SENDWITHOUTTIMEOUTS, MF_BYCOMMAND | (dat->sendMode & SMODE_NOACK ? MF_CHECKED : MF_UNCHECKED));
-                    EnableMenuItem(submenu, ID_SENDMENU_SENDWITHOUTTIMEOUTS, MF_GRAYED);
+                    //EnableMenuItem(submenu, ID_SENDMENU_SENDWITHOUTTIMEOUTS, MF_GRAYED);
                     
                     if(lParam)
                         iSelection = TrackPopupMenu(submenu, TPM_RETURNCMD, rc.left, rc.bottom, 0, hwndDlg, NULL);
@@ -3833,6 +3836,8 @@ quote_from_last:
                                     SendDlgItemMessage(hwndDlg, IDC_CLIST, CLM_SETHIDEEMPTYGROUPS, (WPARAM) TRUE, 0);
                                 else
                                     SendDlgItemMessage(hwndDlg, IDC_CLIST, CLM_SETHIDEEMPTYGROUPS, (WPARAM) FALSE, 0);
+								SendMessage(hwndClist, CLM_FIRST + 106, 0, 1);
+								SendMessage(hwndClist, CLM_AUTOREBUILD, 0, 0);
                             }
                             break;
                         case ID_SENDMENU_SENDDEFAULT:
@@ -3849,6 +3854,10 @@ quote_from_last:
                             break;
                         case ID_SENDMENU_SENDWITHOUTTIMEOUTS:
                             dat->sendMode ^= SMODE_NOACK;
+							if(dat->sendMode & SMODE_NOACK)
+								DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "no_ack", 1);
+							else
+								DBDeleteContactSetting(dat->hContact, SRMSGMOD_T, "no_ack");
                             break;
                     }
                     DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "no_ack", dat->sendMode & SMODE_NOACK ? 1 : 0);
