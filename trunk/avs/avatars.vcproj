@@ -40,7 +40,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib msimg32.lib"
+				AdditionalDependencies="comctl32.lib msimg32.lib gdiplus.lib"
 				OutputFile="../../bin/debug/plugins/loadavatars.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -109,7 +109,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib msimg32.lib"
+				AdditionalDependencies="comctl32.lib msimg32.lib gdiplus.lib"
 				OutputFile="../../bin/release/plugins/clist_nicer_plus.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -178,7 +178,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="msimg32.lib"
+				AdditionalDependencies="msimg32.lib gdiplus.lib"
 				OutputFile="../../bin/release/plugins/loadavatars.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -225,6 +225,9 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat">
 			<File
+				RelativePath=".\image_utils.cpp">
+			</File>
+			<File
 				RelativePath=".\main.cpp">
 			</File>
 			<File
@@ -236,6 +239,9 @@
 			Filter="h;hpp;hxx;hm;inl">
 			<File
 				RelativePath=".\commonheaders.h">
+			</File>
+			<File
+				RelativePath=".\image_utils.h">
 			</File>
 			<File
 				RelativePath=".\m_avatars.h">

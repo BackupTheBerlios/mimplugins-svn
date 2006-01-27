@@ -158,7 +158,10 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             SendDlgItemMessage(hwndDlg, IDC_SIZELIMITSPIN, UDM_SETRANGE, 0, MAKELONG(1024, 0));
             SendDlgItemMessage(hwndDlg, IDC_SIZELIMITSPIN, UDM_SETPOS, 0, (LPARAM)DBGetContactSettingDword(0, AVS_MODULE, "SizeLimit", 70));
             CheckDlgButton(hwndDlg, IDC_SHOWWARNINGS, DBGetContactSettingByte(0, AVS_MODULE, "warnings", 0));
+            CheckDlgButton(hwndDlg, IDC_MAKE_GRAYSCALE, DBGetContactSettingByte(0, AVS_MODULE, "MakeGrayscale", 0));
             CheckDlgButton(hwndDlg, IDC_MAKE_TRANSPARENT_BKG, DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
+			CheckDlgButton(hwndDlg, IDC_MAKE_TRANSP_PROPORTIONAL, DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparencyProportionalToColorDiff", 0));
+			CheckDlgButton(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP, DBGetContactSettingByte(0, AVS_MODULE, "MakeMyAvatarsTransparent", 0));
 
 			SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETRANGE, 0, MAKELONG(8, 2));
 			SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETPOS, 0, (LPARAM)DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5));
@@ -166,10 +169,13 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
 			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETPOS, 0, (LPARAM)DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgColorDiff", 10));
 
-			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG));
-			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG));
-			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG));
-			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG));
+			BOOL enabled = IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), enabled);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), enabled);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), enabled);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), enabled);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_TRANSP_PROPORTIONAL), enabled);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP), enabled);
 
             dialoginit = FALSE;
             return TRUE;
@@ -266,11 +272,16 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     }
                     break;
 				case IDC_MAKE_TRANSPARENT_BKG:
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG));
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG));
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG));
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG));
+				{
+					BOOL enabled = IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_TRANSP_PROPORTIONAL), enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP), enabled);
 					break;
+				}
                 case 0:
                     switch (((LPNMHDR) lParam)->code) {
                         case PSN_APPLY:
@@ -292,7 +303,10 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                             }
                             DBWriteContactSettingDword(NULL, AVS_MODULE, "SizeLimit", (DWORD)SendDlgItemMessage(hwndDlg, IDC_SIZELIMITSPIN, UDM_GETPOS, 0, 0));
                             DBWriteContactSettingByte(NULL, AVS_MODULE, "warnings", IsDlgButtonChecked(hwndDlg, IDC_SHOWWARNINGS) ? 1 : 0);
+							DBWriteContactSettingByte(NULL, AVS_MODULE, "MakeGrayscale", IsDlgButtonChecked(hwndDlg, IDC_MAKE_GRAYSCALE) ? 1 : 0);
                             DBWriteContactSettingByte(NULL, AVS_MODULE, "MakeTransparentBkg", IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG) ? 1 : 0);
+							DBWriteContactSettingByte(NULL, AVS_MODULE, "MakeTransparencyProportionalToColorDiff", IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSP_PROPORTIONAL) ? 1 : 0);
+							DBWriteContactSettingByte(NULL, AVS_MODULE, "MakeMyAvatarsTransparent", IsDlgButtonChecked(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP) ? 1 : 0);
 							DBWriteContactSettingWord(NULL, AVS_MODULE, "TranspBkgNumPoints", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0));
 							DBWriteContactSettingWord(NULL, AVS_MODULE, "TranspBkgColorDiff", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0));
                         }
@@ -303,6 +317,47 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             break;
     }
     return FALSE;
+}
+
+
+void LoadTransparentData(HWND hwndDlg, HANDLE hContact)
+{
+	BOOL transp_enabled = DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0);
+
+	CheckDlgButton(hwndDlg, IDC_MAKETRANSPBKG, DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 1));
+	EnableWindow(GetDlgItem(hwndDlg, IDC_MAKETRANSPBKG), transp_enabled);
+
+	SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETRANGE, 0, MAKELONG(8, 2));
+	SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETPOS, 0, (LPARAM)DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5)));
+
+	SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
+	SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETPOS, 0, (LPARAM)DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgColorDiff", 10)));
+
+	transp_enabled = IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && transp_enabled;
+	EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), transp_enabled);
+	EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), transp_enabled);
+	EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), transp_enabled);
+	EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), transp_enabled);
+}
+
+void SaveTransparentData(HWND hwndDlg, HANDLE hContact)
+{
+	if (IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG))
+		DBDeleteContactSetting(hContact, "ContactPhoto", "MakeTransparentBkg");
+	else
+		DBWriteContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", FALSE);
+
+	WORD tmp = (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0);
+	if (DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5) == tmp)
+		DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgNumPoints");
+	else
+		DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", tmp);
+
+	tmp = (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0);
+	if (DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgColorDiff", 10) == tmp)
+		DBDeleteContactSetting(hContact, "ContactPhoto", "TTranspBkgColorDiff");
+	else
+		DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", tmp);
 }
 
 BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -332,25 +387,26 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
             InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, FALSE);
             CheckDlgButton(hwndDlg, IDC_PROTECTAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0) ? TRUE : FALSE);
             CheckDlgButton(hwndDlg, IDC_HIDEAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0) ? TRUE : FALSE);
-			CheckDlgButton(hwndDlg, IDC_MAKETRANSPBKG, DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 1));
-			EnableWindow(GetDlgItem(hwndDlg, IDC_MAKETRANSPBKG), DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
 
-			SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETRANGE, 0, MAKELONG(8, 2));
-			SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETPOS, 0, (LPARAM)DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", 5));
-
-			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
-			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETPOS, 0, (LPARAM)DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", 10));
-
-			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
-			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
-			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
-			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
+			LoadTransparentData(hwndDlg, hContact);
 
             SendMessage(hwndDlg, WM_SETICON, IMAGE_ICON, (LPARAM)g_hIcon);
             return TRUE;
         }
         case WM_COMMAND:
             switch(LOWORD(wParam)) {
+				case ID_USE_DEFAULTS:
+				{
+					DBDeleteContactSetting(hContact, "ContactPhoto", "MakeTransparentBkg");
+					DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgNumPoints");
+					DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgColorDiff");
+
+					LoadTransparentData(hwndDlg, hContact);
+
+					if (DBGetContactSettingByte(NULL, AVS_MODULE, "MakeTransparentBkg", 0))
+						SendMessage(hwndDlg, DM_REALODAVATAR, 0, 0);
+					break;
+				}
                 case IDOK:
                 case IDCANCEL:
                     if(LOWORD(wParam) == IDOK) {
@@ -361,10 +417,9 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                         if(hidden != DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0))
                             DBWriteContactSettingByte(hContact, "ContactPhoto", "Hidden", hidden);
 
-						DBWriteContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG));
-						DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0));
-						DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0));
-						if(IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && DBGetContactSettingByte(NULL, AVS_MODULE, "MakeTransparentBkg", 0))
+						SaveTransparentData(hwndDlg, hContact);
+
+						if(DBGetContactSettingByte(NULL, AVS_MODULE, "MakeTransparentBkg", 0))
 							SendMessage(hwndDlg, DM_REALODAVATAR, 0, 0);
                     }
                     DestroyWindow(hwndDlg);
@@ -464,10 +519,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
         }
         case DM_REALODAVATAR:
         {
-			DBWriteContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG));
-			DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0));
-			DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0));
-
+			SaveTransparentData(hwndDlg, hContact);
             ChangeAvatar(hContact);
 			InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
             break;

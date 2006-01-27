@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define _WIN32_WINNT 0x0501
 #include <windows.h>
+#include <gdiplus.h>
 #include <commctrl.h>
 #include <stdio.h>
 #include <time.h>
@@ -59,12 +60,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <m_contacts.h>
 #include <m_file.h>
 #include <m_addcontact.h>
+#include <m_png.h>
+#include <m_folders.h>
 
 #include "m_avatars.h"
 #include <m_popup.h>
 #include "m_metacontacts.h"
 #include "resource.h"
 #include "m_updater.h"
+#include "image_utils.h"
 
 // shared vars
 extern HINSTANCE g_hInst;
@@ -100,6 +104,14 @@ typedef DWORD (__stdcall *pfnImgDeleteDecoder)(void * pDecoder);
 typedef  DWORD  (__stdcall *pfnImgNewDIBFromFile)(LPVOID /*in*/pDecoder, LPCSTR /*in*/pFileName, LPVOID /*out*/*pImg);
 typedef DWORD (__stdcall *pfnImgDeleteDIBSection)(LPVOID /*in*/pImg);
 typedef DWORD (__stdcall *pfnImgGetHandle)(LPVOID /*in*/pImg, HBITMAP /*out*/*pBitmap, LPVOID /*out*/*ppDIBBits);
+
+extern BOOL g_imgDecoderAvail;
+
+extern pfnImgNewDecoder ImgNewDecoder;
+extern pfnImgDeleteDecoder ImgDeleteDecoder;
+extern pfnImgNewDIBFromFile ImgNewDIBFromFile;
+extern pfnImgDeleteDIBSection ImgDeleteDIBSection;
+extern pfnImgGetHandle ImgGetHandle;
 
 struct protoPicCacheEntry {
     DWORD cbSize;                   // set to sizeof(struct)

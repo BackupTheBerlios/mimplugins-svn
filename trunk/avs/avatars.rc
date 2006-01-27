@@ -30,89 +30,65 @@ IDD_OPTIONS DIALOGEX 0, 0, 314, 240
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_CLIPSIBLINGS
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "",IDC_PROTOCOLS,"SysListView32",LVS_REPORT | 
-                    LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | 
-                    LVS_NOCOLUMNHEADER | LVS_NOSORTHEADER | WS_BORDER | 
-                    WS_TABSTOP,38,17,123,90
-    GROUPBOX        "Active Protocols",IDC_STATIC,30,4,250,127
+    CONTROL         "",IDC_PROTOCOLS,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_AUTOARRANGE | LVS_NOCOLUMNHEADER | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,38,17,123,90
+    GROUPBOX        "Active Protocols",IDC_STATIC,30,4,250,124
     PUSHBUTTON      "Set proto picture",IDC_SETPROTOPIC,168,17,106,14
     PUSHBUTTON      "Delete proto picture",IDC_REMOVEPROTOPIC,168,36,106,14
-    LTEXT           "",IDC_PROTOAVATARNAME,35,114,238,12,0,WS_EX_CLIENTEDGE
+    LTEXT           "",IDC_PROTOAVATARNAME,38,112,236,12,0,WS_EX_CLIENTEDGE
     CONTROL         "",IDC_PROTOPIC,"Button",BS_OWNERDRAW,193,56,56,50
-    CONTROL         "Show warning messages (popup plugin required)",
-                    IDC_SHOWWARNINGS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    35,142,241,13
-    LTEXT           "Max allowed file size for avatars: (KBytes)",IDC_STATIC,
-                    37,216,168,10
-    EDITTEXT        IDC_SIZELIMIT,211,214,36,12,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "",IDC_SIZELIMITSPIN,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,248,215,8,
-                    12
-    CONTROL         "Try to make picture background transparent",
-                    IDC_MAKE_TRANSPARENT_BKG,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,35,161,241,13
-    LTEXT           "Num of points to define bkg:",IDC_BKG_NUM_POINTS_L,50,
-                    179,135,11
-    EDITTEXT        IDC_BKG_NUM_POINTS,189,177,36,12,ES_AUTOHSCROLL | 
-                    ES_NUMBER
-    CONTROL         "",IDC_BKG_NUM_POINTS_SPIN,"msctls_updown32",
-                    UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
-                    UDS_ARROWKEYS,225,178,8,12
-    LTEXT           "Color difference allowed:",IDC_BKG_COLOR_DIFFERENCE_L,
-                    50,194,135,11
-    EDITTEXT        IDC_BKG_COLOR_DIFFERENCE,190,192,36,12,ES_AUTOHSCROLL | 
-                    ES_NUMBER
-    CONTROL         "",IDC_BKG_COLOR_DIFFERENCE_SPIN,"msctls_updown32",
-                    UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
-                    UDS_ARROWKEYS,226,192,8,12
+    CONTROL         "Show warning messages (popup plugin required)",IDC_SHOWWARNINGS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,130,241,13
+    LTEXT           "Max allowed file size for avatars: (KBytes)",IDC_STATIC,35,224,168,10
+    EDITTEXT        IDC_SIZELIMIT,211,222,36,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SIZELIMITSPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,248,223,8,12
+    CONTROL         "Try to make picture background transparent",IDC_MAKE_TRANSPARENT_BKG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,142,241,13
+    LTEXT           "Num of points to define bkg:",IDC_BKG_NUM_POINTS_L,50,158,135,11
+    EDITTEXT        IDC_BKG_NUM_POINTS,189,156,36,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_BKG_NUM_POINTS_SPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,225,157,8,12
+    LTEXT           "Color difference allowed:",IDC_BKG_COLOR_DIFFERENCE_L,50,172,135,11
+    EDITTEXT        IDC_BKG_COLOR_DIFFERENCE,190,170,36,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_BKG_COLOR_DIFFERENCE_SPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,226,170,8,12
+    CONTROL         "Make transparency proportional to color diff",IDC_MAKE_TRANSP_PROPORTIONAL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,186,208,10
+    CONTROL         "Make my avatars transparent too",IDC_MAKE_MY_AVATARS_TRANSP,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,197,208,10
+    CONTROL         "Make avatars grayscale",IDC_MAKE_GRAYSCALE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,209,241,13
 END
 
 IDD_OPENSUBCLASS DIALOGEX 0, 0, 246, 18
-STYLE DS_SETFONT | DS_3DLOOK | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | 
-    WS_CLIPSIBLINGS
+STYLE DS_SETFONT | DS_3DLOOK | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_CLIPSIBLINGS
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "Protect the picture and prevent automatic avatars from overwriting it",
-                    IDC_PROTECTAVATAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    7,7,237,8
+    CONTROL         "Protect the picture and prevent automatic avatars from overwriting it",IDC_PROTECTAVATAR,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,237,8
 END
 
-IDD_AVATAROPTIONS DIALOGEX 0, 0, 213, 198
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | 
-    WS_CAPTION | WS_SYSMENU
+IDD_AVATAROPTIONS DIALOGEX 0, 0, 213, 212
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,93,183,50,14
+    DEFPUSHBUTTON   "OK",IDOK,93,197,50,14
     CONTROL         "",IDC_PROTOPIC,"Button",BS_OWNERDRAW,15,19,56,50
-    DEFPUSHBUTTON   "Cancel",IDCANCEL,151,183,50,14
+    DEFPUSHBUTTON   "Cancel",IDCANCEL,151,197,50,14
     GROUPBOX        "Contact picture",IDC_STATIC,5,5,202,87
     PUSHBUTTON      "Change",IDC_CHANGE,138,18,61,14
     PUSHBUTTON      "Reset",IDC_RESET,138,52,61,14
-    CONTROL         "Protect the picture",IDC_PROTECTAVATAR,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,11,105,186,8
+    CONTROL         "Protect the picture",IDC_PROTECTAVATAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,105,186,8
     LTEXT           "",IDC_AVATARNAME,12,75,187,12,0,WS_EX_CLIENTEDGE
-    CONTROL         "Set as hidden",IDC_HIDEAVATAR,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,11,116,186,11
-    GROUPBOX        "Picture options",IDC_STATIC,5,94,202,83
+    CONTROL         "Set as hidden",IDC_HIDEAVATAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,116,186,11
+    GROUPBOX        "Picture options",IDC_STATIC,5,94,202,100
     PUSHBUTTON      "Delete",IDC_DELETE,138,35,61,14
-    CONTROL         "Try to make picture background transparent",
-                    IDC_MAKETRANSPBKG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    11,130,186,11
-    LTEXT           "Num of points to define bkg:",IDC_BKG_NUM_POINTS_L,23,
-                    147,124,11
-    EDITTEXT        IDC_BKG_NUM_POINTS,151,145,36,12,ES_AUTOHSCROLL | 
-                    ES_NUMBER
-    CONTROL         "",IDC_BKG_NUM_POINTS_SPIN,"msctls_updown32",
-                    UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
-                    UDS_ARROWKEYS,187,146,11,12
-    LTEXT           "Color difference allowed:",IDC_BKG_COLOR_DIFFERENCE_L,
-                    23,162,124,11
-    EDITTEXT        IDC_BKG_COLOR_DIFFERENCE,152,160,36,12,ES_AUTOHSCROLL | 
-                    ES_NUMBER
-    CONTROL         "",IDC_BKG_COLOR_DIFFERENCE_SPIN,"msctls_updown32",
-                    UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
-                    UDS_ARROWKEYS,188,160,11,12
+    CONTROL         "Try to make picture background transparent",IDC_MAKETRANSPBKG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,130,186,11
+    LTEXT           "Num of points to define bkg:",IDC_BKG_NUM_POINTS_L,23,147,124,11
+    EDITTEXT        IDC_BKG_NUM_POINTS,151,145,36,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_BKG_NUM_POINTS_SPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,187,146,11,12
+    LTEXT           "Color difference allowed:",IDC_BKG_COLOR_DIFFERENCE_L,23,162,124,11
+    EDITTEXT        IDC_BKG_COLOR_DIFFERENCE,152,160,36,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_BKG_COLOR_DIFFERENCE_SPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,188,160,11,12
+    DEFPUSHBUTTON   "Use defaults",ID_USE_DEFAULTS,11,177,63,12
 END
 
 
@@ -133,7 +109,7 @@ BEGIN
     IDD_AVATAROPTIONS, DIALOG
     BEGIN
         RIGHTMARGIN, 207
-        BOTTOMMARGIN, 197
+        BOTTOMMARGIN, 211
     END
 END
 #endif    // APSTUDIO_INVOKED

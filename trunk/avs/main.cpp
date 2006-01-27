@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 HINSTANCE g_hInst = 0;
 PLUGINLINK *pluginLink;
+int hMyAvatarsFolder = 0;
+int hProtocolAvatarsFolder = 0;
 
 PROTOCOLDESCRIPTOR **g_protocols = NULL;
 int g_protocount = 0;
@@ -64,11 +66,65 @@ pfnImgDeleteDIBSection ImgDeleteDIBSection = 0;
 pfnImgGetHandle ImgGetHandle = 0;
 
 PLUGININFO pluginInfo = {
-    sizeof(PLUGININFO), "Avatar service", PLUGIN_MAKE_VERSION(0, 0, 1, 12), "Load and manage contact pictures for other plugins", "Nightwish", "", "Copyright 2000-2005 Miranda-IM project", "http://www.miranda-im.org", 0, 0
+    sizeof(PLUGININFO), 
+	"Avatar service - BETA", // TODO Remove this beta
+	PLUGIN_MAKE_VERSION(0, 0, 1, 14), 
+	"Load and manage contact pictures for other plugins", 
+	"Nightwish", 
+	"", 
+	"Copyright 2000-2005 Miranda-IM project", 
+	"http://www.miranda-im.org", 
+	0, 
+	0
 };
 
 extern BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+
+int SetProtoMyAvatar(char *protocol, HBITMAP hBmp);
+
+#define GET_PIXEL(__P__, __X__, __Y__) ( __P__ + width * 4 * (__Y__) + 4 * (__X__) )
+
+
+// Functions to set avatar for a protocol
+
+/*
+wParam=0
+lParam=(const char *)Avatar file name
+return=0 for sucess
+*/
+#define MSN_PS_SETMYAVATAR "/SetAvatar"
+
+/*
+wParam=0
+lParam=(const char *)Avatar file name
+return=0 for sucess
+*/
+#define PS_SETMYAVATAR "/SetMyAvatar"
+
+/*
+wParam=(int *)max width of avatar - will be set (-1 for no max)
+lParam=(int *)max height of avatar - will be set (-1 for no max)
+return=0 for sucess
+*/
+#define PS_GETMYAVATARMAXSIZE "/GetMyAvatarMaxSize"
+
+/*
+wParam=0
+lParam=0
+return=One of PIP_SQUARE, PIP_FREEPROPORTIONS
+*/
+#define PIP_FREEPROPORTIONS	0
+#define PIP_SQUARE			1
+#define PS_GETMYAVATARIMAGEPROPORTION "/GetMyAvatarImageProportion"
+
+/*
+wParam = 0
+lParam = PA_FORMAT_*   // avatar format
+return = 1 (supported) or 0 (not supported)
+*/
+#define PS_ISAVATARFORMATSUPPORTED "/IsAvatarFormatSupported"
+
 
 /*
  * output a notification message.
@@ -206,6 +262,63 @@ HBITMAP CopyBitmapTo32(HBITMAP hBitmap)
 	return hDirectBitmap;
 }
 
+
+HBITMAP StretchBitmap(const HBITMAP hBitmap, LONG width, LONG height, bool makeSquare)
+{
+	if ( makeSquare )
+		width = height = min( width, height );
+
+	BITMAPINFO bmStretch = { 0 }; 
+	bmStretch.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmStretch.bmiHeader.biWidth = width;
+	bmStretch.bmiHeader.biHeight = height;
+	bmStretch.bmiHeader.biPlanes = 1;
+	bmStretch.bmiHeader.biBitCount = 32;
+
+	UINT* ptPixels;
+	HBITMAP hStretchedBitmap = CreateDIBSection( NULL, &bmStretch, DIB_RGB_COLORS, ( void** )&ptPixels, NULL, 0);
+	if ( hStretchedBitmap == NULL ) {
+		return NULL;
+	}
+
+	BITMAP bmp;
+	HDC hDC = CreateCompatibleDC( NULL );
+	HBITMAP hOldBitmap1 = ( HBITMAP )SelectObject( hDC, hBitmap );
+	GetObject( hBitmap, sizeof( BITMAP ), &bmp );
+
+	HDC hBmpDC = CreateCompatibleDC( hDC );
+	HBITMAP hOldBitmap2 = ( HBITMAP )SelectObject( hBmpDC, hStretchedBitmap );
+	int x, y, dx, dy;
+
+	if (makeSquare) {
+		if ( bmp.bmWidth > bmp.bmHeight ) {
+			dx = dy = bmp.bmHeight;
+			x = ( bmp.bmWidth - bmp.bmHeight )/2;
+			y = 0;
+		}
+		else {
+			dx = dy = bmp.bmWidth;
+			x = 0;
+			y = ( bmp.bmHeight - bmp.bmWidth )/2;
+		}
+	} else {
+		x = y = 0;
+		dx = bmp.bmWidth;
+		dy = bmp.bmHeight;
+	}
+
+	SetStretchBltMode( hBmpDC, HALFTONE );
+	StretchBlt( hBmpDC, 0, 0, width, height, hDC, x, y, dx, dy, SRCCOPY );
+
+	SelectObject( hDC, hOldBitmap1 );
+	DeleteDC( hDC );
+
+	SelectObject( hBmpDC, hOldBitmap2 );
+	DeleteDC( hBmpDC );
+	return hStretchedBitmap;
+}
+
+
 static BOOL ColorsAreTheSame(int colorDiff, BYTE *px1, BYTE *px2)
 {
 	return abs(px1[0] - px2[0]) <= colorDiff 
@@ -236,13 +349,11 @@ void AddToStack(int *stack, int *topPos, int x, int y)
 BOOL GetColorForPoint(int colorDiff, BYTE *p, int width, int height, BOOL hasTransparency, 
 					  int x0, int y0, int x1, int y1, int x2, int y2, BOOL *foundBkg, BYTE colors[][3])
 {
-#define GET_PIXEL(__X__, __Y__) ( p + width * 4 * (__Y__) + 4 * (__X__) )
-
 	BYTE *px1, *px2, *px3; 
 
-	px1 = GET_PIXEL(x0,y0);
-	px2 = GET_PIXEL(x1,y1);
-	px3 = GET_PIXEL(x2,y2);
+	px1 = GET_PIXEL(p, x0,y0);
+	px2 = GET_PIXEL(p, x1,y1);
+	px3 = GET_PIXEL(p, x2,y2);
 
 	// If any of the corners have transparency, forget about it
 	if (hasTransparency && (px1[3] != 255 || px2[3] != 255 || px3[3] != 255))
@@ -261,6 +372,66 @@ BOOL GetColorForPoint(int colorDiff, BYTE *p, int width, int height, BOOL hasTra
 
 	return TRUE;
 
+}
+
+
+/*
+ * Changes the handle to a grayscale image
+ */
+static BOOL MakeGrayscale(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha)
+{
+	BYTE *p = NULL;
+	DWORD dwLen;
+    int width, height;
+    BITMAP bmp;
+
+	GetObject(*hBitmap, sizeof(bmp), &bmp);
+    width = bmp.bmWidth;
+	height = bmp.bmHeight;
+
+	dwLen = width * height * 4;
+	p = (BYTE *)malloc(dwLen);
+    if (p == NULL) 
+	{
+		return FALSE;
+	}
+
+	if (bmp.bmBitsPixel != 32)
+	{
+		// Convert to 32 bpp
+		HBITMAP hBmpTmp = CopyBitmapTo32(*hBitmap);
+		DeleteObject(*hBitmap);
+		*hBitmap = hBmpTmp;
+
+		GetBitmapBits(*hBitmap, dwLen, p);
+
+	} 
+	else if (!hasAplpha)
+	{
+		GetBitmapBits(*hBitmap, dwLen, p);
+
+		CorrectBitmap32Alpha(*hBitmap, p, width, height);
+	}
+	else
+	{
+		GetBitmapBits(*hBitmap, dwLen, p);
+	}
+
+	// Make grayscale
+	BYTE *p1;
+	for (int y = 0 ; y < height ; y++)
+	{
+		for (int x = 0 ; x < width ; x++)
+		{
+			p1 = GET_PIXEL(p, x, y);
+			p1[0] = p1[1] = p1[2] = ( p1[0] + p1[1] + p1[2] ) / 3;
+		}
+	}
+
+    dwLen = SetBitmapBits(*hBitmap, dwLen, p);
+    free(p);
+
+	return TRUE;
 }
 
 
@@ -461,7 +632,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 		colors[selectedColor][2] = bkgColor[2];
 	}
 
-	// **** Set alpha for the beckground color, from the borders
+	// **** Set alpha for the background color, from the borders
 
 	if (hBmpTmp != *hBitmap)
 	{
@@ -483,6 +654,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 		int topPos = 0;
 		int curPos = 0;
 		int *stack = (int *)malloc(width * height * 2 * sizeof(int));
+		bool transpProportional = (DBGetContactSettingByte(NULL, AVS_MODULE, "MakeTransparencyProportionalToColorDiff", 0) != 0);
 
 		if (stack == NULL)
 		{
@@ -507,7 +679,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 			y = stack[curPos]; curPos++;
 
 			// Get pixel
-			px1 = GET_PIXEL(x, y);
+			px1 = GET_PIXEL(p, x, y);
 
 			// It won't change the transparency if one exists
 			// (This avoid an endless loop too)
@@ -515,11 +687,16 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 			{
 				if (ColorsAreTheSame(colorDiff, px1, (BYTE *) &colors[selectedColor]))
 				{
-					/*
-					px1[3] = (abs(px1[0] - colors[selectedColor][0]) 
-							 + abs(px1[1] - colors[selectedColor][1]) 
-							 + abs(px1[2] - colors[selectedColor][2])) / 3;*/
-					px1[3] = 0;
+					if (transpProportional)
+					{
+						px1[3] = (abs(px1[0] - colors[selectedColor][0]) 
+								+ abs(px1[1] - colors[selectedColor][1]) 
+								+ abs(px1[2] - colors[selectedColor][2])) / 3;
+					}
+					else
+					{
+						px1[3] = 0;
+					}
 
 					// Add 4 neighbours
 
@@ -724,29 +901,6 @@ int UpdateAvatar(HANDLE hContact)
     return 0;
 }
 
-HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename)
-{
-    LPVOID imgDecoder = NULL;
-    LPVOID pImg = NULL;
-    HBITMAP hBitmap = 0;
-    LPVOID pBitmapBits = NULL;
-    LPVOID m_pImgDecoder = NULL;
-
-    if(!g_imgDecoderAvail)
-        return 0;
-    
-    ImgNewDecoder(&m_pImgDecoder);
-	if (!ImgNewDIBFromFile(m_pImgDecoder, szFilename, &pImg)) {
-		if(pImg)
-			ImgGetHandle(pImg, &hBitmap, (LPVOID *)&pBitmapBits);
-	}
-    ImgDeleteDecoder(m_pImgDecoder);
-    if(hBitmap == 0)
-        return 0;
-    ace->hbmPic = hBitmap;
-    ace->lpDIBSection = pImg;
-    return hBitmap;
-}
 
 // create the avatar in cache
 // returns 0 if not created (no avatar), iIndex otherwise
@@ -801,17 +955,24 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, int iInde
 				char szTestFile[MAX_PATH];
 				HANDLE hFFD;
 				WIN32_FIND_DATAA ffd = {0};
-				_snprintf(szTestFile, MAX_PATH, "%s\\MSN\\%s avatar.*", g_szDBPath, szProto);
+				
+				char inipath[2048];
+				if (ServiceExists(MS_FOLDERS_GET_PATH) && hProtocolAvatarsFolder != 0)
+					CallService(MS_FOLDERS_GET_PATH, (WPARAM) hProtocolAvatarsFolder, (LPARAM) inipath);
+				else
+					strcpy(inipath, g_szDBPath);
+
+				_snprintf(szTestFile, MAX_PATH, "%s\\MSN\\%s avatar.*", inipath, szProto);
 				szTestFile[MAX_PATH - 1] = 0;
 				if((hFFD = FindFirstFileA(szTestFile, &ffd)) != INVALID_HANDLE_VALUE) {
-					_snprintf(szFilename, MAX_PATH, "%s\\MSN\\%s", g_szDBPath, ffd.cFileName);
+					_snprintf(szFilename, MAX_PATH, "%s\\MSN\\%s", inipath, ffd.cFileName);
 					FindClose(hFFD);
 					goto done;
 				}
-				_snprintf(szTestFile, MAX_PATH, "%s\\jabber\\%s avatar.*", g_szDBPath, szProto);
+				_snprintf(szTestFile, MAX_PATH, "%s\\jabber\\%s avatar.*", inipath, szProto);
 				szTestFile[MAX_PATH - 1] = 0;
 				if((hFFD = FindFirstFileA(szTestFile, &ffd)) != INVALID_HANDLE_VALUE) {
-					_snprintf(szFilename, MAX_PATH, "%s\\jabber\\%s", g_szDBPath, ffd.cFileName);
+					_snprintf(szFilename, MAX_PATH, "%s\\jabber\\%s", inipath, ffd.cFileName);
 					FindClose(hFFD);
 					goto done;
 				}
@@ -835,7 +996,7 @@ done:
         char szBuf[256];
         char szTitle[64];
         MIRANDASYSTRAYNOTIFY msn = {0};
-        
+
         if(!DBGetContactSettingByte(0, AVS_MODULE, "warnings", 0))
             return 1;
 
@@ -848,25 +1009,8 @@ done:
         CallService(MS_CLIST_SYSTRAY_NOTIFY, 0, (LPARAM)&msn);
         return -1;
     }
-    szExt = &szFilename[lstrlenA(szFilename) - 4];
-    if(!(!_stricmp(szExt, ".jpg") || (!_stricmp(szExt, ".gif") && !g_imgDecoderAvail) || !_stricmp(szExt, ".bmp") || !_stricmp(szExt, ".dat"))) {
-		// Gif too can have transparency... image decoder today cant load it, but a gif with tranpsarency load by imagedecoder seens better than
-		// one loaded from MS_UTILS_LOADBITMAP
-        if(!_stricmp(szExt, ".png") || !_stricmp(szExt, ".gif")) { 
-            struct avatarCacheEntry ace_private = {0};
-            
-            ace->hbmPic = LoadPNG(&ace_private, szFilename);
-            if(ace->hbmPic == 0)
-                return -1;
-            ace->lpDIBSection = ace_private.lpDIBSection;
-        }
-        else
-            return -1;
-    }
-    else {
-        ace->hbmPic = (HBITMAP)CallService(MS_UTILS_LOADBITMAP, 0, (LPARAM)szFilename);
-        ace->lpDIBSection = NULL;
-    }
+
+	ace->hbmPic = LoadAnyImage(szFilename, &ace->lpDIBSection);
     if(ace->hbmPic != 0) {
         BITMAP bminfo;
 		BOOL transpBkg;
@@ -883,7 +1027,8 @@ done:
         ace->szFilename[MAX_PATH - 1] = 0;
 
 		transpBkg = FALSE;
-		if (DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0) && 
+		if (( (hContact != 0 && hContact != (HANDLE)-1) || DBGetContactSettingByte(0, AVS_MODULE, "MakeMyAvatarsTransparent", 0)) &&
+			DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0) && 
 			DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 1))
 		{
 			if (MakeTransparentBkg(hContact, &ace->hbmPic, ace->lpDIBSection != 0))
@@ -891,6 +1036,14 @@ done:
 				ace->dwFlags |= AVS_CUSTOMTRANSPBKG | AVS_HASTRANSPARENCY;
 				transpBkg = TRUE;
 				GetObject(ace->hbmPic, sizeof(bminfo), &bminfo);
+			}
+		}
+
+		if (DBGetContactSettingByte(0, AVS_MODULE, "MakeGrayscale", 0))
+		{
+			if (MakeGrayscale(hContact, &ace->hbmPic, transpBkg || ace->lpDIBSection != 0))
+			{
+				transpBkg = TRUE;
 			}
 		}
 
@@ -911,6 +1064,7 @@ done:
 			strncpy(pAce->szProtoname, szProto, 100);
 			pAce->szProtoname[99] = 0;
         }
+
         return iIndex;
     }
     else if(hContact != 0 && hContact != (HANDLE)-1){                     // don't update for pseudo avatars...
@@ -1100,6 +1254,255 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+// See if a protocol service exists
+__inline static int ProtoServiceExists(const char *szModule,const char *szService)
+{
+	char str[MAXMODULELABELLENGTH];
+	strcpy(str,szModule);
+	strcat(str,szService);
+	return ServiceExists(str);
+}
+
+/*
+ * see if is possible to set the avatar for the expecified protocol
+ */
+int CanSetMyAvatar(WPARAM wParam, LPARAM lParam)
+{
+	char *protocol;
+
+    if(wParam == 0)
+        return 0;
+	
+	protocol = (char *)wParam;
+
+	return ProtoServiceExists(protocol, PS_SETMYAVATAR) 
+			|| ProtoServiceExists(protocol, MSN_PS_SETMYAVATAR); // TODO remove this when MSN change this
+}
+
+
+
+/*
+ * set an avatar for a protocol (service function)
+ * if lParam == NULL, a open file dialog will be opened, otherwise, lParam is taken as a FULL
+ * image filename (will be checked for existance, though)
+ */
+int SetMyAvatar(WPARAM wParam, LPARAM lParam)
+{
+	char *protocol;
+    char FileName[MAX_PATH];
+    char *szFinalName = NULL;
+    HANDLE hFile = 0;
+    
+	protocol = (char *)wParam;
+    
+	// Protocol allow seting of avatar?
+	if (protocol != NULL && !CanSetMyAvatar((WPARAM) protocol, 0))
+		return -1;
+
+    if(lParam == 0) {
+        OPENFILENAMEA ofn = {0};
+
+        ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
+        ofn.hwndOwner = 0;
+        ofn.lpstrFile = FileName;
+        if(g_imgDecoderAvail)
+            ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp;*.png\0\0";
+        else
+            ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp\0\0";
+        ofn.nMaxFile = MAX_PATH;
+        ofn.nMaxFileTitle = MAX_PATH;
+        ofn.Flags = OFN_FILEMUSTEXIST; // | OFN_ENABLETEMPLATE | OFN_EXPLORER | OFN_ENABLEHOOK;
+
+		char inipath[1024] = ".";
+		if (ServiceExists(MS_FOLDERS_GET_PATH) && hMyAvatarsFolder != 0)
+			CallService(MS_FOLDERS_GET_PATH, (WPARAM) hMyAvatarsFolder, (LPARAM) inipath);
+
+		ofn.lpstrInitialDir = inipath;
+
+        *FileName = '\0';
+        ofn.lpstrDefExt="";
+        ofn.hInstance = g_hInst;
+
+		char title[256];
+		if (protocol == NULL)
+			mir_snprintf(title, sizeof(title), Translate("Set My Avatar"));
+		else
+			mir_snprintf(title, sizeof(title), Translate("Set My Avatar for %s"), protocol);
+		ofn.lpstrTitle = title;
+
+        if(GetOpenFileNameA(&ofn)) 
+            szFinalName = FileName;
+        else
+            return 1;
+    }
+    else
+        szFinalName = (char *)lParam;
+
+    /*
+     * filename is now set, check it and perform all needed action
+     */
+
+    if((hFile = CreateFileA(szFinalName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE)
+        return -3;
+    
+    CloseHandle(hFile);
+        
+    // file exists...
+
+	LPVOID lpDIBSection;
+	HBITMAP hBmp = LoadAnyImage(szFinalName, &lpDIBSection);
+    if (hBmp == 0)
+		return -4;
+
+	int ret = 0;
+	if (protocol != NULL)
+	{
+		ret = SetProtoMyAvatar(protocol, hBmp);
+	}
+	else
+	{
+		PROTOCOLDESCRIPTOR **protos;
+		int i,count;
+
+		CallService(MS_PROTO_ENUMPROTOCOLS, (WPARAM)&count, (LPARAM)&protos);
+		for (i = 0; i < count; i++)
+		{
+			if (protos[i]->type != PROTOTYPE_PROTOCOL)
+				continue;
+
+			if (protos[i]->szName == NULL || protos[i]->szName[0] == '\0')
+				continue;
+
+			// Found a protocol
+			if (CanSetMyAvatar((WPARAM) protos[i]->szName, 0))
+			{
+				int retTmp = SetProtoMyAvatar(protos[i]->szName, hBmp);
+				if (retTmp != 0)
+					ret = retTmp;
+			}
+		}
+	}
+
+	DeleteObject(hBmp);
+
+	return ret;
+}
+	
+int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
+{
+	// Protocol has max size?
+	int width = -1, height = -1;
+	bool square = false;	// Get user setting
+
+	if (ProtoServiceExists(protocol, PS_GETMYAVATARMAXSIZE))
+		CallProtoService(protocol, PS_GETMYAVATARMAXSIZE, (WPARAM) &width, (LPARAM) &height);
+
+	if (ProtoServiceExists(protocol, PS_GETMYAVATARIMAGEPROPORTION))
+		if (CallProtoService(protocol, PS_GETMYAVATARIMAGEPROPORTION, 0, 0) == PIP_SQUARE)
+			square = true;
+
+	BITMAP bminfo;
+	GetObject(hBmp, sizeof(bminfo), &bminfo);
+
+	if (width == -1) width = min(300, bminfo.bmWidth);
+	if (height == -1) height = min(300, bminfo.bmHeight);
+
+	// Make proportional
+	if (width < bminfo.bmWidth || height < bminfo.bmHeight)
+	{
+		if (height * bminfo.bmWidth / bminfo.bmHeight <= width)
+			width = height * bminfo.bmWidth / bminfo.bmHeight;
+		else
+			height = width * bminfo.bmHeight / bminfo.bmWidth;
+	}
+
+	// Has to stretch?
+	HBITMAP hBmpProto;
+	if (width != bminfo.bmWidth || height != bminfo.bmHeight 
+		|| (square && width != height))
+	{
+		hBmpProto = StretchBitmap(hBmp, width, height, square);
+	}
+	else
+	{
+		hBmpProto = hBmp;
+	}
+
+	// Save to a temporary file
+	char temp_file[MAX_PATH];
+	temp_file[0] = '\0';
+	if (GetTempPathA(MAX_PATH, temp_file) == 0)
+	{
+		if (hBmpProto != hBmp) DeleteObject(hBmpProto);
+		return -1;
+	}
+	if (GetTempFileNameA(temp_file, "mir_av_", 0, temp_file) == 0)
+	{
+		if (hBmpProto != hBmp) DeleteObject(hBmpProto);
+		return -2;
+	}
+
+	char image_file_name[MAX_PATH];
+
+	bool saved = false;
+
+	// What format?
+	if (ServiceExists(MS_DIB2PNG) // Png is default
+		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
+			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_PNG)))
+	{
+		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".png");
+		if (!SavePNG(hBmpProto, image_file_name))
+			saved = true;
+	}
+	
+	if (!saved  // Jpeg is second
+		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
+			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_JPEG)))
+	{
+		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".jpg");
+		if (!SaveJPEG(hBmpProto, image_file_name))
+			saved = true;
+	}
+	
+	if (!saved  // Gif
+		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
+			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_GIF)))
+	{
+		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".gif");
+		if (!SaveGIF(hBmpProto, image_file_name))
+			saved = true;
+	}
+	
+	if (!saved   // Bitmap
+		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
+			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_BMP)))
+	{
+		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".bmp");
+		if (!SaveBMP(hBmpProto, image_file_name))
+			saved = true;
+	}
+	
+	int ret;
+
+	if (saved)
+	{
+		// Call proto service
+		if (ProtoServiceExists(protocol, PS_SETMYAVATAR))
+			ret = CallProtoService(protocol, PS_SETMYAVATAR, 0, (LPARAM)image_file_name);
+		else if (ProtoServiceExists(protocol, MSN_PS_SETMYAVATAR))
+			ret = CallProtoService(protocol, MSN_PS_SETMYAVATAR, 0, (LPARAM)image_file_name); // TODO remove this when MSN change this
+
+		DeleteFileA(image_file_name);
+	}
+
+	DeleteFileA(temp_file);
+
+	if (hBmpProto != hBmp) DeleteObject(hBmpProto);
+
+	return saved ? ret : -3;
+}
+
 static int ContactOptions(WPARAM wParam, LPARAM lParam)
 {
     if(wParam)
@@ -1228,6 +1631,28 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     static char *szFLUpdateurl = "http://www.miranda-im.org/download/feed.php?dlfile=2361";
     static char *szPrefix = "avs ";
 
+	// Folders plugin support
+	if (ServiceExists(MS_FOLDERS_REGISTER_PATH))
+	{
+		FOLDERSDATA fd;
+
+		fd.cbSize = sizeof(fd);
+		strncpy(fd.szSection, Translate("Avatars"), sizeof(fd.szSection)); 
+		fd.szSection[sizeof(fd.szSection)-1] = '\0';
+		strncpy(fd.szName, Translate("My Avatars"), sizeof(fd.szName));
+		fd.szName[sizeof(fd.szName)-1] = '\0';
+
+		hMyAvatarsFolder = (int) CallService(MS_FOLDERS_REGISTER_PATH, (WPARAM) PROFILE_PATH "\\" CURRENT_PROFILE "\\MyAvatars", (LPARAM) &fd);
+
+		strncpy(fd.szSection, Translate("Avatars"), sizeof(fd.szSection));
+		fd.szSection[sizeof(fd.szSection)-1] = '\0';
+		strncpy(fd.szName, Translate("Protocol Avatars Cache"), sizeof(fd.szName));
+		fd.szName[sizeof(fd.szName)-1] = '\0';
+
+		// TODO Default should be FOLDER_AVATARS
+		hProtocolAvatarsFolder = (int) CallService(MS_FOLDERS_REGISTER_PATH, (WPARAM) PROFILE_PATH, (LPARAM) &fd);
+	}
+
     CLISTMENUITEM mi;
 
     g_MetaAvail = ServiceExists(MS_MC_GETPROTOCOLNAME) ? TRUE : FALSE;
@@ -1308,7 +1733,8 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     mi.pszName = Translate("Contact picture...");
     mi.pszService = MS_AV_CONTACTOPTIONS;
     CallService(MS_CLIST_ADDCONTACTMENUITEM, 0, (LPARAM) &mi);
-    return 0;
+
+	return 0;
 }
 
 static void ReloadMyAvatar(LPVOID lpParam)
@@ -1430,6 +1856,8 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
     DestroyServiceFunction(MS_AV_GETAVATARBITMAP);
     DestroyServiceFunction(MS_AV_PROTECTAVATAR);
     DestroyServiceFunction(MS_AV_SETAVATAR);
+    DestroyServiceFunction(MS_AV_SETMYAVATAR);
+    DestroyServiceFunction(MS_AV_CANSETMYAVATAR);
     DestroyServiceFunction(MS_AV_CONTACTOPTIONS);
     DestroyServiceFunction(MS_AV_DRAWAVATAR);
 	DestroyServiceFunction(MS_AV_GETMYAVATAR);
@@ -1645,6 +2073,8 @@ static int LoadAvatarModule()
     CreateServiceFunction(MS_AV_GETAVATARBITMAP, GetAvatarBitmap);
     CreateServiceFunction(MS_AV_PROTECTAVATAR, ProtectAvatar);
     CreateServiceFunction(MS_AV_SETAVATAR, SetAvatar);
+    CreateServiceFunction(MS_AV_SETMYAVATAR, SetMyAvatar);
+    CreateServiceFunction(MS_AV_CANSETMYAVATAR, CanSetMyAvatar);
     CreateServiceFunction(MS_AV_CONTACTOPTIONS, ContactOptions);
     CreateServiceFunction(MS_AV_DRAWAVATAR, DrawAvatarPicture);
 	CreateServiceFunction(MS_AV_GETMYAVATAR, GetMyAvatar);
@@ -1722,4 +2152,3 @@ extern "C" int __declspec(dllexport) Unload(void)
     return ShutdownProc(0, 0);
     //return 0;
 }
-

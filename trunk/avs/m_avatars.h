@@ -149,6 +149,22 @@ typedef struct _avatarDrawRequest {
 
 #define MS_AV_SETAVATAR "SV_Avatars/SetAvatar"
 
+// set a local picture for the given protocol
+// 
+// wParam = (char *) protocol name
+// lParam = either a full picture filename or NULL. If lParam == NULL, the service
+// will open a file selection dialog.
+
+#define MS_AV_SETMYAVATAR "SV_Avatars/SetMyAvatar"
+
+// see if is possible to set the avatar for the expecified protocol
+// 
+// wParam = (char *) protocol name
+// lParam = 0
+// return = 1 if can set, 0 if can't
+
+#define MS_AV_CANSETMYAVATAR "SV_Avatars/CanSetMyAvatar"
+
 // Call avatar option dialog for contact
 // 
 // wParam = (HANDLE)hContact

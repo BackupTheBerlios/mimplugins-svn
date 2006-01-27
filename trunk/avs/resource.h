@@ -2,6 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by avatars.rc
 //
+#define ID_USE_DEFAULTS                 3
 #define IDD_OPTIONS                     101
 #define IDD_OPENSUBCLASS                102
 #define IDD_AVATAROPTIONS               103
@@ -18,6 +19,8 @@
 #define IDC_CHANGE                      1008
 #define IDC_MAKE_TRANSPARENT_BKG        1008
 #define IDC_RESET                       1009
+#define IDC_MAKE_TRANSPARENT_BKG2       1009
+#define IDC_MAKE_GRAYSCALE              1009
 #define IDC_AVATARNAME                  1010
 #define IDC_HIDEAVATAR                  1011
 #define IDC_DELETE                      1012
@@ -33,6 +36,8 @@
 #define IDC_BKG_COLOR_DIFFERENCE_SPIN   1017
 #define IDC_BKG_NUM_POINTS_L            1018
 #define IDC_BKG_COLOR_DIFFERENCE_L      1019
+#define IDC_MAKE_TRANSP_PROPORTIONAL    1020
+#define IDC_MAKE_MY_AVATARS_TRANSP      1021
 
 // Next default values for new objects
 // 
@@ -40,7 +45,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        106
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1020
+#define _APS_NEXT_CONTROL_VALUE         1021
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
