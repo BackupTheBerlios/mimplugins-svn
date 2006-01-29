@@ -67,7 +67,7 @@ pfnImgGetHandle ImgGetHandle = 0;
 
 PLUGININFO pluginInfo = {
     sizeof(PLUGININFO), 
-	"Avatar service - BETA", // TODO Remove this beta
+	"Avatar service",
 	PLUGIN_MAKE_VERSION(0, 0, 1, 14), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish", 
