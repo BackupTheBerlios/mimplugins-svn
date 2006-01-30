@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: msgdialog.c,v 1.227 2005/10/28 23:44:46 nightwish2004 Exp $
+$Id: msgdialog.c,v 1.243 2006/01/26 04:40:00 nightwish2004 Exp $
 */
 
 #include "commonheaders.h"
@@ -1143,7 +1143,6 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     mir_snprintf(dat->szNickname, 80, "%s", (char *) CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM) dat->hContact, 0));
 #endif                    
                     mir_snprintf(dat->szStatus, safe_sizeof(dat->szStatus), "%s", (char *) CallService(MS_CLIST_GETSTATUSMODEDESCRIPTION, dat->szProto == NULL ? ID_STATUS_OFFLINE : dat->wStatus, 0));
-					//_DebugPopup(dat->hContact, "retrieve status: %s", dat->szStatus);
                     dat->avatarbg = DBGetContactSettingDword(dat->hContact, SRMSGMOD_T, "avbg", GetSysColor(COLOR_3DFACE));
                 }
                 else
@@ -1192,8 +1191,6 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 					dat->hHistoryEvents = (HANDLE *)malloc(dat->maxHistory * sizeof(HANDLE));
 				else
 					dat->hHistoryEvents = NULL;
-
-				//SetWindowLong(hwndDlg, GWL_EXSTYLE, GetWindowLong(hwndDlg, GWL_EXSTYLE) | WS_EX_TRANSPARENT);
 
 				if(!DBGetContactSettingByte(NULL, SRMSGMOD_T, "splitteredges", 1)) {
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_SPLITTER), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_SPLITTER), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
@@ -1332,8 +1329,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     SendDlgItemMessage(hwndDlg, tooltips[i].id, BUTTONADDTOOLTIP, (WPARAM)Translate(tooltips[i].szTip), 0);
                 }
                 
-                SetDlgItemTextA(hwndDlg, IDC_LOGFROZENTEXT, Translate("Message Log is frozen"));
-                //SetDlgItemTextW(hwndDlg, IDC_LOGFROZENTEXT, (wchar_t *)CallService(MS_LANGPACK_TRANSLATESTRING, 1, "Message Log is frozen"));
+                SetDlgItemText(hwndDlg, IDC_LOGFROZENTEXT, TranslateT("Message Log is frozen"));
                 
                 SendMessage(GetDlgItem(hwndDlg, IDC_SAVE), BUTTONADDTOOLTIP, (WPARAM) pszIDCSAVE_close, 0);
                 if(dat->bIsMeta)
@@ -1341,9 +1337,9 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 else
                     SendMessage(GetDlgItem(hwndDlg, IDC_PROTOCOL), BUTTONADDTOOLTIP, (WPARAM) Translate("View User's Details"), 0);
                 
-                SetWindowTextA(GetDlgItem(hwndDlg, IDC_RETRY), Translate("Retry"));
-                SetWindowTextA(GetDlgItem(hwndDlg, IDC_CANCELSEND), Translate("Cancel"));
-                SetWindowTextA(GetDlgItem(hwndDlg, IDC_MSGSENDLATER), Translate("Send later"));
+                SetWindowText(GetDlgItem(hwndDlg, IDC_RETRY), TranslateT("Retry"));
+                SetWindowText(GetDlgItem(hwndDlg, IDC_CANCELSEND), TranslateT("Cancel"));
+                SetWindowText(GetDlgItem(hwndDlg, IDC_MSGSENDLATER), TranslateT("Send later"));
 
                 SendDlgItemMessage(hwndDlg, IDC_LOG, EM_SETOLECALLBACK, 0, (LPARAM) & reOleCallback);
                 SendDlgItemMessage(hwndDlg, IDC_LOG, EM_SETUNDOLIMIT, 0, 0);
@@ -2368,6 +2364,18 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 SetDlgItemTextA(hwndDlg, IDC_LOGFROZENTEXT, Translate("Message Log is frozen"));
                 return 0;
             }
+		case DM_SCROLLIEVIEW:
+			{
+				if(dat->needIEViewScroll) {
+					IEVIEWWINDOW iew = {0};
+					iew.cbSize = sizeof(IEVIEWWINDOW);
+					iew.iType = IEW_SCROLLBOTTOM;
+					iew.hwnd = dat->hwndLog;
+					CallService(MS_IEVIEW_WINDOW, 0, (LPARAM)&iew);
+					dat->needIEViewScroll = FALSE;
+				}
+				return 0;
+			}
         case DM_SCROLLLOGTOBOTTOM:
             {
                 SCROLLINFO si = { 0 };
@@ -2377,11 +2385,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 if(!IsIconic(dat->pContainer->hwnd)) {
                     dat->dwFlags &= ~MWF_DEFERREDSCROLL;
                     if(dat->hwndLog) {
-                        IEVIEWWINDOW iew = {0};
-                        iew.cbSize = sizeof(IEVIEWWINDOW);
-                        iew.iType = IEW_SCROLLBOTTOM;
-                        iew.hwnd = dat->hwndLog;
-                        CallService(MS_IEVIEW_WINDOW, 0, (LPARAM)&iew);
+						dat->needIEViewScroll = TRUE;
+						PostMessage(hwndDlg, DM_SCROLLIEVIEW, 0, 0);
                     }
                     else {
                         HWND hwnd = GetDlgItem(hwndDlg, IDC_LOG);
@@ -3534,6 +3539,8 @@ quote_from_last:
                                 smaddInfo.hwndParent = dat->pContainer->hwnd;
                                 CallService(MS_SMILEYADD_SHOWSELECTION, (WPARAM)dat->pContainer->hwnd, (LPARAM) &smaddInfo);
                             }
+							if(hButtonIcon != 0)
+								DestroyIcon(hButtonIcon);
                         }
                     }
                     break;
@@ -5162,7 +5169,7 @@ verify:
                 DeleteObject(dat->hbmMsgArea);
             
             if (dat->hSmileyIcon)
-                DeleteObject(dat->hSmileyIcon);
+                DestroyIcon(dat->hSmileyIcon);
 
             if (dat->hwndTip)
                 DestroyWindow(dat->hwndTip);

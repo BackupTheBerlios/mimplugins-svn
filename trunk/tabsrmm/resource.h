@@ -464,7 +464,6 @@
 #define IDC_COLOR5                      1370
 #define IDC_FORCEANSI                   1371
 #define IDC_TEMPLOVERRIDE               1372
-#define IDC_FORCEANSI2                  1372
 #define IDC_IGNORETIMEOUTS              1372
 #define IDC_TEMPLOVERRIDE2              1373
 #define IDC_RTLTEMPLOVERRIDE            1373
@@ -500,6 +499,8 @@
 #define IDC_SUPPORT                     1396
 #define IDC_FANCYTHEME                  1397
 #define IDC_CONTAINERSKIN               1398
+#define IDC_CUSTOM1                     1399
+#define IDC_QHTM                        1399
 #define IDC_WHITERECT                   2000
 #define IDC_TABSRMM                     2001
 #define IDC_COPYRIGHT                   2002
@@ -696,7 +697,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        9
 #define _APS_NEXT_COMMAND_VALUE         40228
-#define _APS_NEXT_CONTROL_VALUE         1399
+#define _APS_NEXT_CONTROL_VALUE         1400
 #define _APS_NEXT_SYMED_VALUE           40282
 #endif
 #endif

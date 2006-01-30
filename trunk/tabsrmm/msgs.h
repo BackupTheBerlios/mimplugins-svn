@@ -268,6 +268,8 @@ struct ProtocolData {
 
 #define DM_SC_BUILDLIST      (WM_USER+100)
 #define DM_SC_INITDIALOG     (WM_USER+101)
+#define DM_SCROLLIEVIEW		 (WM_USER+102)
+
 #define MINSPLITTERY         52
 #define MINLOGHEIGHT         30
 
@@ -465,12 +467,12 @@ struct CPTABLE {
 
 struct LISTOPTIONSGROUP {
     LRESULT handle;
-    char *szName;
+    TCHAR *szName;
 };
 
 struct LISTOPTIONSITEM {
     LRESULT handle;
-    char *szName;
+    TCHAR *szName;
     UINT id;
     UINT uType;
     UINT_PTR lParam;

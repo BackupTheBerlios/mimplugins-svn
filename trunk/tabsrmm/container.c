@@ -41,7 +41,7 @@ Tab icons are stored in a global image list (g_hImageList). They are loaded at
 plugin startup, or after a icon change event. Multiple containers can share the
 same image list, because the list is read-only.
 
-$Id: container.c,v 1.131 2006/01/08 21:25:01 ghazan Exp $
+$Id: container.c,v 1.132 2006/01/13 22:39:32 ghazan Exp $
 */
 
 #include "commonheaders.h"
@@ -899,7 +899,7 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                 GetClientRect(GetDlgItem(hwndDlg, IDC_MSGTABS), &rc);
                 pt.y = rc.top;
                 TabCtrl_AdjustRect(GetDlgItem(hwndDlg, IDC_MSGTABS), FALSE, &rc);
-                if(pContainer->dwFlags & CNT_VERTICALMAX) {
+                if(pContainer->dwFlags & CNT_VERTICALMAX || (GetKeyState(VK_CONTROL) & 0x8000)) {
                     WINDOWPLACEMENT wp;
                     RECT rcDesktop;
 
@@ -2725,7 +2725,7 @@ HMENU BuildContainerMenu()
         i++;
     } while ( TRUE );
 
-    InsertMenuA(myGlobals.g_hMenuContext, ID_TABMENU_ATTACHTOCONTAINER, MF_BYCOMMAND | MF_POPUP, (UINT_PTR) hMenu, Translate("Attach to"));
+    InsertMenu(myGlobals.g_hMenuContext, ID_TABMENU_ATTACHTOCONTAINER, MF_BYCOMMAND | MF_POPUP, (UINT_PTR) hMenu, TranslateT("Attach to"));
     myGlobals.g_hMenuContainer = hMenu;
     return hMenu;
 }

@@ -277,7 +277,7 @@ struct MessageWindowData {
     DWORD dwTickLastEvent;
 	HBITMAP hOwnPic;
 	SIZE pic;
-	int showPic;
+	int showPic, showInfoPic;
     int bottomOffset;
     UINT uMinHeight;
 	BOOL isHistory;
@@ -290,7 +290,7 @@ struct MessageWindowData {
     int   iHistoryCurrent, iHistoryTop, iHistorySize;
     int doSmileys;
     UINT codePage;
-    HBITMAP hSmileyIcon;
+    HICON hSmileyIcon;
     char *szProto;
     char *szMetaProto;
     TCHAR szNickname[130];
@@ -341,6 +341,7 @@ struct MessageWindowData {
     COLORREF avatarbg;
 	HANDLE *hHistoryEvents;
 	int maxHistory, curHistory;
+	BYTE needIEViewScroll;
 };
 
 typedef struct _recentinfo {

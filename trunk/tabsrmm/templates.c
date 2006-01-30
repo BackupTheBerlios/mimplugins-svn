@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: templates.c,v 1.23 2005/09/20 12:22:39 nightwish2004 Exp $
+$Id: templates.c,v 1.26 2006/01/13 23:21:58 ghazan Exp $
 
 /*
  * message log templates supporting functions, including the template editor
@@ -174,13 +174,18 @@ BOOL CALLBACK DlgProcTemplateEditor(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
             SetWindowLong(hwndDlg, GWL_USERDATA, (LONG) dat);
             ShowWindow(hwndDlg, SW_SHOW);
             SendDlgItemMessage(hwndDlg, IDC_EDITTEMPLATE, EM_LIMITTEXT, (WPARAM)TEMPLATE_LENGTH - 1, 0);
-            SetWindowTextA(hwndDlg, Translate("Template Set Editor"));
+            SetWindowText(hwndDlg, TranslateT("Template Set Editor"));
             EnableWindow(GetDlgItem(hwndDlg, IDC_SAVETEMPLATE), FALSE);
             EnableWindow(GetDlgItem(hwndDlg, IDC_REVERT), FALSE);
             EnableWindow(GetDlgItem(hwndDlg, IDC_FORGET), FALSE);
             for(i = 0; i <= TMPL_ERRMSG; i++) {
-                SendDlgItemMessageA(hwndDlg, IDC_TEMPLATELIST, LB_ADDSTRING, 0, (LPARAM)Translate(TemplateNames[i]));
-                SendDlgItemMessage(hwndDlg, IDC_TEMPLATELIST, LB_SETITEMDATA, i, (LPARAM)i);
+					 TCHAR* p = (TCHAR*)CallService(MS_LANGPACK_PCHARTOTCHAR, 0, (LPARAM)TemplateNames[i]);
+					 if (( int )p != CALLSERVICE_NOTFOUND )
+						 SendDlgItemMessage(hwndDlg, IDC_TEMPLATELIST, LB_ADDSTRING, 0, (LPARAM)p );
+					 else
+						 SendDlgItemMessageA(hwndDlg, IDC_TEMPLATELIST, LB_ADDSTRING, 0, (LPARAM)Translate(TemplateNames[i]));
+					 mir_free(p);
+					 SendDlgItemMessage(hwndDlg, IDC_TEMPLATELIST, LB_SETITEMDATA, i, (LPARAM)i);
             }
             EnableWindow(GetDlgItem(teInfo->hwndParent, IDC_MODIFY), FALSE);
             EnableWindow(GetDlgItem(teInfo->hwndParent, IDC_RTLMODIFY), FALSE);
@@ -327,7 +332,14 @@ BOOL CALLBACK DlgProcTemplateEditor(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                 else
                     SetTextColor(dis->hDC, GetSysColor(COLOR_WINDOWTEXT));
             }
-            TextOutA(dis->hDC, dis->rcItem.left, dis->rcItem.top, Translate(TemplateNames[iItem]), lstrlenA(Translate(TemplateNames[iItem])));
+				{
+					TCHAR* p = (TCHAR*)CallService(MS_LANGPACK_PCHARTOTCHAR, 0, (LPARAM)TemplateNames[iItem]);
+					if (( int )p != CALLSERVICE_NOTFOUND )
+		            TextOut(dis->hDC, dis->rcItem.left, dis->rcItem.top, p, lstrlen(p));
+					else
+		            TextOutA(dis->hDC, dis->rcItem.left, dis->rcItem.top, Translate(TemplateNames[iItem]), lstrlenA(Translate(TemplateNames[iItem])));
+					mir_free(p);
+				}
             return TRUE;
         }
         case DM_UPDATETEMPLATEPREVIEW:
@@ -456,7 +468,7 @@ BOOL CALLBACK DlgProcTemplateHelp(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM 
                 CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)lParam, (LPARAM)final_path);
                 _splitpath(final_path, NULL, NULL, szBasename, szExt);
                 if((hFile = CreateFileA(final_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE ) {
-                    MessageBoxA(0, Translate("Failed to open help file"), "tabSRMM", MB_OK);
+                    MessageBox(0, TranslateT("Failed to open help file"), _T("tabSRMM"), MB_OK);
                     DestroyWindow(hwndDlg);
                     return FALSE;
                 }
@@ -470,7 +482,7 @@ BOOL CALLBACK DlgProcTemplateHelp(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM 
             GetWindowRect(hwndDlg, &rc);
             MoveWindow(hwndDlg, 0, rc.top, rc.right - rc.left, rc.bottom - rc.top, FALSE);
             if(lParam == 0)
-                SetWindowTextA(hwndDlg, Translate("Template editor help"));
+                SetWindowText(hwndDlg, TranslateT("Template editor help"));
             else
                 SetWindowTextA(hwndDlg, szBasename);
             ShowWindow(hwndDlg, SW_SHOWNOACTIVATE);

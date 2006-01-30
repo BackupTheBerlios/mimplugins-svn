@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 containeroptions.c  dialog implementaion for setting the container options.
                     part of tabSRMM
-$Id: containeroptions.c,v 1.20 2005/07/27 20:20:55 nightwish2004 Exp $
+$Id: containeroptions.c,v 1.22 2006/01/13 23:21:58 ghazan Exp $
 */
 
 #include "commonheaders.h"
@@ -79,7 +79,7 @@ BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
     switch (msg) {
         case WM_INITDIALOG:
             {
-                TCHAR szNewTitle[128], szTemplate[51];
+                TCHAR szNewTitle[128];
                 struct ContainerWindowData *pContainer = 0;
 				DWORD dwFlags = 0;
 
@@ -87,12 +87,7 @@ BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
                 pContainer = (struct ContainerWindowData *) lParam;
                 pContainer->hWndOptions = hwndDlg;
                 TranslateDialogDefault(hwndDlg);
-#if defined(_UNICODE)
-                MultiByteToWideChar(CP_ACP, 0, Translate("Set Options for: %s"), -1, szTemplate, 50);
-#else
-                strncpy(szTemplate, Translate("Set Options for: %s"), 50);
-#endif                
-				_sntprintf(szNewTitle, 127, szTemplate, pContainer->szName);
+				mir_sntprintf(szNewTitle, SIZEOF(szNewTitle), TranslateT("Set Options for: %s"), pContainer->szName);
 				SetWindowText(hwndDlg, szNewTitle);
 				
                 ShowWindow(hwndDlg, SW_SHOWNORMAL);

@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: msglog.c,v 1.108 2005/09/20 12:22:39 nightwish2004 Exp $
+$Id: msglog.c,v 1.116 2006/01/24 07:22:01 nightwish2004 Exp $
 */
 
 #include "commonheaders.h"
@@ -1466,7 +1466,9 @@ void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG startAt, int
         sel.cpMin = startAt;
         sel.cpMax = -1;
 
-        smadd.cbSize = sizeof(smadd);
+		ZeroMemory(&smadd, sizeof(smadd));
+
+		smadd.cbSize = sizeof(smadd);
         smadd.hwndRichEditControl = GetDlgItem(hwndDlg, IDC_LOG);
         smadd.Protocolname = dat->bIsMeta ? dat->szMetaProto : dat->szProto;
         if(startAt > 0)

@@ -594,18 +594,21 @@ int GetAvatarVisibility(HWND hwndDlg, struct MessageWindowData *dat)
     dat->showPic = 0;
     switch(bAvatarMode) {
         case 0:             // globally on
-            dat->showPic = 1;
+            dat->showPic = dat->showInfoPic = 1;
             break;
         case 4:             // globally OFF
-            dat->showPic = 0;
+            dat->showPic = dat->showInfoPic = 0;
             break;
         case 3:             // on, if present
         {
-            HBITMAP hbm = dat->dwEventIsShown & MWF_SHOW_INFOPANEL ? dat->hOwnPic : (dat->ace ? dat->ace->hbmPic : 0);
+			HBITMAP hbm = dat->dwEventIsShown & MWF_SHOW_INFOPANEL ? dat->hOwnPic : ((dat->ace && !(dat->ace->dwFlags & AVS_HIDEONCLIST)) ? dat->ace->hbmPic : 0);
             if((hbm && hbm != myGlobals.g_hbmUnknown && dat->dwEventIsShown & MWF_SHOW_INFOPANEL) || (hbm && hbm != myGlobals.g_hbmUnknown))
                 dat->showPic = 1;
             else
                 dat->showPic = 0;
+			
+			hbm = dat->ace ? dat->ace->hbmPic : 0;
+			dat->showInfoPic = hbm != 0;
             break;
         }
         case 1:             // on for protocols with avatar support
@@ -657,7 +660,8 @@ int CheckValidSmileyPack(char *szProto, HICON *hButtonIcon)
         smainfo.cbSize = sizeof(smainfo);
         smainfo.Protocolname = szProto;
         CallService(MS_SMILEYADD_GETINFO2, 0, (LPARAM)&smainfo);
-        *hButtonIcon = smainfo.ButtonIcon;
+		if(hButtonIcon)
+			*hButtonIcon = smainfo.ButtonIcon;
         return smainfo.NumberOfVisibleSmileys;
     }
     else
@@ -1793,7 +1797,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 
         if(bPanelPic) {
             GetObject(dat->ace ? dat->ace->hbmPic : myGlobals.g_hbmUnknown, sizeof(bminfo), &bminfo);
-			if(dat->ace)
+			if(dat->ace && dat->showInfoPic && !(dat->ace->dwFlags & AVS_HIDEONCLIST))
                 aceFlags = dat->ace->dwFlags;
 			else {
 				if(dat->panelWidth) {
@@ -2330,14 +2334,14 @@ void ConfigureSmileyButton(HWND hwndDlg, struct MessageWindowData *dat)
         }
         else {
             SendDlgItemMessage(hwndDlg, IDC_SMILEYBTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hButtonIcon);
-            dat->hSmileyIcon = 0;
+            dat->hSmileyIcon = hButtonIcon;
         }
     }
     else if(dat->hwndLog != 0) {
         dat->doSmileys = 1;
         nrSmileys = 1;
-        if(dat->hSmileyIcon == 0) {
-            DeleteObject(dat->hSmileyIcon);
+        if(dat->hSmileyIcon != 0) {
+            DestroyIcon(dat->hSmileyIcon);
             dat->hSmileyIcon = 0;
         }
         SendDlgItemMessage(hwndDlg, IDC_SMILEYBTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM) myGlobals.g_buttonBarIcons[11]);

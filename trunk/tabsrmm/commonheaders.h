@@ -25,16 +25,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	#define _UNICODE
 #endif
 
-#if defined( __GNUWIN32__)
-#ifndef __TSR_CXX
-    typedef unsigned short wchar_t;
-#endif
+#define _USE_32BIT_TIME_T
+
+#ifdef __GNUWIN32__
 
 #define OLERENDER_FORMAT 2
 #define CFM_BACKCOLOR 0x04000000
+#ifndef __TSR_CXX
+typedef unsigned short wchar_t;
+#endif
 #endif
 
 #define _WIN32_IE 0x0501
+
+#if defined( UNICODE ) && !defined( _UNICODE )
+#define _UNICODE
+#endif
 
 #include <tchar.h>
 
@@ -87,3 +93,4 @@ extern struct MM_INTERFACE memoryManagerInterface;
 #define mir_alloc(n) memoryManagerInterface.mmi_malloc(n)
 #define mir_free(ptr) memoryManagerInterface.mmi_free(ptr)
 #define mir_realloc(ptr,size) memoryManagerInterface.mmi_realloc(ptr,size)
+
