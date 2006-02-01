@@ -357,6 +357,7 @@
 #define IDC_IPFIELDBORDERS              1267
 #define IDC_AVATARMODE2                 1268
 #define IDC_CODEPAGES                   1268
+#define IDC_OWNAVATARMODE               1268
 #define IDC_AVATARBORDER                1269
 #define IDC_TIMEZONE                    1269
 #define IDC_NOTIFYTYPE2                 1270
