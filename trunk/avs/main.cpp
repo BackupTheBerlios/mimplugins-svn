@@ -68,7 +68,7 @@ pfnImgGetHandle ImgGetHandle = 0;
 PLUGININFO pluginInfo = {
     sizeof(PLUGININFO), 
 	"Avatar service",
-	PLUGIN_MAKE_VERSION(0, 0, 1, 14), 
+	PLUGIN_MAKE_VERSION(0, 0, 1, 16), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish", 
 	"", 
@@ -371,9 +371,31 @@ BOOL GetColorForPoint(int colorDiff, BYTE *p, int width, int height, BOOL hasTra
 	}
 
 	return TRUE;
-
 }
 
+
+static DWORD GetImgHash(HBITMAP hBitmap)
+{
+	BITMAP bmp;
+	DWORD dwLen;
+	WORD *p;
+
+	GetObject(hBitmap, sizeof(bmp), &bmp);
+
+	dwLen = bmp.bmWidth * bmp.bmHeight * (bmp.bmBitsPixel / 8);
+	p = (WORD *)malloc(dwLen);
+	if (p == NULL)
+		return 0;
+	memset(p, 0, dwLen);
+
+	GetBitmapBits(hBitmap, dwLen, p);
+
+	DWORD ret = 0;
+	for (DWORD i = 0 ; i < dwLen/2 ; i++)
+		ret += p[i];
+
+	return ret;
+}
 
 /*
  * Changes the handle to a grayscale image
@@ -433,7 +455,6 @@ static BOOL MakeGrayscale(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha)
 
 	return TRUE;
 }
-
 
 /*
  * See if finds a transparent background in image, and set its transparency
@@ -902,9 +923,16 @@ int UpdateAvatar(HANDLE hContact)
 }
 
 
+void ResetTranspSettings(HANDLE hContact)
+{
+	DBDeleteContactSetting(hContact, "ContactPhoto", "MakeTransparentBkg");
+	DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgNumPoints");
+	DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgColorDiff");
+}
+
+
 // create the avatar in cache
 // returns 0 if not created (no avatar), iIndex otherwise
-
 int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, int iIndex, char *szProto)
 {
     DBVARIANT dbv = {0};
@@ -1026,6 +1054,18 @@ done:
         strncpy(ace->szFilename, szFilename, MAX_PATH);
         ace->szFilename[MAX_PATH - 1] = 0;
 
+		if ((hContact != 0 && hContact != (HANDLE)-1) && DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0))
+		{
+			// Have to reset settings? -> do it if image changed
+			DWORD imgHash = GetImgHash(ace->hbmPic);
+
+			if (imgHash != DBGetContactSettingDword(hContact, "ContactPhoto", "ImageHash", 0))
+			{
+				ResetTranspSettings(hContact);
+				DBWriteContactSettingDword(hContact, "ContactPhoto", "ImageHash", imgHash);
+			}
+		}
+
 		transpBkg = FALSE;
 		if (( (hContact != 0 && hContact != (HANDLE)-1) || DBGetContactSettingByte(0, AVS_MODULE, "MakeMyAvatarsTransparent", 0)) &&
 			DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0) && 
@@ -1036,6 +1076,13 @@ done:
 				ace->dwFlags |= AVS_CUSTOMTRANSPBKG | AVS_HASTRANSPARENCY;
 				transpBkg = TRUE;
 				GetObject(ace->hbmPic, sizeof(bminfo), &bminfo);
+			}
+		}
+		else 
+		{
+			if (hContact != 0 && hContact != (HANDLE)-1) 
+			{
+				DBWriteContactSettingDword(hContact, "ContactPhoto", "ImageHash", 0);
 			}
 		}
 
@@ -1086,7 +1133,7 @@ static int FindAvatarInCache(HANDLE hContact)
 
     for(i = 0; i < g_curAvatar; i++) {
         if(g_avatarCache[i].hbmPic == 0 && g_avatarCache[i].hContact == 0)
-            return CreateAvatarInCache(hContact, &g_avatarCache[i], i, NULL);
+			return CreateAvatarInCache(hContact, &g_avatarCache[i], i, NULL);
     }
     if(i == g_curAvatar) {
         g_curAvatar += CACHE_GROWSTEP;
@@ -1397,7 +1444,9 @@ int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	if (ProtoServiceExists(protocol, PS_GETMYAVATARMAXSIZE))
 		CallProtoService(protocol, PS_GETMYAVATARMAXSIZE, (WPARAM) &width, (LPARAM) &height);
 
-	if (ProtoServiceExists(protocol, PS_GETMYAVATARIMAGEPROPORTION))
+	if (DBGetContactSettingByte(0, AVS_MODULE, "SetAllwaysMakeSquare", 0))
+		square = true;
+	else if (ProtoServiceExists(protocol, PS_GETMYAVATARIMAGEPROPORTION))
 		if (CallProtoService(protocol, PS_GETMYAVATARIMAGEPROPORTION, 0, 0) == PIP_SQUARE)
 			square = true;
 
@@ -1407,13 +1456,29 @@ int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	if (width == -1) width = min(300, bminfo.bmWidth);
 	if (height == -1) height = min(300, bminfo.bmHeight);
 
+	if (square)
+		width = height = min(width, height);
+
 	// Make proportional
 	if (width < bminfo.bmWidth || height < bminfo.bmHeight)
 	{
-		if (height * bminfo.bmWidth / bminfo.bmHeight <= width)
-			width = height * bminfo.bmWidth / bminfo.bmHeight;
+		if (square)
+		{
+			if (height * bminfo.bmWidth / bminfo.bmHeight >= width)
+				width = height * bminfo.bmWidth / bminfo.bmHeight;
+			else
+				height = width * bminfo.bmHeight / bminfo.bmWidth;
+		}
 		else
-			height = width * bminfo.bmHeight / bminfo.bmWidth;
+		{
+			if (height * bminfo.bmWidth / bminfo.bmHeight <= width)
+				width = height * bminfo.bmWidth / bminfo.bmHeight;
+			else
+				height = width * bminfo.bmHeight / bminfo.bmWidth;
+		}
+	} else {
+		width = bminfo.bmWidth;
+		height = bminfo.bmHeight;
 	}
 
 	// Has to stretch?

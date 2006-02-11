@@ -19,9 +19,10 @@
 #define IDC_CHANGE                      1008
 #define IDC_MAKE_TRANSPARENT_BKG        1008
 #define IDC_RESET                       1009
-#define IDC_MAKE_TRANSPARENT_BKG2       1009
 #define IDC_MAKE_GRAYSCALE              1009
 #define IDC_AVATARNAME                  1010
+#define IDC_MAKE_GRAYSCALE2             1010
+#define IDC_SET_MAKE_SQUARE             1010
 #define IDC_HIDEAVATAR                  1011
 #define IDC_DELETE                      1012
 #define IDC_SIZELIMIT                   1012

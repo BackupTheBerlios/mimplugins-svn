@@ -1,6 +1,22 @@
 
         Version history:
 
+0.0.1.16 - 2006/02/11
+       
+		+ option to make all avatars square
+		
+		+ when contact change avatar, transparency settings are reset to defaults
+		
+		* fix in calcs of avatar size
+		
+0.0.1.15 - 2006/02/09
+       
+		+ make avatars grayscale
+		
+		+ service to set avatar
+		
+		+ if avatar changed, reset to defaults the transparency settings
+
 0.0.1.12 - 2005/11/10
 
 		+ improved filesystem searches for own avatar pictures at startup.

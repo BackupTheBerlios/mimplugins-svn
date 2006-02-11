@@ -5,6 +5,7 @@
 	Name="avatars"
 	ProjectGUID="{987F026D-EB1F-4013-ADA8-2406ACCDA526}"
 	RootNamespace="clist"
+	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -49,7 +50,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="_DEBUG_LOG;WIN32;_DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_USE_32BIT_TIME_T"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_USE_32BIT_TIME_T"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"

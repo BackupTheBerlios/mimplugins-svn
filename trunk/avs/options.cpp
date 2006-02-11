@@ -162,6 +162,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             CheckDlgButton(hwndDlg, IDC_MAKE_TRANSPARENT_BKG, DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
 			CheckDlgButton(hwndDlg, IDC_MAKE_TRANSP_PROPORTIONAL, DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparencyProportionalToColorDiff", 0));
 			CheckDlgButton(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP, DBGetContactSettingByte(0, AVS_MODULE, "MakeMyAvatarsTransparent", 0));
+            CheckDlgButton(hwndDlg, IDC_SET_MAKE_SQUARE, DBGetContactSettingByte(0, AVS_MODULE, "SetAllwaysMakeSquare", 0));
 
 			SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETRANGE, 0, MAKELONG(8, 2));
 			SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETPOS, 0, (LPARAM)DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5));
@@ -309,6 +310,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 							DBWriteContactSettingByte(NULL, AVS_MODULE, "MakeMyAvatarsTransparent", IsDlgButtonChecked(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP) ? 1 : 0);
 							DBWriteContactSettingWord(NULL, AVS_MODULE, "TranspBkgNumPoints", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0));
 							DBWriteContactSettingWord(NULL, AVS_MODULE, "TranspBkgColorDiff", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0));
+							DBWriteContactSettingByte(NULL, AVS_MODULE, "SetAllwaysMakeSquare", IsDlgButtonChecked(hwndDlg, IDC_SET_MAKE_SQUARE) ? 1 : 0);
                         }
                     }
             }
@@ -355,7 +357,7 @@ void SaveTransparentData(HWND hwndDlg, HANDLE hContact)
 
 	tmp = (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0);
 	if (DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgColorDiff", 10) == tmp)
-		DBDeleteContactSetting(hContact, "ContactPhoto", "TTranspBkgColorDiff");
+		DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgColorDiff");
 	else
 		DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", tmp);
 }
