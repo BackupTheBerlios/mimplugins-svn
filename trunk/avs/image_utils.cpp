@@ -141,6 +141,7 @@ int SaveJPEG(HBITMAP hBmp, const char *szFilename)
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
 	CLSID             encoderClsid;
+	EncoderParameters encoderParameters;
 	Status            stat;
 
 	// Get a JPEG image from the disk.
@@ -152,7 +153,16 @@ int SaveJPEG(HBITMAP hBmp, const char *szFilename)
 
 	WCHAR pszwFilename[MAX_PATH];
 	MultiByteToWideChar(CP_ACP,0,szFilename,-1,pszwFilename,MAX_PATH);
-	stat = image->Save(pszwFilename, &encoderClsid, NULL);
+
+	// Setting the jpeg quality
+	int Quality = 90;
+	encoderParameters.Count = 1;
+	encoderParameters.Parameter[0].Guid = EncoderQuality;
+	encoderParameters.Parameter[0].Type = EncoderParameterValueTypeLong;
+	encoderParameters.Parameter[0].NumberOfValues = 1;
+	encoderParameters.Parameter[0].Value = &Quality;
+
+	stat = image->Save(pszwFilename, &encoderClsid, &encoderParameters);
 
 	delete image;
 	GdiplusShutdown(gdiplusToken);
