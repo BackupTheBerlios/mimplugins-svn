@@ -2032,10 +2032,9 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         GetClientRect(dis->hwndItem, &rc);
 		if(dat->pContainer->bSkinned) {
 			StatusItems_t *item = &StatusItems[ID_EXTBKINFOPANEL];
-			RECT rc = dis->rcItem;
+			SkinDrawBG(dis->hwndItem, dat->pContainer->hwnd, dat->pContainer, &rc, dis->hDC);
 			rc.left += item->MARGIN_LEFT; rc.right -= item->MARGIN_RIGHT;
 			rc.top += item->MARGIN_TOP; rc.bottom -= item->MARGIN_BOTTOM;
-			SkinDrawBG(dis->hwndItem, dat->pContainer->hwnd, dat->pContainer, &dis->rcItem, dis->hDC);
 			DrawAlpha(dis->hDC, &rc, item->COLOR, item->ALPHA, item->COLOR2, item->COLOR2_TRANSPARENT,
 					  item->GRADIENT, item->CORNER, item->RADIUS, item->imageItem);
 		}
@@ -2108,7 +2107,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         if(dat->szNickname[0]) {
             HFONT hOldFont = 0;
             
-            if(dat->xStatus > 0 && dat->xStatus <= 24) {
+            if(dat->xStatus > 0 && dat->xStatus <= 32) {
 				char szServiceName[128];
 				HICON xIcon;
 
@@ -2391,6 +2390,17 @@ void ConfigureSmileyButton(HWND hwndDlg, struct MessageWindowData *dat)
 
     ShowWindow(GetDlgItem(hwndDlg, IDC_SMILEYBTN), (dat->doSmileys && showToolbar) ? SW_SHOW : SW_HIDE);
     EnableWindow(GetDlgItem(hwndDlg, IDC_SMILEYBTN), dat->doSmileys ? TRUE : FALSE);
+}
+
+void SendNudge(struct MessageWindowData *dat, HWND hwndDlg)
+{
+	char *szProto = dat->bIsMeta ? dat->szMetaProto : dat->szProto;
+	char szServiceName[128];
+	HANDLE hContact = dat->bIsMeta ? dat->hSubContact : dat->hContact;
+
+	mir_snprintf(szServiceName, 128, "%s/SendNudge", szProto);
+	if(ServiceExists(szServiceName))
+		CallProtoService(szProto, "/SendNudge", (WPARAM)hContact, 0);
 }
 
 // size in TCHARs
