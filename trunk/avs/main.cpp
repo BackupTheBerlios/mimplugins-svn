@@ -1078,13 +1078,6 @@ done:
 				GetObject(ace->hbmPic, sizeof(bminfo), &bminfo);
 			}
 		}
-		else 
-		{
-			if (hContact != 0 && hContact != (HANDLE)-1) 
-			{
-				DBWriteContactSettingDword(hContact, "ContactPhoto", "ImageHash", 0);
-			}
-		}
 
 		if (DBGetContactSettingByte(0, AVS_MODULE, "MakeGrayscale", 0))
 		{
