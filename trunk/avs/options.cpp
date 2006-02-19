@@ -36,7 +36,7 @@ extern HICON g_hIcon;
 extern BOOL g_imgDecoderAvail;
 extern CRITICAL_SECTION cachecs;
 
-extern int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, int iIndex, char *szProto);
+extern int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szProto);
 extern int ProtectAvatar(WPARAM wParam, LPARAM lParam), UpdateAvatar(HANDLE hContact);
 extern int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode);
 extern int DeleteAvatar(HANDLE hContact);
@@ -108,7 +108,7 @@ static void SetProtoPic(char *szProto)
                     if(g_ProtoPictures[i].hbmPic != 0) 
                         DeleteObject(g_ProtoPictures[i].hbmPic);
                     ZeroMemory((void *)&g_ProtoPictures[i], sizeof(struct protoPicCacheEntry));
-                    CreateAvatarInCache(0, (struct avatarCacheEntry *)&g_ProtoPictures[i], i, (char *)szProto);
+                    CreateAvatarInCache(0, (struct avatarCacheEntry *)&g_ProtoPictures[i], (char *)szProto);
                     strncpy(g_ProtoPictures[i].szProtoname, szProto, 100);
                     g_ProtoPictures[i].szProtoname[99] = 0;
                     NotifyEventHooks(hEventChanged, 0, (LPARAM)&g_ProtoPictures[i]);

@@ -39,10 +39,10 @@ static char g_szDBPath[MAX_PATH];		// database profile path (read at startup onl
 HANDLE hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hMyAvatarChanged = 0;
 HICON g_hIcon = 0;
 
-static struct avatarCacheEntry *g_avatarCache = 0;
+static struct CacheNode *g_Cache = 0, *g_firstNodeToFree = NULL;
 struct protoPicCacheEntry *g_ProtoPictures = 0;
 struct protoPicCacheEntry *g_MyAvatars = 0;
-static int g_curAvatar = 0;
+
 CRITICAL_SECTION cachecs;
 static CRITICAL_SECTION avcs;
 
@@ -164,16 +164,19 @@ int _DebugPopup(HANDLE hContact, const char *fmt, ...)
 
 int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode)
 {
-    for(int i = 0; i < g_curAvatar; i++) {
-        if(g_avatarCache[i].hContact == hContact) {
-            DWORD dwFlags = g_avatarCache[i].dwFlags;
+	struct CacheNode *cacheNode = g_Cache;
 
-            g_avatarCache[i].dwFlags = mode ? g_avatarCache[i].dwFlags | attrib : g_avatarCache[i].dwFlags & ~attrib;
-            if(g_avatarCache[i].dwFlags != dwFlags)
-                NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&g_avatarCache[i]);
+	while(cacheNode) {
+		if(cacheNode->ace.hContact == hContact) {
+            DWORD dwFlags = cacheNode->ace.dwFlags;
+
+            cacheNode->ace.dwFlags = mode ? cacheNode->ace.dwFlags | attrib : cacheNode->ace.dwFlags & ~attrib;
+            if(cacheNode->ace.dwFlags != dwFlags)
+                NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&cacheNode->ace);
             break;
         }
-    }
+		cacheNode = cacheNode->pNextNode;
+	}
     return 0;
 }
 
@@ -933,7 +936,7 @@ void ResetTranspSettings(HANDLE hContact)
 
 // create the avatar in cache
 // returns 0 if not created (no avatar), iIndex otherwise
-int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, int iIndex, char *szProto)
+int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szProto)
 {
     DBVARIANT dbv = {0};
     char *szExt = NULL;
@@ -1026,7 +1029,7 @@ done:
         MIRANDASYSTRAYNOTIFY msn = {0};
 
         if(!DBGetContactSettingByte(0, AVS_MODULE, "warnings", 0))
-            return 1;
+            return -1;
 
         _snprintf(szBuf, 256, "The selected contact picture is too large. The current file size limit for avatars are %d bytes.\nYou can increase that limit on the options page", sizeLimit * 1024);
         _snprintf(szTitle, 64, "Avatar Service warning (%s)", (char *)CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM)hContact, 0));
@@ -1105,7 +1108,7 @@ done:
 			pAce->szProtoname[99] = 0;
         }
 
-        return iIndex;
+        return 1;
     }
     else if(hContact != 0 && hContact != (HANDLE)-1){                     // don't update for pseudo avatars...
         UpdateAvatar(hContact);
@@ -1114,34 +1117,42 @@ done:
     return -1;
 }
 
-static int FindAvatarInCache(HANDLE hContact)
+static struct CacheNode *AddToList(struct CacheNode *node) {
+    struct CacheNode *pCurrent = g_Cache;
+
+    while (pCurrent->pNextNode != 0)
+        pCurrent = pCurrent->pNextNode;
+
+    pCurrent->pNextNode = node;
+    node->pNextNode = NULL;
+    return pCurrent;
+}
+
+static struct CacheNode *FindAvatarInCache(HANDLE hContact)
 {
-    int i, j;
+	struct CacheNode *cacheNode = g_Cache, *foundNode = NULL;
     
-    for(i = 0; i < g_curAvatar; i++) {
-        if(g_avatarCache[i].hContact == hContact)
-            return i;
+	while(cacheNode) {
+        if(cacheNode->ace.hContact == hContact)
+            return cacheNode;
+		if(foundNode == NULL && cacheNode->ace.hbmPic == 0 && cacheNode->ace.hContact == 0)
+			foundNode = cacheNode;
+		cacheNode = cacheNode->pNextNode;
     }
     // not found, create it in cache
 
-    for(i = 0; i < g_curAvatar; i++) {
-        if(g_avatarCache[i].hbmPic == 0 && g_avatarCache[i].hContact == 0)
-			return CreateAvatarInCache(hContact, &g_avatarCache[i], i, NULL);
-    }
-    if(i == g_curAvatar) {
-        g_curAvatar += CACHE_GROWSTEP;
-        g_avatarCache = (struct avatarCacheEntry *)realloc(g_avatarCache, sizeof(struct avatarCacheEntry) * g_curAvatar);
-        ZeroMemory((void *)&g_avatarCache[g_curAvatar - (CACHE_GROWSTEP + 1)], sizeof(struct avatarCacheEntry) * CACHE_GROWSTEP);
-        // realloced the cache, pointers may be invalid, so invalidate them
-        for(j = 0; j < g_curAvatar; j++) {
-            if(g_avatarCache[j].hContact != 0)
-                NotifyEventHooks(hEventChanged, (WPARAM)g_avatarCache[j].hContact, (LPARAM)&g_avatarCache[j]);
-        }
-    }
-    if(CreateAvatarInCache(hContact, &g_avatarCache[i], i, NULL) != -1)
-        return i;
+	if(foundNode == NULL) {					// no free entry found, create a new and append it to the list
+		struct CacheNode *newNode = (struct CacheNode *)malloc(sizeof(struct CacheNode));
+		if(g_firstNodeToFree == NULL)
+			g_firstNodeToFree = newNode;
+		ZeroMemory(newNode, sizeof(struct CacheNode));
+		AddToList(newNode);
+		foundNode = newNode;
+	}
+    if(CreateAvatarInCache(hContact, &foundNode->ace, NULL) != -1)
+        return foundNode;
     else
-        return -1;
+        return NULL;
 }
 
 
@@ -1587,12 +1598,13 @@ static int GetMyAvatar(WPARAM wParam, LPARAM lParam)
 
 static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
 {
-    int iIndex, i;
+    int i;
+	struct CacheNode *node = NULL;
     
     EnterCriticalSection(&cachecs);
-    iIndex = FindAvatarInCache((HANDLE)wParam);
+    node = FindAvatarInCache((HANDLE)wParam);
     LeaveCriticalSection(&cachecs);
-    if(iIndex == -1 || iIndex >= g_curAvatar) {
+    if(node == NULL) {
         char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
         if(szProto) {
             for(i = 0; i < g_protocount; i++) {
@@ -1603,32 +1615,33 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
         return 0;
     }
     else {
-        g_avatarCache[iIndex].t_lastAccess = time(NULL);
-        return (int)&g_avatarCache[iIndex];
+		node->ace.t_lastAccess = time(NULL);
+        return (int)&node->ace;
     }
 }
 
 int DeleteAvatar(HANDLE hContact)
 {
-    int i;
     char *szProto = NULL;
-    
+	struct CacheNode *pNode = g_Cache;
+
     EnterCriticalSection(&cachecs);
-    for(i = 0; i < g_curAvatar; i++) {
-        if(g_avatarCache[i].hContact == hContact) {
-            if(g_avatarCache[i].lpDIBSection != NULL && ImgDeleteDIBSection)
-                ImgDeleteDIBSection(g_avatarCache[i].lpDIBSection);
-            if(g_avatarCache[i].hbmPic != 0)
-                DeleteObject(g_avatarCache[i].hbmPic);
-            ZeroMemory((void *)&g_avatarCache[i], sizeof(struct avatarCacheEntry));
+	while(pNode) {
+        if(pNode->ace.hContact == hContact) {
+            if(pNode->ace.lpDIBSection != NULL && ImgDeleteDIBSection)
+                ImgDeleteDIBSection(pNode->ace.lpDIBSection);
+            if(pNode->ace.hbmPic != 0)
+                DeleteObject(pNode->ace.hbmPic);
+            ZeroMemory((void *)&pNode->ace, sizeof(struct avatarCacheEntry));
             break;
         }
+		pNode = pNode->pNextNode;
     }
     LeaveCriticalSection(&cachecs);
     // fallback with a protocol picture, if available...
     szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
     if(szProto) {
-        for(i = 0; i < g_protocount; i++) {
+        for(int i = 0; i < g_protocount; i++) {
             if(g_ProtoPictures[i].szProtoname != NULL && !strcmp(g_ProtoPictures[i].szProtoname, szProto) && g_ProtoPictures[i].hbmPic != 0) {
                 NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&g_ProtoPictures[i]);
                 return 0;
@@ -1641,30 +1654,30 @@ int DeleteAvatar(HANDLE hContact)
 
 int ChangeAvatar(HANDLE hContact)
 {
-    int i;
+	struct CacheNode *pNode = g_Cache, *newNode = NULL;
 
     EnterCriticalSection(&cachecs);
-    for(i = 0; i < g_curAvatar; i++) {
-        if(g_avatarCache[i].hContact == hContact) {
-            if(g_avatarCache[i].lpDIBSection && ImgDeleteDIBSection)
-                ImgDeleteDIBSection(g_avatarCache[i].lpDIBSection);
-            if(g_avatarCache[i].hbmPic != 0)
-                DeleteObject(g_avatarCache[i].hbmPic);
-            ZeroMemory((void *)&g_avatarCache[i], sizeof(struct avatarCacheEntry));
+	while(pNode) {
+        if(pNode->ace.hContact == hContact) {
+            if(pNode->ace.lpDIBSection && ImgDeleteDIBSection)
+                ImgDeleteDIBSection(pNode->ace.lpDIBSection);
+            if(pNode->ace.hbmPic != 0)
+                DeleteObject(pNode->ace.hbmPic);
+            ZeroMemory((void *)&pNode->ace, sizeof(struct avatarCacheEntry));
             break;
         }
+		pNode = pNode->pNextNode;
     }
-    i = FindAvatarInCache(hContact);
+    newNode = FindAvatarInCache(hContact);
     LeaveCriticalSection(&cachecs);
-    if(i != -1 && i < g_curAvatar) {
-        g_avatarCache[i].cbSize = sizeof(struct avatarCacheEntry);
-        NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&g_avatarCache[i]);
+    if(newNode) {
+        newNode->ace.cbSize = sizeof(struct avatarCacheEntry);
+        NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&newNode->ace);
     }
     else {              // fallback with protocol picture
-        int i;
         char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
         if(szProto) {
-            for(i = 0; i < g_protocount; i++) {
+            for(int i = 0; i < g_protocount; i++) {
                 if(g_ProtoPictures[i].szProtoname != NULL && !strcmp(g_ProtoPictures[i].szProtoname, szProto) && g_ProtoPictures[i].hbmPic != 0) {
                     NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&g_ProtoPictures[i]);
                     return 0;
@@ -1733,7 +1746,7 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
         strncat(g_installed_protos, "[", 1024);
         strncat(g_installed_protos, g_protocols[i]->szName, 1024);
         strncat(g_installed_protos, "] ", 1024);
-        if(CreateAvatarInCache(0, (struct avatarCacheEntry *)&g_ProtoPictures[j], j, g_protocols[i]->szName) != -1)
+        if(CreateAvatarInCache(0, (struct avatarCacheEntry *)&g_ProtoPictures[j], g_protocols[i]->szName) != -1)
             j++;
         else {
             strncpy(g_ProtoPictures[j].szProtoname, g_protocols[i]->szName, 100);
@@ -1744,7 +1757,7 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     for(i = 0; i < g_protocount; i++) {
         if(g_protocols[i]->type != PROTOTYPE_PROTOCOL)
             continue;
-        if(CreateAvatarInCache((HANDLE)-1, (struct avatarCacheEntry *)&g_MyAvatars[j], j, g_protocols[i]->szName) != -1)
+        if(CreateAvatarInCache((HANDLE)-1, (struct avatarCacheEntry *)&g_MyAvatars[j], g_protocols[i]->szName) != -1)
             j++;
         else {
             strncpy(g_MyAvatars[j].szProtoname, g_protocols[i]->szName, 100);
@@ -1807,7 +1820,7 @@ static void ReloadMyAvatar(LPVOID lpParam)
 			if(g_MyAvatars[i].hbmPic)
 				DeleteObject(g_MyAvatars[i].hbmPic);
 
-			if(CreateAvatarInCache((HANDLE)-1, (struct avatarCacheEntry *)&g_MyAvatars[i], i, szProto) != -1)
+			if(CreateAvatarInCache((HANDLE)-1, (struct avatarCacheEntry *)&g_MyAvatars[i], szProto) != -1)
 				NotifyEventHooks(hMyAvatarChanged, (WPARAM)szProto, (LPARAM)&g_MyAvatars[i]);
 			else
 				NotifyEventHooks(hMyAvatarChanged, (WPARAM)szProto, 0);
@@ -1873,16 +1886,16 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 
 static int ContactDeleted(WPARAM wParam, LPARAM lParam)
 {
-    int i;
+	struct CacheNode *pNode = g_Cache;
 
     EnterCriticalSection(&cachecs);
-    for(i = 0; i < g_curAvatar; i++) {
-        if(g_avatarCache[i].hContact == (HANDLE)wParam) {
-            if(g_avatarCache[i].lpDIBSection && ImgDeleteDIBSection)
-                ImgDeleteDIBSection(g_avatarCache[i].lpDIBSection);
-            if(g_avatarCache[i].hbmPic != 0)
-                DeleteObject(g_avatarCache[i].hbmPic);
-            ZeroMemory((void *)&g_avatarCache[i], sizeof(struct avatarCacheEntry));
+	while(pNode) {
+        if(pNode->ace.hContact == (HANDLE)wParam) {
+            if(pNode->ace.lpDIBSection && ImgDeleteDIBSection)
+                ImgDeleteDIBSection(pNode->ace.lpDIBSection);
+            if(pNode->ace.hbmPic != 0)
+                DeleteObject(pNode->ace.hbmPic);
+            ZeroMemory((void *)&pNode->ace, sizeof(struct avatarCacheEntry));
             break;
         }
     }
@@ -1930,12 +1943,25 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
     
     EnterCriticalSection(&cachecs);
 
-	for(int i = 0; i < g_curAvatar; i++) {
-        if(g_avatarCache[i].lpDIBSection && ImgDeleteDIBSection)
-            ImgDeleteDIBSection(g_avatarCache[i].lpDIBSection);
-        if(g_avatarCache[i].hbmPic != 0)
-            DeleteObject(g_avatarCache[i].hbmPic);
+	struct CacheNode *pNode = g_Cache;
+	while(pNode) {
+        if(pNode->ace.lpDIBSection && ImgDeleteDIBSection)
+            ImgDeleteDIBSection(pNode->ace.lpDIBSection);
+        if(pNode->ace.hbmPic != 0)
+            DeleteObject(pNode->ace.hbmPic);
+		pNode = pNode->pNextNode;
     }
+
+	if(g_firstNodeToFree) {
+		struct CacheNode *node = g_firstNodeToFree, *nextNode = NULL;
+		
+		while(node) {
+			nextNode = node->pNextNode;
+			free(node);
+			node = nextNode;
+		}
+	}
+
     for(int i = 0; i < g_protocount; i++) {
         if(g_ProtoPictures[i].lpDIBSection && ImgDeleteDIBSection)
             ImgDeleteDIBSection(g_ProtoPictures[i].lpDIBSection);
@@ -1947,8 +1973,8 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 		if(g_MyAvatars[i].hbmPic != 0)
 			DeleteObject(g_MyAvatars[i].hbmPic);
     }
-    if(g_avatarCache)
-        free(g_avatarCache);
+    if(g_Cache)
+        free(g_Cache);
 
     if(g_ProtoPictures)
         free(g_ProtoPictures);
@@ -2138,9 +2164,11 @@ static int LoadAvatarModule()
 	CreateServiceFunction(MS_AV_GETMYAVATAR, GetMyAvatar);
     hEventChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
 	hMyAvatarChanged = CreateHookableEvent(ME_AV_MYAVATARCHANGED);
-    g_avatarCache = (struct avatarCacheEntry *)malloc(sizeof(struct avatarCacheEntry) * INITIAL_AVATARCACHESIZE);
-    ZeroMemory((void *)g_avatarCache, sizeof(struct avatarCacheEntry) * INITIAL_AVATARCACHESIZE);
-    g_curAvatar = INITIAL_AVATARCACHESIZE;
+    g_Cache = (struct CacheNode *)malloc(INITIAL_AVATARCACHESIZE * sizeof(struct CacheNode));
+	ZeroMemory((void *)g_Cache, sizeof(struct CacheNode) * INITIAL_AVATARCACHESIZE);
+
+	for(int i = 0; i < INITIAL_AVATARCACHESIZE - 1; i++)
+		g_Cache[i].pNextNode = &g_Cache[i + 1];				// pre-link the alloced block
 
     AV_QUEUESIZE = CallService(MS_DB_CONTACT_GETCOUNT, 0, 0);
     if(AV_QUEUESIZE < 300)

@@ -80,6 +80,11 @@ struct avatarCacheEntry {
 
 typedef struct avatarCacheEntry AVATARCACHEENTRY;
 
+struct CacheNode {
+	struct CacheNode *pNextNode;
+	struct avatarCacheEntry ace;
+};
+
 #define AVDRQ_FALLBACKPROTO 1              // use the protocol picture as fallback (currently not used)
 #define AVDRQ_FAILIFNOTCACHED 2            // don't create a cache entry if it doesn't already exist. (currently not working)
 #define AVDRQ_ROUNDEDCORNER 4              // draw with rounded corners
@@ -106,8 +111,7 @@ typedef struct _avatarDrawRequest {
     char   *szProto;                // only used when AVDRQ_PROTOPICT or AVDRQ_OWNPIC is set
 } AVATARDRAWREQUEST;
 
-#define INITIAL_AVATARCACHESIZE 300
-#define CACHE_GROWSTEP 50
+#define INITIAL_AVATARCACHESIZE 20
 
 #define AVS_MODULE "AVS_Settings"          // db settings module path
 #define PPICT_MODULE "AVS_ProtoPics"   // protocol pictures are saved here
