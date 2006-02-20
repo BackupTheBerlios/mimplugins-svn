@@ -111,7 +111,7 @@ typedef struct _avatarDrawRequest {
     char   *szProto;                // only used when AVDRQ_PROTOPICT or AVDRQ_OWNPIC is set
 } AVATARDRAWREQUEST;
 
-#define INITIAL_AVATARCACHESIZE 20
+#define CACHE_BLOCKSIZE 20
 
 #define AVS_MODULE "AVS_Settings"          // db settings module path
 #define PPICT_MODULE "AVS_ProtoPics"   // protocol pictures are saved here

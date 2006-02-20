@@ -27,6 +27,7 @@ HINSTANCE g_hInst = 0;
 PLUGINLINK *pluginLink;
 int hMyAvatarsFolder = 0;
 int hProtocolAvatarsFolder = 0;
+int g_shutDown = FALSE;
 
 PROTOCOLDESCRIPTOR **g_protocols = NULL;
 int g_protocount = 0;
@@ -39,7 +40,7 @@ static char g_szDBPath[MAX_PATH];		// database profile path (read at startup onl
 HANDLE hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hMyAvatarChanged = 0;
 HICON g_hIcon = 0;
 
-static struct CacheNode *g_Cache = 0, *g_firstNodeToFree = NULL;
+static struct CacheNode *g_Cache = 0;
 struct protoPicCacheEntry *g_ProtoPictures = 0;
 struct protoPicCacheEntry *g_MyAvatars = 0;
 
@@ -135,6 +136,38 @@ return = 1 (supported) or 0 (not supported)
  * popup plugin.
  */
 
+
+static int g_maxBlock = 0, g_curBlock = 0;
+static struct CacheNode **g_cacheBlocks = NULL;
+
+/*
+ * allocate a cache block and add it to the list of blocks
+ * does not link the new block with the old block(s) - caller needs to do this
+ */
+
+static struct CacheNode *AllocCacheBlock()
+{
+	struct CacheNode *allocedBlock = NULL;
+
+	allocedBlock = (struct CacheNode *)malloc(CACHE_BLOCKSIZE * sizeof(struct CacheNode));
+	ZeroMemory((void *)allocedBlock, sizeof(struct CacheNode) * CACHE_BLOCKSIZE);
+
+	for(int i = 0; i < CACHE_BLOCKSIZE - 1; i++)
+		allocedBlock[i].pNextNode = &allocedBlock[i + 1];				// pre-link the alloced block
+
+	if(g_Cache == NULL)													// first time only...
+		g_Cache = allocedBlock;
+
+	// add it to the list of blocks
+
+	if(g_curBlock == g_maxBlock) {
+		g_maxBlock += 10;
+		g_cacheBlocks = (struct CacheNode **)realloc(g_cacheBlocks, g_maxBlock * sizeof(struct CacheNode *));
+	}
+	g_cacheBlocks[g_curBlock++] = allocedBlock;
+
+	return(allocedBlock);
+}
 
 int _DebugPopup(HANDLE hContact, const char *fmt, ...)
 {
@@ -894,7 +927,11 @@ static void AvatarUpdateThread(LPVOID vParam)
                 }
             }
         }
-        Sleep(5000L);
+		for(int n = 0; n < 5; n++) {
+			if(!bAvatarThreadRunning)
+				break;
+			Sleep(1000L);
+		}
     } while ( bAvatarThreadRunning );
 	_endthread();
 }
@@ -1145,10 +1182,7 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact)
     // not found, create it in cache
 
 	if(foundNode == NULL) {					// no free entry found, create a new and append it to the list
-		struct CacheNode *newNode = (struct CacheNode *)malloc(sizeof(struct CacheNode));
-		if(g_firstNodeToFree == NULL)
-			g_firstNodeToFree = newNode;
-		ZeroMemory(newNode, sizeof(struct CacheNode));
+		struct CacheNode *newNode = AllocCacheBlock();
 		AddToList(newNode);
 		foundNode = newNode;
 	}
@@ -1591,8 +1625,9 @@ static int GetMyAvatar(WPARAM wParam, LPARAM lParam)
 	int i;
 	char *szProto = (char *)lParam;
 
-	if(wParam)
+	if(wParam || g_shutDown)
 		return 0;
+
 	if(lParam == 0 || IsBadReadPtr((void *)lParam, 4))
 		return 0;
 
@@ -1608,7 +1643,7 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
     int i;
 	struct CacheNode *node = NULL;
     
-    if(wParam == 0)
+    if(wParam == 0 || g_shutDown)
 		return 0;
 
 	//EnterCriticalSection(&cachecs);
@@ -1635,7 +1670,10 @@ int DeleteAvatar(HANDLE hContact)
     char *szProto = NULL;
 	struct CacheNode *pNode = g_Cache;
 
-    EnterCriticalSection(&cachecs);
+    if(g_shutDown)
+		return 0;
+
+	EnterCriticalSection(&cachecs);
 	while(pNode) {
         if(pNode->ace.hContact == hContact) {
             if(pNode->ace.lpDIBSection != NULL && ImgDeleteDIBSection)
@@ -1666,7 +1704,10 @@ int ChangeAvatar(HANDLE hContact)
 {
 	struct CacheNode *pNode = g_Cache, *newNode = NULL;
 
-    EnterCriticalSection(&cachecs);
+    if(g_shutDown)
+		return 0;
+
+	EnterCriticalSection(&cachecs);
 	while(pNode) {
         if(pNode->ace.hContact == hContact) {
             if(pNode->ace.lpDIBSection && ImgDeleteDIBSection)
@@ -1845,7 +1886,7 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
     char *szProto;
     DBCONTACTWRITESETTING *cws = (DBCONTACTWRITESETTING *) lParam;  
 
-    if(cws == NULL)
+    if(cws == NULL || g_shutDown)
         return 0;
 
 	if(wParam == 0) {
@@ -1934,7 +1975,9 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 {
     DWORD dwExitcode = 0;
 
-    DestroyServiceFunction(MS_AV_GETAVATARBITMAP);
+	g_shutDown = TRUE;
+
+	DestroyServiceFunction(MS_AV_GETAVATARBITMAP);
     DestroyServiceFunction(MS_AV_PROTECTAVATAR);
     DestroyServiceFunction(MS_AV_SETAVATAR);
     DestroyServiceFunction(MS_AV_SETMYAVATAR);
@@ -1951,7 +1994,16 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
     UnhookEvent(hProtoAckHook);
     UnhookEvent(hEventChanged);
     
-    EnterCriticalSection(&cachecs);
+	bAvatarThreadRunning = FALSE;
+    ResumeThread(hAvatarThread);
+
+	WaitForSingleObject(hAvatarThread, 6000);
+
+    DeleteCriticalSection(&avcs);
+    DeleteCriticalSection(&cachecs);
+
+	if(avatarUpdateQueue)
+        free(avatarUpdateQueue);
 
 	struct CacheNode *pNode = g_Cache;
 	while(pNode) {
@@ -1962,17 +2014,10 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 		pNode = pNode->pNextNode;
     }
 
-	if(g_firstNodeToFree) {
-		struct CacheNode *node = g_firstNodeToFree, *nextNode = NULL;
-		
-		while(node) {
-			nextNode = node->pNextNode;
-			free(node);
-			node = nextNode;
-		}
-	}
+	for(int i = 0; i < g_curBlock; i++)
+		free(g_cacheBlocks[i]);
 
-    for(int i = 0; i < g_protocount; i++) {
+	for(int i = 0; i < g_protocount; i++) {
         if(g_ProtoPictures[i].lpDIBSection && ImgDeleteDIBSection)
             ImgDeleteDIBSection(g_ProtoPictures[i].lpDIBSection);
         if(g_ProtoPictures[i].hbmPic != 0)
@@ -1992,26 +2037,7 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 	if(g_MyAvatars)
 		free(g_MyAvatars);
 
-    LeaveCriticalSection(&cachecs);
-
-	bAvatarThreadRunning = FALSE;
-    ResumeThread(hAvatarThread);
-    /*
-	do {
-        Sleep(100);
-        GetExitCodeThread(hAvatarThread, &dwExitcode);
-    } while (dwExitcode == STILL_ACTIVE);
-    if(hAvatarThread)
-        CloseHandle(hAvatarThread);*/
-
-	WaitForSingleObject(hAvatarThread, 6000);
-
-    DeleteCriticalSection(&avcs);
-    DeleteCriticalSection(&cachecs);
-
-    if(avatarUpdateQueue)
-        free(avatarUpdateQueue);
-    return 0;
+	return 0;
 }
 
 static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
@@ -2174,12 +2200,7 @@ static int LoadAvatarModule()
 	CreateServiceFunction(MS_AV_GETMYAVATAR, GetMyAvatar);
     hEventChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
 	hMyAvatarChanged = CreateHookableEvent(ME_AV_MYAVATARCHANGED);
-    g_Cache = (struct CacheNode *)malloc(INITIAL_AVATARCACHESIZE * sizeof(struct CacheNode));
-	ZeroMemory((void *)g_Cache, sizeof(struct CacheNode) * INITIAL_AVATARCACHESIZE);
-
-	for(int i = 0; i < INITIAL_AVATARCACHESIZE - 1; i++)
-		g_Cache[i].pNextNode = &g_Cache[i + 1];				// pre-link the alloced block
-
+	AllocCacheBlock();
     AV_QUEUESIZE = CallService(MS_DB_CONTACT_GETCOUNT, 0, 0);
     if(AV_QUEUESIZE < 300)
         AV_QUEUESIZE = 300;
