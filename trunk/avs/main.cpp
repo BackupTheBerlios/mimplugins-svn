@@ -843,7 +843,6 @@ static void AvatarUpdateThread(LPVOID vParam)
          */
         hFound = 0;
         
-        EnterCriticalSection(&avcs);
         for (i = 0; i < AV_QUEUESIZE; i++) {
             if (avatarUpdateQueue[i] != 0) {
                 int status = ID_STATUS_OFFLINE;
@@ -856,19 +855,22 @@ static void AvatarUpdateThread(LPVOID vParam)
                 if(szProto) {
                     status = CallProtoService(szProto, PS_GETSTATUS, 0, 0);
                     if(status != ID_STATUS_OFFLINE && status != ID_STATUS_INVISIBLE) {
+				        EnterCriticalSection(&avcs);
                         hFound = avatarUpdateQueue[i];
                         avatarUpdateQueue[i] = 0;
                         dwPendingAvatarJobs--;
+				        LeaveCriticalSection(&avcs);
                         break;
                     }
                     else if(status == ID_STATUS_OFFLINE) {
+				        EnterCriticalSection(&avcs);
                         avatarUpdateQueue[i] = 0;
                         dwPendingAvatarJobs--;
+				        LeaveCriticalSection(&avcs);
                     }
                 }
             }
         }
-        LeaveCriticalSection(&avcs);
 
         if(hFound) {
             if(szProto) {
@@ -1120,7 +1122,7 @@ done:
 static struct CacheNode *AddToList(struct CacheNode *node) {
     struct CacheNode *pCurrent = g_Cache;
 
-    while (pCurrent->pNextNode != 0)
+    while(pCurrent->pNextNode != 0)
         pCurrent = pCurrent->pNextNode;
 
     pCurrent->pNextNode = node;
@@ -1132,11 +1134,12 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact)
 {
 	struct CacheNode *cacheNode = g_Cache, *foundNode = NULL;
     
+	EnterCriticalSection(&cachecs);
 	while(cacheNode) {
         if(cacheNode->ace.hContact == hContact)
             return cacheNode;
 		if(foundNode == NULL && cacheNode->ace.hbmPic == 0 && cacheNode->ace.hContact == 0)
-			foundNode = cacheNode;
+			foundNode = cacheNode;				// found an empty and usable node
 		cacheNode = cacheNode->pNextNode;
     }
     // not found, create it in cache
@@ -1149,10 +1152,14 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact)
 		AddToList(newNode);
 		foundNode = newNode;
 	}
-    if(CreateAvatarInCache(hContact, &foundNode->ace, NULL) != -1)
+	foundNode->ace.hContact = hContact;								// mark it as used
+    LeaveCriticalSection(&cachecs);
+	if(CreateAvatarInCache(hContact, &foundNode->ace, NULL) != -1)
         return foundNode;
-    else
+	else {
+		ZeroMemory(&foundNode->ace, sizeof(struct avatarCacheEntry));			// mark the entry as unused
         return NULL;
+	}
 }
 
 
@@ -1601,9 +1608,12 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
     int i;
 	struct CacheNode *node = NULL;
     
-    EnterCriticalSection(&cachecs);
+    if(wParam == 0)
+		return 0;
+
+	//EnterCriticalSection(&cachecs);
     node = FindAvatarInCache((HANDLE)wParam);
-    LeaveCriticalSection(&cachecs);
+    //LeaveCriticalSection(&cachecs);
     if(node == NULL) {
         char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
         if(szProto) {
@@ -1668,8 +1678,8 @@ int ChangeAvatar(HANDLE hContact)
         }
 		pNode = pNode->pNextNode;
     }
-    newNode = FindAvatarInCache(hContact);
     LeaveCriticalSection(&cachecs);
+    newNode = FindAvatarInCache(hContact);
     if(newNode) {
         newNode->ace.cbSize = sizeof(struct avatarCacheEntry);
         NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&newNode->ace);
