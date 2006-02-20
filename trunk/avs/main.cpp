@@ -1173,8 +1173,10 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact)
     
 	EnterCriticalSection(&cachecs);
 	while(cacheNode) {
-        if(cacheNode->ace.hContact == hContact)
+		if(cacheNode->ace.hContact == hContact) {
+			LeaveCriticalSection(&cachecs);
             return cacheNode;
+		}
 		if(foundNode == NULL && cacheNode->ace.hbmPic == 0 && cacheNode->ace.hContact == 0)
 			foundNode = cacheNode;				// found an empty and usable node
 		cacheNode = cacheNode->pNextNode;
@@ -1646,9 +1648,7 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
     if(wParam == 0 || g_shutDown)
 		return 0;
 
-	//EnterCriticalSection(&cachecs);
     node = FindAvatarInCache((HANDLE)wParam);
-    //LeaveCriticalSection(&cachecs);
     if(node == NULL) {
         char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
         if(szProto) {
