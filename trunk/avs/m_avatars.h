@@ -64,6 +64,7 @@ like MSN don't allow any outbound client communication when in invisible status 
 #define AVS_CUSTOMTRANSPBKG 32      // Bitmap was changed to set the background color transparent
 #define AVS_HASTRANSPARENCY 64      // Bitmap has at least one pixel transparent
 #define AVS_OWNAVATAR 128			// is own avatar entry
+#define AVS_NOTREADY  4096
 
 struct avatarCacheEntry {
     DWORD cbSize;                   // set to sizeof(struct)

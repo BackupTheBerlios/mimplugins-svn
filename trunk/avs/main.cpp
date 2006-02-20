@@ -68,7 +68,11 @@ pfnImgGetHandle ImgGetHandle = 0;
 
 PLUGININFO pluginInfo = {
     sizeof(PLUGININFO), 
+#if defined(_UNICODE)
+	"Avatar service (Unicode)",
+#else
 	"Avatar service",
+#endif
 	PLUGIN_MAKE_VERSION(0, 0, 1, 18), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
@@ -1175,7 +1179,7 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact)
 	while(cacheNode) {
 		if(cacheNode->ace.hContact == hContact) {
 			LeaveCriticalSection(&cachecs);
-            return cacheNode;
+			return cacheNode;
 		}
 		if(foundNode == NULL && cacheNode->ace.hbmPic == 0 && cacheNode->ace.hContact == 0)
 			foundNode = cacheNode;				// found an empty and usable node
@@ -1189,11 +1193,13 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact)
 		foundNode = newNode;
 	}
 	foundNode->ace.hContact = hContact;								// mark it as used
-    LeaveCriticalSection(&cachecs);
-	if(CreateAvatarInCache(hContact, &foundNode->ace, NULL) != -1)
+	if(CreateAvatarInCache(hContact, &foundNode->ace, NULL) != -1) {
+	    LeaveCriticalSection(&cachecs);
         return foundNode;
+	}
 	else {
 		ZeroMemory(&foundNode->ace, sizeof(struct avatarCacheEntry));			// mark the entry as unused
+	    LeaveCriticalSection(&cachecs);
         return NULL;
 	}
 }
@@ -1351,7 +1357,7 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
 // See if a protocol service exists
 __inline static int ProtoServiceExists(const char *szModule,const char *szService)
 {
-	char str[MAXMODULELABELLENGTH];
+	char str[MAXMODULELABELLENGTH * 2];
 	strcpy(str,szModule);
 	strcat(str,szService);
 	return ServiceExists(str);
@@ -1949,6 +1955,7 @@ static int ContactDeleted(WPARAM wParam, LPARAM lParam)
             ZeroMemory((void *)&pNode->ace, sizeof(struct avatarCacheEntry));
             break;
         }
+		pNode = pNode->pNextNode;
     }
     LeaveCriticalSection(&cachecs);
     return 0;
@@ -2028,9 +2035,6 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 		if(g_MyAvatars[i].hbmPic != 0)
 			DeleteObject(g_MyAvatars[i].hbmPic);
     }
-    if(g_Cache)
-        free(g_Cache);
-
     if(g_ProtoPictures)
         free(g_ProtoPictures);
 
