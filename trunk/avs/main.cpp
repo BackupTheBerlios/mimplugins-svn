@@ -69,9 +69,9 @@ pfnImgGetHandle ImgGetHandle = 0;
 PLUGININFO pluginInfo = {
     sizeof(PLUGININFO), 
 	"Avatar service",
-	PLUGIN_MAKE_VERSION(0, 0, 1, 16), 
+	PLUGIN_MAKE_VERSION(0, 0, 1, 18), 
 	"Load and manage contact pictures for other plugins", 
-	"Nightwish", 
+	"Nightwish, Pescuma", 
 	"", 
 	"Copyright 2000-2005 Miranda-IM project", 
 	"http://www.miranda-im.org", 
