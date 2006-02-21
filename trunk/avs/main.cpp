@@ -1167,7 +1167,7 @@ static struct CacheNode *AddToList(struct CacheNode *node) {
         pCurrent = pCurrent->pNextNode;
 
     pCurrent->pNextNode = node;
-    node->pNextNode = NULL;
+    //node->pNextNode = NULL;
     return pCurrent;
 }
 
@@ -1192,7 +1192,6 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact)
 		AddToList(newNode);
 		foundNode = newNode;
 	}
-	foundNode->ace.hContact = hContact;								// mark it as used
 	if(CreateAvatarInCache(hContact, &foundNode->ace, NULL) != -1) {
 	    LeaveCriticalSection(&cachecs);
         return foundNode;
@@ -1999,7 +1998,6 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 	hMyAvatarChanged = 0;
     UnhookEvent(hContactSettingChanged);
     UnhookEvent(hProtoAckHook);
-    UnhookEvent(hEventChanged);
     
 	bAvatarThreadRunning = FALSE;
     ResumeThread(hAvatarThread);
