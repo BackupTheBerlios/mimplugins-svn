@@ -1160,6 +1160,10 @@ done:
     return -1;
 }
 
+/*
+ * link a new cache block with the already existing chain of blocks
+ */
+
 static struct CacheNode *AddToList(struct CacheNode *node) {
     struct CacheNode *pCurrent = g_Cache;
 
@@ -1167,7 +1171,6 @@ static struct CacheNode *AddToList(struct CacheNode *node) {
         pCurrent = pCurrent->pNextNode;
 
     pCurrent->pNextNode = node;
-    //node->pNextNode = NULL;
     return pCurrent;
 }
 
@@ -1189,6 +1192,7 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact)
 
 	if(foundNode == NULL) {					// no free entry found, create a new and append it to the list
 		struct CacheNode *newNode = AllocCacheBlock();
+		_DebugPopup(hContact, "block realloc");
 		AddToList(newNode);
 		foundNode = newNode;
 	}
@@ -2271,3 +2275,4 @@ extern "C" int __declspec(dllexport) Unload(void)
     return ShutdownProc(0, 0);
     //return 0;
 }
+
