@@ -23,7 +23,9 @@
 ; items which are not configured in the skin definition file are ignored by
 ; the skinning engine (that is, these items are then rendered unskinned)
 
-; Container
+; The following items are known at the moment:
+
+; Container					-> container background
 ; Button
 ; Buttonpressed
 ; Buttonmouseover
@@ -36,6 +38,9 @@
 ; Tabitem_bottom
 ; Tabitem_active
 ; Tabitem_active_bottom
+; MessageLog				-> can be used to define a frame around the message log area
+; InputArea					-> same for the input box.
+; Frame						-> Window Frame (titlebar + border)
 
 ; Item records contain information about the item itself. It offers similar options
 ; like the skinning sytem in clist_nicer+
@@ -68,6 +73,16 @@
 ALPHA=100
 COLOR1=f5f5f5
 COLOR2=e5e5e5
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=0
+GRADIENT=right
+RADIUS=0
+
+[%Frame]
+ALPHA=100
+COLOR1=202020
+COLOR2=808080
 COLOR2_TRANSPARENT=0
 TEXTCOLOR=202020
 CORNER=0
@@ -151,8 +166,6 @@ TEXTCOLOR=202020
 CORNER=none
 GRADIENT=down
 RADIUS=6
-Left=1
-Right=1
 
 [%Buttonpressed]
 ALPHA=100
@@ -163,8 +176,6 @@ TEXTCOLOR=202020
 CORNER=none
 GRADIENT=none
 RADIUS=6
-Left=1
-Right=1
 
 [%Buttonmouseover]
 ALPHA=100
@@ -175,8 +186,6 @@ TEXTCOLOR=202020
 CORNER=tl,tr,br,bl
 GRADIENT=none
 RADIUS=6
-Left=1
-Right=1
 
 [%InfoPanelfield]
 ALPHA=100
@@ -195,6 +204,30 @@ bottom=1
 ALPHA=100
 COLOR1=888888
 COLOR2=444444
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=tl,tr,br,bl
+GRADIENT=down
+RADIUS=6
+Left=1
+Right=1
+
+[%Titlebuttonmouseover]
+ALPHA=100
+COLOR1=a0a0a0
+COLOR2=808080
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=tl,tr,br,bl
+GRADIENT=down
+RADIUS=6
+Left=1
+Right=1
+
+[%Titlebuttonpressed]
+ALPHA=100
+COLOR1=ffffff
+COLOR2=dddddd
 COLOR2_TRANSPARENT=0
 TEXTCOLOR=202020
 CORNER=tl,tr,br,bl
@@ -260,30 +293,8 @@ RADIUS=6
 ; message window elements). The advantage is that by using a fill color, rendering will
 ; be faster. Only makes sense for a "divided" image item (all 4 sizing margins present).
 
-;[$Window]
-
-;[$tabarea]
-;Image=contact.png
-;Left=4
-;Right=4
-;Top=4
-;Bottom=4
-;Alpha=50
-;Item0=Tabpage
-;FillColor=303030
-;Perpixel=1
-
-;[$Titlebutton]
-;Image=CloseDn.png
-;Right=2
-;Top=2
-;Bottom=2
-;Left=2
-;Alpha=80
-;Item0=Titlebutton
-
 [$Tabitem]
-Image=select.png
+Image=tab.png
 Right=2
 Top=2
 Bottom=2
@@ -291,6 +302,8 @@ Left=2
 Alpha=80
 Item0=Tabitem_bottom
 Item1=Tabitem_active_bottom
+Item2=Tabitem
+Item3=Tabitem_active
 
 [$Button]
 Image=button.png
@@ -300,6 +313,7 @@ Bottom=3
 Left=3
 Alpha=100
 Item0=Buttonnotpressed
+Item1=Frame
 Perpixel=1
 
 [$Buttonhover]
@@ -318,13 +332,24 @@ Right=3
 Top=3
 Bottom=3
 Left=3
-Alpha=100
+Alpha=50
 Item0=Buttonpressed
 Item1=Infopanelfield
 Perpixel=1
 
+[$Frame]
+Image=Back1.png
+Right=8
+Top=26
+Bottom=8
+Left=8
+Alpha=100
+Item0=Frame
+FillColor=202020
+
 ; the global section has some general settings for the skin.
-; the 3 glyphs are used for the min/max/close button on the title bar.
+; the 3 glyphs are used for the min/max/close button on the title bar. Use icons for this
+; and put them in the skin directory.
 
 ; SbarHeight = height of the status bar in pixels. Using this, you can override the systems
 ; default status bar height and make your status bar "match" the background skin image for
@@ -333,27 +358,54 @@ Perpixel=1
 ; FontColor is the color for text output in the message window which is normally printed
 ; with the system text color (black).
 ; this affects: the info panel labels, the status bar text, text on buttons and elsewhere.
-; Version=1		 mandatory, don't remove or change, or the skin won't load.
-; Signature=101		 same - don't remove or change.
+; Version=1			 mandatory, don't remove or change, or the skin won't load !!!
+; Signature=101		 same - don't remove or change. !!!
 
 ; FrameLessMode		 If set to a value not equal to zero, containers will enter frameless mode.
-;			 That means, they do not have a window border or title bar. The entire back-
-;			 ground is then skinned by the container window background skin.
+;					 That means, they do not have a window border or title bar. The entire back-
+;					 ground is then skinned by the container window background skin.
+;
+; TitlebuttonWidth & TitlebuttonHeight -> metrics for the titlebar buttons (minimize, maximize, close)
+;										  only used when FramelessMode = 1 and Frame skin item is valid
 
 [Global]
 CloseGlyph=close.ico
 MinimizeGlyph=minimize.ico
 MaximizeGlyph=maximize.ico
-;SbarHeight=22
+SbarHeight=22
 FontColor=000000
 Version=1
 Signature=101
-FrameLessMode=0
+FrameLessMode=1
 CompositedWindow=0
+TitleButtonWidth = 24
+TitleButtonHeight = 12
+
+; client area metrics
+;
+; Left, right, top and bottom are the padding values for the client area. The values are in pixels
+; and specify how much space will be left blank between the tab page and the window border
+
+; The "inner" value specifies how much of the tab page will be visible 
 
 [ClientArea]
-Left=2
-Right=2
+Left=3
+Right=3
 Top=2
-Bottom=0
+Bottom=1
 Inner=1
+
+; Width of the window frame (only valid, when FrameLessMode = 1 and a valid skin item for the Frame
+; is available.
+; caption = height of the title bar.
+; clip frame = # of pixels clipped from the outer frame
+; Radius = radius of the rounded corners (usable values are from 8-12, don't set them higher, may
+; look strange.
+
+[WindowFrame]
+Left=6
+Right=6
+Bottom=6
+Caption=22
+ClipFrame=1
+RadiusTL=10

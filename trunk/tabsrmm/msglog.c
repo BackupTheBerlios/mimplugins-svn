@@ -320,6 +320,11 @@ static int AppendUnicodeToBuffer(char **buffer, int *cbBufferEnd, int *cbBufferA
                             d += (begin ? 4 : 5);
                             line += 3;
                             continue;
+                        case 's':
+                            CopyMemory(d, begin ? "\\strike " : "\\strike0 ", begin ? 8 : 9);
+                            d += (begin ? 8 : 9);
+                            line += 3;
+                            continue;
                         case 'c':
                             begin = (code == 'x');
                             CopyMemory(d, "\\cf", 3);
@@ -416,6 +421,13 @@ static int AppendToBufferWithRTF(int mode, char **buffer, int *cbBufferEnd, int 
                             MoveMemory(*buffer + i + 2, *buffer + i + 1, *cbBufferEnd - i);
                             CopyMemory(*buffer + i, begin ? "\\ul1 " : "\\ul0 ", 5);
                             *cbBufferEnd += 1;
+                            continue;
+						case 's':
+                            *cbBufferAlloced += 20;
+							*buffer = (char *)realloc(*buffer, *cbBufferAlloced);
+							MoveMemory(*buffer + i + 6, *buffer + i + 1, (*cbBufferEnd - i) + 1);
+							CopyMemory(*buffer + i, begin ? "\\strike1 " : "\\strike0 ", begin ? 9 : 9);
+                            *cbBufferEnd += 5;
                             continue;
                         case 'c':
                             begin = (code == 'x');
@@ -1319,31 +1331,63 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
     strcpy(szMsgPrefixNoColon, " ");
 
     ZeroMemory(&ci, sizeof(ci));
+	szMyName[0] = 0;
+
     ci.cbSize = sizeof(ci);
     ci.hContact = NULL;
     ci.szProto = dat->bIsMeta ? dat->szMetaProto : dat->szProto;
     ci.dwFlag = CNF_DISPLAY;
 #if defined(_UNICODE)
-	ci.dwFlag |= CNF_UNICODE;
-#endif
-	if (!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM) & ci)) {
-		_tcsncpy(szMyName, ci.pszVal, 100);
-		szMyName[99] = 0;
-#if defined(_UNICODE)
-		if(!_tcscmp(szMyName, TranslateT("'(Unknown Contact)'"))) {
-			ci.dwFlag &= ~CNF_UNICODE;
-			if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
-				MultiByteToWideChar(dat->codePage, 0, (char *)ci.pszVal, -1, szMyName, 110);
+	if(myGlobals.bUnicodeBuild)
+		ci.dwFlag |= CNF_UNICODE;
+	if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
+		if(ci.type == CNFT_ASCIIZ) {
+			if(myGlobals.bUnicodeBuild) {
+				_tcsncpy(szMyName, ci.pszVal, 110);
 				szMyName[109] = 0;
-				goto szMyName_done;
+				if(!_tcscmp(szMyName, _T("'(Unknown Contact)'"))) {
+					ci.dwFlag &= ~CNF_UNICODE;
+					mir_free(ci.pszVal);
+					ci.pszVal = NULL;
+					if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
+						ZeroMemory(szMyName, sizeof(szMyName));
+						MultiByteToWideChar(dat->codePage, 0, (char *)ci.pszVal, lstrlenA((char *)ci.pszVal), szMyName, 110);
+						szMyName[109] = 0;
+					}
+				}
+			}
+			else {
+				ZeroMemory(szMyName, sizeof(szMyName));
+				MultiByteToWideChar(dat->codePage, 0, (char *)ci.pszVal, lstrlenA((char *)ci.pszVal), szMyName, 110);
+				szMyName[109] = 0;
+			}
+			if(ci.pszVal) {
+				mir_free(ci.pszVal);
+				ci.pszVal = NULL;
 			}
 		}
-#endif
+		else if(ci.type == CNFT_DWORD)
+			_ltow(ci.dVal, szMyName, 10);
+		else
+			_tcsncpy(szMyName, _T("<undef>"), 110);
 	}
 	else
-		_tcsncpy(szMyName, _T("(Unknown Contact)"), 99);
-#if defined(_UNICODE)
-szMyName_done:
+		_tcsncpy(szMyName, _T("<undef>"), 110);
+#else
+	if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
+		if(ci.type == CNFT_ASCIIZ) {
+			_tcsncpy(szMyName, ci.pszVal, 110);
+			szMyName[109] = 0;
+			mir_free(ci.pszVal);
+			ci.pszVal = NULL;
+		}
+		else if(ci.type == CNFT_DWORD)
+			_ltoa(ci.dVal, szMyName, 10);
+		else
+			_tcsncpy(szMyName, "<undef>", 110);
+	}
+	else
+		_tcsncpy(szMyName, "<undef>", 110);
 #endif
     szYourName = dat->szNickname;
     SendDlgItemMessage(hwndDlg, IDC_LOG, EM_HIDESELECTION, TRUE, 0);

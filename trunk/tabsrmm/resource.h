@@ -383,7 +383,6 @@
 #define IDC_FLASHICON                   1289
 #define IDC_USEPRIVATETITLE             1289
 #define IDC_SHOWAVATARS                 1289
-#define IDC_ROUNDEDCORNERS              1289
 #define IDC_ALWAYSTRIM                  1289
 #define IDC_SYNCSOUNDS                  1290
 #define IDC_FLASHLABEL                  1290
@@ -427,10 +426,8 @@
 #define IDC_NRFLASHSPIN                 1326
 #define IDC_FLASHINTERVAL               1327
 #define IDC_USEKBDHOOK                  1328
-#define IDC_CLIP                        1328
 #define IDC_STATIC111                   1329
 #define IDC_NRFLASHSPIN2                1329
-#define IDC_CLIPSPIN                    1329
 #define IDC_TAB1                        1330
 #define IDC_OPTIONSTAB                  1331
 #define IDC_EXTRALFSPIN                 1332
@@ -662,6 +659,7 @@
 #define ID_FONT_WHITE                   40198
 #define ID_FONT_CLEARALLFORMATTING      40199
 #define ID_FONT_DEFAULTCOLOR            40200
+#define ID_FONT_CYAN                    40201
 #define ID_SENDMENU_SENDWITHOUTTIMEOUTS 40201
 #define ID_DUMMY_NOMESSAGESESSIONSOPENED 40202
 #define ID_TRAYCONTEXT_SHOWTHEFLOATER   40203
@@ -688,6 +686,11 @@
 #define ID_PANELPICMENU_CHOOSEBACKGROUNDCOLOR 40226
 #define ID_PICMENU_CHOOSEBACKGROUNDCOLOR 40227
 #define ID_SENDMENU_SENDNUDGE           40228
+#define ID_SPLITTERCONTEXT_SAVEGLOBALFORALLSESSIONS 40229
+#define ID_SPLITTERCONTEXT_SAVEFORTHISCONTACTONLY 40230
+#define ID_SPLITTERCONTEXT_FORGETTHECHANGES 40231
+#define ID_SPLITTERCONTEXT_SETPOSITIONFORTHISSESSION 40232
+#define ID_FONT_CYAN40233               40233
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -695,7 +698,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        9
-#define _APS_NEXT_COMMAND_VALUE         40229
+#define _APS_NEXT_COMMAND_VALUE         40234
 #define _APS_NEXT_CONTROL_VALUE         1400
 #define _APS_NEXT_SYMED_VALUE           40282
 #endif

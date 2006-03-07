@@ -111,9 +111,6 @@ CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_MSGTABS,"TSTabCtrlClass",0xc048,31,7,5,5
-    CONTROL         "",IDC_CLOSE,"TSButtonClass",WS_TABSTOP,146,33,24,12
-    CONTROL         "",IDC_MINIMIZE,"TSButtonClass",WS_TABSTOP,146,33,24,12
-    CONTROL         "",IDC_MAXIMIZE,"TSButtonClass",WS_TABSTOP,146,33,24,12
 END
 
 IDD_USERPREFS DIALOGEX 0, 0, 278, 306
@@ -372,11 +369,6 @@ BEGIN
     CONTROL         "Use the snapping windows plugin",IDC_USESNAPPING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,142,157,11
     GROUPBOX        "Default window title format",IDC_STATIC,3,196,300,28
     EDITTEXT        IDC_DEFAULTTITLEFORMAT,10,207,274,14,ES_AUTOHSCROLL
-    CONTROL         "Rounded window",IDC_ROUNDEDCORNERS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,159,132,12
-    EDITTEXT        IDC_CLIP,217,158,34,12,ES_AUTOHSCROLL
-    CONTROL         "",IDC_CLIPSPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,243,159,14,11
-    LTEXT           "pixel",IDC_STATIC,263,160,32,11
-    LTEXT           "Clip border by",IDC_STATIC,159,160,49,10
     EDITTEXT        IDC_CONTAINERSKIN,93,178,113,13,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "...",IDC_GETCONTAINERSKINNAME,213,178,21,13
     PUSHBUTTON      "Reload",IDC_RELOAD,241,178,53,13
@@ -436,7 +428,8 @@ BEGIN
     EDITTEXT        IDC_EDITTEMPLATE,11,109,344,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Quick help on Variables...",IDC_VARHELP,11,128,125,15
     LTEXT           "Double click a template to edit it. Select a template from the list box and click ""Update Preview"" to show a preview message.",IDC_STATIC,146,126,209,26
-    LTEXT           "Get more help on variables",IDC_VARIABLESHELP,12,147,148,10
+    CONTROL         "Get more help on variables",IDC_VARIABLESHELP,
+                    "Hyperlink",WS_TABSTOP | 0x1,12,147,148,10
     LTEXT           "Define up to 5 colors which you can use with some variables",IDC_STATIC,12,193,174,17
     CONTROL         "",IDC_COLOR1,"ColourPicker",WS_TABSTOP,11,213,24,13
     CONTROL         "",IDC_COLOR2,"ColourPicker",WS_TABSTOP,43,213,24,13
@@ -536,7 +529,8 @@ BEGIN
     LTEXT           "Version",IDC_VERSION,5,19,150,15
     CTEXT           "build time",IDC_BUILDTIME,37,105,150,11
     CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,0,117,228,1
-    CTEXT           "Support and latest version information",IDC_SUPPORT,18,91,192,12
+    CONTROL         "Support and latest version information",IDC_SUPPORT,
+                    "Hyperlink",WS_TABSTOP | 0x1,18,91,192,12
 END
 
 IDD_FIRSTTIME DIALOGEX 0, 0, 265, 201
@@ -746,7 +740,7 @@ BEGIN
         MENUITEM "Send &Later",                 ID_SENDMENU_SENDLATER
         MENUITEM SEPARATOR
         MENUITEM "Force &ANSI",                 ID_SENDMENU_FORCEANSISEND
-        MENUITEM "Send without Timeouts",       ID_SENDMENU_SENDWITHOUTTIMEOUTS
+        MENUITEM "Send without Timeouts",       ID_FONT_CYAN
         MENUITEM SEPARATOR
         MENUITEM "Send Nudge",                  ID_SENDMENU_SENDNUDGE
     END
@@ -818,6 +812,7 @@ BEGIN
         MENUITEM "Blue",                        ID_FONT_BLUE
         MENUITEM "Magenta",                     ID_FONT_MAGENTA
         MENUITEM "Yellow",                      ID_FONT_YELLOW
+        MENUITEM "Cyan",                        ID_FONT_CYAN
         MENUITEM "Black",                       ID_FONT_BLACK
         MENUITEM "White",                       ID_FONT_WHITE
         MENUITEM SEPARATOR
@@ -853,6 +848,15 @@ BEGIN
     BEGIN
         MENUITEM "Contact Picture Settings...", ID_PICMENU_SETTINGS
         MENUITEM "Choose Background Color...",  ID_PANELPICMENU_CHOOSEBACKGROUNDCOLOR
+    END
+    POPUP "Splitter context"
+    BEGIN
+        MENUITEM "Set Position for this Session", ID_SPLITTERCONTEXT_SETPOSITIONFORTHISSESSION
+        MENUITEM SEPARATOR
+        MENUITEM "Set and Save for all Sessions", ID_SPLITTERCONTEXT_SAVEGLOBALFORALLSESSIONS
+        MENUITEM "Set and Save for this Contact only", ID_SPLITTERCONTEXT_SAVEFORTHISCONTACTONLY
+        MENUITEM SEPARATOR
+        MENUITEM "Revert to old Position",      ID_SPLITTERCONTEXT_FORGETTHECHANGES
     END
 END
 
@@ -972,8 +976,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,9,9,99
- PRODUCTVERSION 0,9,9,99
+ FILEVERSION 0,9,9,100
+ PRODUCTVERSION 0,9,9,100
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x29L
@@ -990,15 +994,15 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Miranda Open Source Project"
             VALUE "FileDescription", "Tabbed message plugin for Miranda IM"
-            VALUE "FileVersion", "0, 9, 9, 99"
+            VALUE "FileVersion", "0, 9, 9, 100"
             VALUE "InternalName", "tabSRMsg"
             VALUE "LegalCopyright", "Copyright © 2005 The Miranda IM project"
             VALUE "LegalTrademarks", "Gnu General Public License V2"
             VALUE "OriginalFilename", "tabSRMM.dll"
             VALUE "PrivateBuild", "No"
             VALUE "ProductName", " tabSRMM Dynamic Link Library (DLL)"
-            VALUE "ProductVersion", "0, 9, 9, 99"
-            VALUE "SpecialBuild", "FC2"
+            VALUE "ProductVersion", "0, 9, 9, 100"
+            VALUE "SpecialBuild", "PRE1"
         END
     END
     BLOCK "VarFileInfo"

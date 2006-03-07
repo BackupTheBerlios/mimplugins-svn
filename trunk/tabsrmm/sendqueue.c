@@ -59,7 +59,7 @@ DWORD WINAPI DoMultiSend(LPVOID param)
     int i;
     
     for(i = 0; i < sendJobs[iIndex].sendCount; i++) {
-        sendJobs[iIndex].hSendId[i] = (HANDLE) CallContactService(sendJobs[iIndex].hContact[i], MsgServiceName(sendJobs[iIndex].hContact[i], dat, sendJobs[iIndex].dwFlags), dat->sendMode & SMODE_FORCEANSI ? 0 : sendJobs[iIndex].dwFlags, (LPARAM) sendJobs[iIndex].sendBuffer);
+		sendJobs[iIndex].hSendId[i] = (HANDLE) CallContactService(sendJobs[iIndex].hContact[i], MsgServiceName(sendJobs[iIndex].hContact[i], dat, sendJobs[iIndex].dwFlags), dat->sendMode & SMODE_FORCEANSI ? 0 : sendJobs[iIndex].dwFlags, (LPARAM) sendJobs[iIndex].sendBuffer);
         SetTimer(sendJobs[iIndex].hwndOwner, TIMERID_MULTISEND_BASE + (iIndex * SENDJOBS_MAX_SENDS) + i, myGlobals.m_MsgTimeout, NULL);
         Sleep((50 * i) + dwDelay + dwDelayAdd);
         if(i > 2)
@@ -145,7 +145,7 @@ int AddToSendQueue(HWND hwndDlg, struct MessageWindowData *dat, int iLen, int is
     sendJobs[iFound].dwFlags = isUnicode ? PREF_UNICODE : 0;
     SaveInputHistory(hwndDlg, dat, 0, 0);
     SetDlgItemText(hwndDlg, IDC_MESSAGE, _T(""));
-    EnableWindow(GetDlgItem(hwndDlg, IDOK), FALSE);
+    EnableSendButton(hwndDlg, FALSE);
     SetFocus(GetDlgItem(hwndDlg, IDC_MESSAGE));
 
     UpdateSaveAndSendButton(hwndDlg, dat);
@@ -192,7 +192,12 @@ int SendQueuedMessage(HWND hwndDlg, struct MessageWindowData *dat, int iEntry)
         if (dat->hContact == NULL)
             return 0;  //never happens
         
-        sendJobs[iEntry].sendCount = 1;
+		if(dat->sendMode & SMODE_FORCEANSI && DBGetContactSettingByte(dat->bIsMeta ? dat->hSubContact : dat->hContact, dat->bIsMeta ? dat->szMetaProto : dat->szProto, "UnicodeSend", 1))
+			DBWriteContactSettingByte(dat->bIsMeta ? dat->hSubContact : dat->hContact, dat->bIsMeta ? dat->szMetaProto : dat->szProto, "UnicodeSend", 0);
+		else if(!(dat->sendMode & SMODE_FORCEANSI) && !DBGetContactSettingByte(dat->bIsMeta ? dat->hSubContact : dat->hContact, dat->bIsMeta ? dat->szMetaProto : dat->szProto, "UnicodeSend", 0))
+			DBWriteContactSettingByte(dat->bIsMeta ? dat->hSubContact : dat->hContact, dat->bIsMeta ? dat->szMetaProto : dat->szProto, "UnicodeSend", 1);
+
+		sendJobs[iEntry].sendCount = 1;
         sendJobs[iEntry].hContact[0] = dat->hContact;
         sendJobs[iEntry].hSendId[0] = (HANDLE) CallContactService(dat->hContact, MsgServiceName(dat->hContact, dat, sendJobs[iEntry].dwFlags), dat->sendMode & SMODE_FORCEANSI ? 0 : sendJobs[iEntry].dwFlags, (LPARAM) sendJobs[iEntry].sendBuffer);
         sendJobs[iEntry].hOwner = dat->hContact;
@@ -306,7 +311,7 @@ void EnableSending(HWND hwndDlg, struct MessageWindowData *dat, int iMode)
 {
     SendDlgItemMessage(hwndDlg, IDC_MESSAGE, EM_SETREADONLY, (WPARAM) iMode ? FALSE : TRUE, 0);
     EnableWindow(GetDlgItem(hwndDlg, IDC_CLIST), iMode ? TRUE : FALSE);
-    EnableWindow(GetDlgItem(hwndDlg, IDOK), iMode);
+    EnableSendButton(hwndDlg, iMode);
 }
 
 /*
@@ -317,6 +322,9 @@ void ShowErrorControls(HWND hwndDlg, struct MessageWindowData *dat, int showCmd)
 {
     UINT myerrorControls[] = { IDC_STATICERRORICON, IDC_STATICTEXT, IDC_RETRY, IDC_CANCELSEND, IDC_MSGSENDLATER};
     int i;
+
+	EnableWindow(GetDlgItem(hwndDlg, IDC_MSGSENDLATER), ServiceExists(BUDDYPOUNCE_SERVICENAME) ? TRUE : FALSE);
+
     if(showCmd) {
         TCITEM item = {0};
         dat->hTabIcon = myGlobals.g_iconErr;
@@ -336,7 +344,6 @@ void ShowErrorControls(HWND hwndDlg, struct MessageWindowData *dat, int showCmd)
             SendMessage(hwndDlg, DM_SETINFOPANEL, 0, 0);
     }
         
-    //ShowMultipleControls(hwndDlg, errorControls, 5, showCmd ? SW_SHOW : SW_HIDE);
     for(i = 0; i < 5; i++) {
         if(IsWindow(GetDlgItem(hwndDlg, myerrorControls[i])))
            ShowWindow(GetDlgItem(hwndDlg, myerrorControls[i]), showCmd ? SW_SHOW : SW_HIDE);
@@ -346,7 +353,7 @@ void ShowErrorControls(HWND hwndDlg, struct MessageWindowData *dat, int showCmd)
 
     SendMessage(hwndDlg, WM_SIZE, 0, 0);
     SendMessage(hwndDlg, DM_SCROLLLOGTOBOTTOM, 0, 1);
-    EnableWindow(GetDlgItem(hwndDlg, IDC_INFOPANELMENU), showCmd ? FALSE : TRUE);
+    //EnableWindow(GetDlgItem(hwndDlg, IDC_INFOPANELMENU), showCmd ? FALSE : TRUE);
     if(sendJobs[0].sendCount > 1)
         EnableSending(hwndDlg, dat, TRUE);
 }
@@ -376,10 +383,10 @@ void UpdateSaveAndSendButton(HWND hwndDlg, struct MessageWindowData *dat)
 {
     int len = GetWindowTextLength(GetDlgItem(hwndDlg, IDC_MESSAGE));
     
-    if(len && !IsWindowEnabled(GetDlgItem(hwndDlg, IDOK)))
-        EnableWindow(GetDlgItem(hwndDlg, IDOK), TRUE);
-    else if(len == 0 && IsWindowEnabled(GetDlgItem(hwndDlg, IDOK)))
-        EnableWindow(GetDlgItem(hwndDlg, IDOK), FALSE);
+    if(len && GetSendButtonState(hwndDlg) == PBS_DISABLED)
+        EnableSendButton(hwndDlg, TRUE);
+    else if(len == 0 && GetSendButtonState(hwndDlg) != PBS_DISABLED)
+        EnableSendButton(hwndDlg, FALSE);
 
     if (len) {          // looks complex but avoids flickering on the button while typing.
         if (!(dat->dwFlags & MWF_SAVEBTN_SAV)) {

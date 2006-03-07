@@ -75,6 +75,7 @@ struct RTFColorTable rtf_ctable[] = {
     _T("green"), RGB(0, 255, 0), 0, ID_FONT_GREEN,
     _T("magenta"), RGB(255, 0, 255), 0, ID_FONT_MAGENTA,
     _T("yellow"), RGB(255, 255, 0), 0, ID_FONT_YELLOW,
+	_T("cyan"), RGB(0, 255, 255), 0, ID_FONT_CYAN,
     _T("black"), 0, 0, ID_FONT_BLACK,
     _T("white"), RGB(255, 255, 255), 0, ID_FONT_WHITE,
     NULL, 0, 0, 0
@@ -1801,6 +1802,12 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
             case ID_FONT_DEFAULTCOLOR:
                 clr = GetSysColor(COLOR_MENU);
                 break;
+            case ID_FONT_CYAN:
+                clr = RGB(0, 255, 255);
+				break;
+            case ID_FONT_BLACK:
+                clr = RGB(0, 0, 0);
+				break;
             default:
                 clr = 0;
         }
@@ -1940,10 +1947,16 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
             HBITMAP hbmMem = (HBITMAP)SelectObject(hdcMem, hbmAvatar);
             if(bPanelPic) {
 				LONG width_off = borderType ? 0 : 2;
+				LONG height_off = 0;
 
                 rcFrame = rcClient;
                 rcFrame.left = rcFrame.right - ((LONG)dNewWidth + 2);
                 rcFrame.bottom = rcFrame.top + (LONG)dNewHeight + 2;
+				if(rcFrame.bottom < rcClient.bottom) {
+					height_off = (rcClient.bottom - ((LONG)dNewHeight + 2)) / 2;
+					rcFrame.top += height_off;
+					rcFrame.bottom += height_off;
+				}
                 SetStretchBltMode(hdcDraw, HALFTONE);
                 if(aceFlags & AVS_PREMULTIPLIED) {
 					if(borderType == 2)
@@ -1954,7 +1967,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 						clipRgn = CreateRoundRectRgn(rcFrame.left, rcFrame.top, rcFrame.right, rcFrame.bottom, 4, 4);
 						SelectClipRgn(hdcDraw, clipRgn);
 					}
-					MY_AlphaBlend(hdcDraw, rcFrame.left + (borderType ? 1 : 0), borderType ? 1 : 0, (int)dNewWidth + width_off, (int)dNewHeight + width_off, bminfo.bmWidth, bminfo.bmHeight, hdcMem);
+					MY_AlphaBlend(hdcDraw, rcFrame.left + (borderType ? 1 : 0), height_off + (borderType ? 1 : 0), (int)dNewWidth + width_off, (int)dNewHeight + width_off, bminfo.bmWidth, bminfo.bmHeight, hdcMem);
                 }
                 else {
 					if(borderType == 2)
@@ -1965,7 +1978,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 						clipRgn = CreateRoundRectRgn(rcFrame.left, rcFrame.top, rcFrame.right, rcFrame.bottom, 4, 4);
 						SelectClipRgn(hdcDraw, clipRgn);
 					}
-                    StretchBlt(hdcDraw, rcFrame.left + (borderType ? 1 : 0), borderType ? 1 : 0, (int)dNewWidth + width_off, (int)dNewHeight + width_off, hdcMem, 0, 0, bminfo.bmWidth, bminfo.bmHeight, SRCCOPY);
+                    StretchBlt(hdcDraw, rcFrame.left + (borderType ? 1 : 0), height_off + (borderType ? 1 : 0), (int)dNewWidth + width_off, (int)dNewHeight + width_off, hdcMem, 0, 0, bminfo.bmWidth, bminfo.bmHeight, SRCCOPY);
                 }
             }
             else {
@@ -2106,19 +2119,17 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         dis->rcItem.left +=2;
         if(dat->szNickname[0]) {
             HFONT hOldFont = 0;
-            
-            if(dat->xStatus > 0 && dat->xStatus <= 32) {
-				char szServiceName[128];
-				HICON xIcon;
+			HICON xIcon = 0;
+			
+			if(DBGetContactSettingByte(NULL, SRMSGMOD_T, "use_xicons", 0))
+				xIcon = GetXStatusIcon(dat);
+			
+			if(xIcon) {
+				DrawIconEx(dis->hDC, dis->rcItem.left, (dis->rcItem.bottom + dis->rcItem.top - myGlobals.m_smcyicon) / 2, xIcon, myGlobals.m_smcxicon, myGlobals.m_smcyicon, 0, 0, DI_NORMAL | DI_COMPAT);
+				DestroyIcon(xIcon);
+				dis->rcItem.left += 21;
+			}
 
-				mir_snprintf(szServiceName, 128, "%s/GetXStatusIcon", dat->bIsMeta ? dat->szMetaProto : dat->szProto);
-
-				if(ServiceExists(szServiceName) && ((xIcon = (HICON)CallProtoService(dat->bIsMeta ? dat->szMetaProto : dat->szProto, "/GetXStatusIcon", dat->xStatus, 0)) != 0)) {
-					DrawIconEx(dis->hDC, dis->rcItem.left, (dis->rcItem.bottom + dis->rcItem.top - myGlobals.m_smcyicon) / 2, xIcon, myGlobals.m_smcxicon, myGlobals.m_smcyicon, 0, 0, DI_NORMAL | DI_COMPAT);
-					DestroyIcon(xIcon);
-					dis->rcItem.left += 21;
-				}
-            }
             if(myGlobals.ipConfig.isValid) {
                 hOldFont = SelectObject(dis->hDC, myGlobals.ipConfig.hFonts[IPFONTID_NICK]);
                 SetTextColor(dis->hDC, myGlobals.ipConfig.clrs[IPFONTID_NICK]);
@@ -2392,6 +2403,28 @@ void ConfigureSmileyButton(HWND hwndDlg, struct MessageWindowData *dat)
     EnableWindow(GetDlgItem(hwndDlg, IDC_SMILEYBTN), dat->doSmileys ? TRUE : FALSE);
 }
 
+HICON GetXStatusIcon(struct MessageWindowData *dat)
+{
+	char szServiceName[128];
+	char *szProto = dat->bIsMeta ? dat->szMetaProto : dat->szProto;
+
+	mir_snprintf(szServiceName, 128, "%s/GetXStatusIcon", szProto);
+
+	if(ServiceExists(szServiceName) && dat->xStatus > 0 && dat->xStatus <= 32)
+		return (HICON)(CallProtoService(szProto, "/GetXStatusIcon", dat->xStatus, 0));
+	return 0;
+}
+
+LRESULT GetSendButtonState(HWND hwnd)
+{
+	return(SendMessage(GetDlgItem(hwnd, IDOK), BUTTONSETASFLATBTN + 15, 0, 0));
+}
+
+void EnableSendButton(HWND hwnd, int iMode)
+{
+	SendMessage(GetDlgItem(hwnd, IDOK), BUTTONSETASFLATBTN + 14, iMode, 0);
+}
+
 void SendNudge(struct MessageWindowData *dat, HWND hwndDlg)
 {
 	char *szProto = dat->bIsMeta ? dat->szMetaProto : dat->szProto;
@@ -2441,3 +2474,4 @@ int MY_GetContactDisplayNameW(HANDLE hContact, wchar_t *szwBuf, unsigned int siz
     return 0;    
 }
 #endif
+

@@ -71,6 +71,9 @@ void SaveMessageLogFlags(HWND hwndDlg, struct MessageWindowData *dat);
 void ConfigureSmileyButton(HWND hwndDlg, struct MessageWindowData *dat);
 int CutContactName(TCHAR *szold, TCHAR *sznew, unsigned int size);
 void SendNudge(struct MessageWindowData *dat, HWND hwndDlg);
+void EnableSendButton(HWND hwnd, int iMode);
+LRESULT GetSendButtonState(HWND hwnd);
+HICON GetXStatusIcon(struct MessageWindowData *dat);
 
 extern BOOL CALLBACK SelectContainerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
