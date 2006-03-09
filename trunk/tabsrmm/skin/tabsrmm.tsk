@@ -71,15 +71,39 @@
                       
 [%Container]
 ALPHA=100
-COLOR1=f5f5f5
-COLOR2=e5e5e5
+COLOR1=DCDACE
+COLOR2=DCDACE
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=0
+GRADIENT=none
+RADIUS=0
+
+[%InputArea]
+ALPHA=100
+COLOR1=aadaed
+COLOR2=aadaed
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=None
+GRADIENT=None
+BRDERSTYLE=0
+Left=7
+Right=7
+Top=5
+Bottom=5
+
+[%Frame]
+ALPHA=100
+COLOR1=202020
+COLOR2=808080
 COLOR2_TRANSPARENT=0
 TEXTCOLOR=202020
 CORNER=0
 GRADIENT=right
 RADIUS=0
 
-[%Frame]
+[%FrameInactive]
 ALPHA=100
 COLOR1=202020
 COLOR2=808080
@@ -157,6 +181,26 @@ CORNER=tl,tr
 GRADIENT=up
 radius=6
 
+[%Tabitem_hottrack]
+ALPHA=100
+COLOR1=f0f0f0
+COLOR2=e0e0e0
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=tl,tr
+GRADIENT=up
+radius=6
+
+[%Tabitem_hottrack_bottom]
+ALPHA=100
+COLOR1=f0f0f0
+COLOR2=e0e0e0
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=tl,tr
+GRADIENT=up
+radius=6
+
 [%Buttonnotpressed]
 ALPHA=100
 COLOR1=bbbbbb
@@ -202,39 +246,33 @@ bottom=1
 
 [%Titlebutton]
 ALPHA=100
-COLOR1=888888
-COLOR2=444444
+COLOR1=e8f1f8
+COLOR2=8faec6
 COLOR2_TRANSPARENT=0
 TEXTCOLOR=202020
-CORNER=tl,tr,br,bl
+CORNER=none
 GRADIENT=down
 RADIUS=6
-Left=1
-Right=1
 
 [%Titlebuttonmouseover]
 ALPHA=100
-COLOR1=a0a0a0
-COLOR2=808080
+COLOR1=ecf5ff
+COLOR2=9fbed6
 COLOR2_TRANSPARENT=0
 TEXTCOLOR=202020
-CORNER=tl,tr,br,bl
+CORNER=none
 GRADIENT=down
 RADIUS=6
-Left=1
-Right=1
 
 [%Titlebuttonpressed]
 ALPHA=100
-COLOR1=ffffff
-COLOR2=dddddd
+COLOR1=e8f1f8
+COLOR2=8faec6
 COLOR2_TRANSPARENT=0
 TEXTCOLOR=202020
-CORNER=tl,tr,br,bl
+CORNER=none
 GRADIENT=down
 RADIUS=6
-Left=1
-Right=1
 
 [%Toolbar]
 ALPHA=100
@@ -305,6 +343,16 @@ Item1=Tabitem_active_bottom
 Item2=Tabitem
 Item3=Tabitem_active
 
+[$Tabitem_hover]
+Image=tabhover.png
+Right=2
+Top=2
+Bottom=2
+Left=2
+Alpha=80
+Item0=Tabitem_hottrack_bottom
+Item1=Tabitem_hottrack
+
 [$Button]
 Image=button.png
 Right=3
@@ -347,6 +395,27 @@ Alpha=100
 Item0=Frame
 FillColor=202020
 
+[$FrameInactive]
+Image=Back1Inactive.png
+Right=8
+Top=26
+Bottom=8
+Left=8
+Alpha=100
+Item0=FrameInactive
+FillColor=202020
+
+[$EditFrame]
+Image=TextBorder.png
+Left=8
+Right=8
+Top=8
+Bottom=8
+Alpha=100
+Item0=InputArea
+Item1=MessageLog
+FillColor=D4D4D4
+
 ; the global section has some general settings for the skin.
 ; the 3 glyphs are used for the min/max/close button on the title bar. Use icons for this
 ; and put them in the skin directory.
@@ -367,19 +436,23 @@ FillColor=202020
 ;
 ; TitlebuttonWidth & TitlebuttonHeight -> metrics for the titlebar buttons (minimize, maximize, close)
 ;										  only used when FramelessMode = 1 and Frame skin item is valid
+; TabSkinning -> Set to 0 if you want tabs to appear with default look (visual styles)
+;                default is 1 (so they will appear with the skins defined in this file 
+;                if no skins are defined, they will appear in "classic" look
 
 [Global]
 CloseGlyph=close.ico
 MinimizeGlyph=minimize.ico
 MaximizeGlyph=maximize.ico
-SbarHeight=22
+SbarHeight=20
 FontColor=000000
 Version=1
 Signature=101
 FrameLessMode=1
 CompositedWindow=0
-TitleButtonWidth = 24
+TitleButtonWidth = 12
 TitleButtonHeight = 12
+TabSkinning=1
 
 ; client area metrics
 ;
@@ -391,8 +464,8 @@ TitleButtonHeight = 12
 [ClientArea]
 Left=3
 Right=3
-Top=2
-Bottom=1
+Top=1
+Bottom=0
 Inner=1
 
 ; Width of the window frame (only valid, when FrameLessMode = 1 and a valid skin item for the Frame
@@ -403,9 +476,9 @@ Inner=1
 ; look strange.
 
 [WindowFrame]
-Left=6
-Right=6
-Bottom=6
-Caption=22
+Left=4
+Right=4
+Bottom=4
+Caption=20
 ClipFrame=1
-RadiusTL=10
+RadiusTL=6
