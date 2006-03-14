@@ -20,34 +20,6 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-[%MessageLog]
-ALPHA=30
-COLOR1=aadaed
-COLOR2=aadaed
-COLOR2_TRANSPARENT=0
-TEXTCOLOR=202020
-CORNER=None
-GRADIENT=None
-BRDERSTYLE=0
-Left=5
-Right=5
-Top=5
-Bottom=5
-
-[%InputArea]
-ALPHA=30
-COLOR1=aadaed
-COLOR2=aadaed
-COLOR2_TRANSPARENT=0
-TEXTCOLOR=202020
-CORNER=None
-GRADIENT=None
-BRDERSTYLE=0
-Left=5
-Right=5
-Top=5
-Bottom=5
-
 
 $Id: msgdialog.c,v 1.243 2006/01/26 04:40:00 nightwish2004 Exp $
 */
@@ -57,12 +29,6 @@ $Id: msgdialog.c,v 1.243 2006/01/26 04:40:00 nightwish2004 Exp $
 // IEVIew MOD Begin
 #include "m_ieview.h"
 // IEVIew MOD End
-#include "../../include/m_clc.h"
-#include "../../include/m_clui.h"
-#include "../../include/m_userinfo.h"
-#include "../../include/m_history.h"
-#include "../../include/m_addcontact.h"
-#include "../../include/m_file.h"
 #include "msgs.h"
 #include "m_popup.h"
 #include "nen.h"
@@ -83,7 +49,7 @@ extern MYGLOBALS myGlobals;
 extern NEN_OPTIONS nen_options;
 extern TemplateSet RTL_Active, LTR_Active;
 extern HANDLE hMessageWindowList;
-extern struct CREOleCallback reOleCallback;
+//extern struct CREOleCallback reOleCallback;
 extern HINSTANCE g_hInst;
 extern char *szWarnClose;
 extern struct RTFColorTable rtf_ctable[];
@@ -105,9 +71,6 @@ char *xStatusDescr[] = { "Angry", "Duck", "Tired", "Party", "Beer", "Thinking", 
                          "Surfing", "@Internet", "Engineering", "Typing", "Eating... yummy", "Having fun", "Chit chatting",
 						 "Crashing", "Going to toilet", "<undef>", "<undef>", "<undef>"};
                          
-TCHAR *QuoteText(TCHAR *text, int charsPerLine, int removeExistingQuotes);
-void _DBWriteContactSettingWString(HANDLE hContact, const char *szKey, const char *szSetting, const wchar_t *value);
-int MessageWindowOpened(WPARAM wParam, LPARAM LPARAM);
 static DWORD CALLBACK StreamOut(DWORD_PTR dwCookie, LPBYTE pbBuff, LONG cb, LONG * pcb);
 HMENU BuildMCProtocolMenu(HWND hwndDlg);
 int tabSRMM_ShowPopup(WPARAM wParam, LPARAM lParam, WORD eventType, int windowOpen, struct ContainerWindowData *pContainer, HWND hwndChild, char *szProto, struct MessageWindowData *dat);
@@ -118,13 +81,7 @@ static void FlashTab(struct MessageWindowData *dat, HWND hwndTab, int iTabindex,
 void FlashContainer(struct ContainerWindowData *pContainer, int iMode, int iCount);
 void ReflashContainer(struct ContainerWindowData *pContainer);
 void UpdateContainerMenu(HWND hwndDlg, struct MessageWindowData *dat);
-
-void ImageDataInsertBitmap(IRichEditOle *ole, HBITMAP hbm);
-
 void TABSRMM_FireEvent(HANDLE hContact, HWND hwndDlg, unsigned int type, unsigned int subType);
-struct ContainerWindowData *FindContainerByName(const TCHAR *name);
-int GetContainerNameForContact(HANDLE hContact, TCHAR *szName, int iNameLen);
-struct ContainerWindowData *CreateContainer(const TCHAR *name, int iMode, HANDLE hContactFrom);
 
 static WNDPROC OldMessageEditProc, OldSplitterProc, OldAvatarWndProc, OldMessageLogProc;
 
@@ -162,21 +119,18 @@ static struct _tooltips { int id; char *szTip;} tooltips[] = {
 static struct _buttonicons { int id; HICON *pIcon; } buttonicons[] = {
     IDC_HISTORY, &myGlobals.g_buttonBarIcons[1],
     IDC_TIME, &myGlobals.g_buttonBarIcons[2],
-    //IDC_SENDMENU, &myGlobals.g_buttonBarIcons[16],
     IDC_QUOTE, &myGlobals.g_buttonBarIcons[8],
     IDC_SAVE, &myGlobals.g_buttonBarIcons[6],
     IDC_PIC, &myGlobals.g_buttonBarIcons[10],
     IDOK, &myGlobals.g_buttonBarIcons[9],
     IDC_ADD, &myGlobals.g_buttonBarIcons[0],
     IDC_CANCELADD, &myGlobals.g_buttonBarIcons[6],
-    //IDC_PROTOMENU, &myGlobals.g_buttonBarIcons[16],
     IDC_FONTBOLD, &myGlobals.g_buttonBarIcons[17],
     IDC_FONTITALIC, &myGlobals.g_buttonBarIcons[18],
     IDC_FONTUNDERLINE, &myGlobals.g_buttonBarIcons[19],
     IDC_FONTFACE, &myGlobals.g_buttonBarIcons[21],
     IDC_NAME, &myGlobals.g_buttonBarIcons[4],
     IDC_LOGFROZEN, &myGlobals.g_buttonBarIcons[24],
-    //IDC_INFOPANELMENU, &myGlobals.g_buttonBarIcons[16],
     IDC_TOGGLENOTES, &myGlobals.g_buttonBarIcons[28],
     -1, NULL
 };
@@ -374,10 +328,10 @@ void SetDialogToType(HWND hwndDlg)
  * may also draw a skin item around the rich edit control.
  */
 
-static UINT DrawRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC OldWndProc)
+UINT DrawRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC OldWndProc)
 {
 	StatusItems_t *item = &StatusItems[skinID];
-	LRESULT result = OldWndProc(hwnd, msg, wParam, lParam);			// do default processing (otherwise, NO scrollbar as it is painted in NC_PAINT)
+	LRESULT result = CallWindowProc(OldWndProc, hwnd, msg, wParam, lParam);			// do default processing (otherwise, NO scrollbar as it is painted in NC_PAINT)
 
 	if((mwdat && mwdat->hTheme) || (mwdat && mwdat->pContainer->bSkinned && !item->IGNORED && !mwdat->bFlatMsgLog)) {
 		HDC hdc = GetWindowDC(hwnd);
@@ -455,7 +409,7 @@ static LRESULT CALLBACK MessageLogSubclassProc(HWND hwnd, UINT msg, WPARAM wPara
 					HDC hdc = GetDC(GetParent(hwnd));
 
 					if(MyGetThemeBackgroundContentRect(mwdat->hTheme, hdc, 1, 1, &nccp->rgrc[0], &rcClient) == S_OK) {
-						InflateRect(&rcClient, -1, -1);
+						//InflateRect(&rcClient, -1, -1);
 						CopyRect(&nccp->rgrc[0], &rcClient);
 						bReturn = TRUE;
 					}
@@ -501,7 +455,7 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
 					HDC hdc = GetDC(GetParent(hwnd));
 
 					if(MyGetThemeBackgroundContentRect(mwdat->hTheme, hdc, 1, 1, &nccp->rgrc[0], &rcClient) == S_OK) {
-						InflateRect(&rcClient, -1, -1);
+						//InflateRect(&rcClient, -1, -1);
 						CopyRect(&nccp->rgrc[0], &rcClient);
 						bReturn = TRUE;
 					}
@@ -1056,6 +1010,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
     int showToolbar = dat->pContainer->dwFlags & CNT_HIDETOOLBAR ? 0 : 1;
     int panelHeight = dat->panelHeight + 1;
 	int panelWidth = (dat->panelWidth != -1 ? dat->panelWidth + 2: 0);
+    int s_offset = 0;
     
     GetClientRect(GetDlgItem(hwndDlg, IDC_LOG), &rc);
     GetClientRect(GetDlgItem(hwndDlg, IDC_PROTOCOL), &rcButton);
@@ -1071,10 +1026,12 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
                 OffsetRect(&urc->rcItem, 0, -(dat->splitterY +10));
     }
 
+    s_offset = splitterEdges ? 1 : -2;
+    
     switch (urc->wId) {
         case IDC_NAME:
-            urc->rcItem.top -= dat->splitterY - dat->originalSplitterY;
-            urc->rcItem.bottom -= dat->splitterY - dat->originalSplitterY;
+            urc->rcItem.top -= (dat->splitterY - dat->originalSplitterY + s_offset);
+            urc->rcItem.bottom -= (dat->splitterY - dat->originalSplitterY + s_offset);
             if(dat->controlsHidden & TOOLBAR_PROTO_HIDDEN)
                 OffsetRect(&urc->rcItem, -(rcButton.right + 2), 0);
              return RD_ANCHORX_LEFT | RD_ANCHORY_BOTTOM;
@@ -1084,8 +1041,8 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
         case IDC_FONTUNDERLINE:
         case IDC_FONTFACE:
         case IDC_FONTCOLOR:
-            urc->rcItem.top -= dat->splitterY - dat->originalSplitterY;
-            urc->rcItem.bottom -= dat->splitterY - dat->originalSplitterY;
+            urc->rcItem.top -= (dat->splitterY - dat->originalSplitterY + s_offset);
+            urc->rcItem.bottom -= (dat->splitterY - dat->originalSplitterY + s_offset);
             if(!dat->doSmileys)
                 OffsetRect(&urc->rcItem, -22, 0);
             if(dat->controlsHidden & TOOLBAR_PROTO_HIDDEN)
@@ -1108,7 +1065,6 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
         case IDC_STATICERRORICON:
             return RD_ANCHORX_LEFT | RD_ANCHORY_TOP;
         case IDC_PROTOCOL:
-        //case IDC_PROTOMENU:
         case IDC_PIC:
         case IDC_HISTORY:
         case IDC_TIME:
@@ -1117,10 +1073,8 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
         //case IDC_INFOPANELMENU:
             if(urc->wId != IDC_PROTOCOL) // && urc->wId != IDC_PROTOMENU && urc->wId != IDC_INFOPANELMENU)
                 OffsetRect(&urc->rcItem, 12, 0);
-            urc->rcItem.top -= dat->splitterY - dat->originalSplitterY;
-            urc->rcItem.bottom -= dat->splitterY - dat->originalSplitterY;
-            //if(dat->controlsHidden & TOOLBAR_PROTO_HIDDEN && urc->wId == IDC_PROTOMENU)
-            //    OffsetRect(&urc->rcItem, -(rcButton.right + 10), 0);
+            urc->rcItem.top -= (dat->splitterY - dat->originalSplitterY + s_offset);
+            urc->rcItem.bottom -= (dat->splitterY - dat->originalSplitterY + s_offset);
             if (urc->wId == IDC_PROTOCOL) // || urc->wId == IDC_PROTOMENU || urc->wId == IDC_INFOPANELMENU)
                 return RD_ANCHORX_LEFT | RD_ANCHORY_BOTTOM;
             if (showToolbar && !(dat->controlsHidden & TOOLBAR_SEND_HIDDEN)) {
@@ -1158,7 +1112,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
                 urc->rcItem.top += 24;
             if(dat->dwEventIsShown & MWF_SHOW_INFOPANEL)
                 urc->rcItem.top += panelHeight;
-			urc->rcItem.bottom++;
+			urc->rcItem.bottom += (splitterEdges || !showToolbar ? 3 : 6);
             return RD_ANCHORX_WIDTH | RD_ANCHORY_HEIGHT;
         case IDC_PANELPIC:
 			urc->rcItem.left = urc->rcItem.right - (panelWidth > 0 ? panelWidth - 2: panelHeight + 2);
@@ -1183,7 +1137,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
         case IDC_SPLITTER:
             urc->rcItem.right +=1;
             urc->rcItem.top -= dat->splitterY - dat->originalSplitterY;
-            urc->rcItem.bottom -= dat->splitterY - dat->originalSplitterY;
+            urc->rcItem.bottom = urc->rcItem.top + 2;
             if (urc->wId == IDC_SPLITTER && dat->splitterY <= (dat->bottomOffset + (dat->iAvatarDisplayMode == AVATARMODE_DYNAMIC ? 32 : 25)) && dat->showPic && showToolbar)
                 urc->rcItem.right -= (dat->pic.cx + 2);
             return RD_ANCHORX_WIDTH | RD_ANCHORY_BOTTOM;
@@ -1207,8 +1161,8 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
             return RD_ANCHORX_LEFT | RD_ANCHORY_BOTTOM;
         case IDOK:
             OffsetRect(&urc->rcItem, 12, 0);
-            urc->rcItem.top -= dat->splitterY - dat->originalSplitterY;
-            urc->rcItem.bottom -= dat->splitterY - dat->originalSplitterY;
+            urc->rcItem.top -= (dat->splitterY - dat->originalSplitterY + s_offset);
+            urc->rcItem.bottom -= (dat->splitterY - dat->originalSplitterY + s_offset);
 
             if (dat->showPic && (dat->splitterY <= (dat->bottomOffset + (dat->iAvatarDisplayMode == AVATARMODE_DYNAMIC ? 32 : 25))))
                 OffsetRect(&urc->rcItem, -(dat->pic.cx + 2), 0);
@@ -1348,7 +1302,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 
                 dat->wOldStatus = -1;
                 dat->iOldHash = -1;
-
+                dat->bType = SESSIONTYPE_IM;
+                
                 newData->item.lParam = (LPARAM) hwndDlg;
                 TabCtrl_SetItem(hwndTab, newData->iTabID, &newData->item);
                 dat->iTabID = newData->iTabID;
@@ -1426,7 +1381,9 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 				else
 					dat->hHistoryEvents = NULL;
 
-				if(!DBGetContactSettingByte(NULL, SRMSGMOD_T, "splitteredges", 1)) {
+                splitterEdges = DBGetContactSettingByte(NULL, SRMSGMOD_T, "splitteredges", 1);
+                
+                if(!splitterEdges) {
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_SPLITTER), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_SPLITTER), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_PANELSPLITTER), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_SPLITTER), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
 				}

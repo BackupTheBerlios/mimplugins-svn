@@ -43,6 +43,25 @@ int CacheIconToBMP(struct MsgLogIcon *theIcon, HICON hIcon, COLORREF backgroundC
 void DeleteCachedIcon(struct MsgLogIcon *theIcon);
 int MY_GetContactDisplayNameW(HANDLE hContact, wchar_t *szwBuf, unsigned int size, const char *szProto, UINT codePage);
 int GetTabIndexFromHWND(HWND, HWND);
+struct ContainerWindowData *FindMatchingContainer(const TCHAR *szName, HANDLE hContact);
+struct ContainerWindowData *CreateContainer(const TCHAR *name, int iTemp, HANDLE hContactFrom);
+int CutContactName(TCHAR *oldname, TCHAR *newname, unsigned int size);
+struct ContainerWindowData *FindContainerByName(const TCHAR *name);
+void BroadCastContainer(struct ContainerWindowData *pContainer, UINT message, WPARAM wParam, LPARAM lParam);
+int GetTabIndexFromHWND(HWND hwndTab, HWND hwnd);
+int GetTabItemFromMouse(HWND hwndTab, POINT *pt);
+int ActivateTabFromHWND(HWND hwndTab, HWND hwnd);
+int GetProtoIconFromList(const char *szProto, int iStatus);
+void AdjustTabClientRect(struct ContainerWindowData *pContainer, RECT *rc);
+void FlashContainer(struct ContainerWindowData *pContainer, int iMode, int iCount);
+void ReflashContainer(struct ContainerWindowData *pContainer);
+HMENU BuildMCProtocolMenu(HWND hwndDlg);
+struct ContainerWindowData *AppendToContainerList(struct ContainerWindowData *pContainer);
+struct ContainerWindowData *RemoveContainerFromList(struct ContainerWindowData *pContainer);
+void DeleteContainer(int iIndex), RenameContainer(int iIndex, const TCHAR *newName);
+int EnumContainers(HANDLE hContact, DWORD dwAction, const TCHAR *szTarget, const TCHAR *szNew, DWORD dwExtinfo, DWORD dwExtinfoEx);
+void GetLocaleID(struct MessageWindowData *dat, char *szKLName);
+UINT DrawRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC OldWndProc);
 
 // the cached message log icons
 void CacheMsgLogIcons();
@@ -79,6 +98,7 @@ void ReloadTabConfig();
 
 void BroadCastContainer(struct ContainerWindowData *pContainer, UINT message, WPARAM wParam, LPARAM lParam);
 void UpdateContainerMenu(HWND hwndDlg, struct MessageWindowData *dat);
+int MessageWindowOpened(WPARAM wParam, LPARAM lParam);
 
 // buttons
 

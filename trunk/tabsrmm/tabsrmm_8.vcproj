@@ -171,7 +171,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				IgnoreImportLibrary="true"
-				AdditionalDependencies="comctl32.lib"
+				AdditionalDependencies="comctl32.lib shlwapi.lib"
 				OutputFile="$(OutDir)\tabsrmm_unicode.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -348,7 +348,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\include"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_USE_32BIT_TIME_T"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="2"
@@ -371,7 +371,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib msimg32.lib"
+				AdditionalDependencies="comctl32.lib shlwapi.lib"
 				OutputFile="$(OutDir)\tabsrmm_unicode.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -751,6 +751,246 @@
 				RelativePath="userprefs.c"
 				>
 			</File>
+			<Filter
+				Name="Chat"
+				>
+				<File
+					RelativePath=".\chat\chat.h"
+					>
+				</File>
+				<File
+					RelativePath=".\chat\chat.rc"
+					>
+				</File>
+				<File
+					RelativePath=".\chat\chat_resource.h"
+					>
+				</File>
+				<File
+					RelativePath=".\chat\chatprototypes.h"
+					>
+				</File>
+				<File
+					RelativePath=".\chat\clist.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\chat\colorchooser.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\chat\log.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\chat\main.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\chat\manager.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\chat\message.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\chat\options.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\chat\richutil.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\chat\services.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\chat\tools.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\chat\window.c"
+					>
+					<FileConfiguration
+						Name="Release Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug Unicode|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -833,6 +1073,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chat\resource.h"
+				>
+			</File>
+			<File
 				RelativePath="resource.h"
 				>
 			</File>
@@ -854,11 +1098,43 @@
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
 			<File
+				RelativePath=".\chat\Icons\1.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\2.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\3.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\4.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\5.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\6.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\action.ico"
+				>
+			</File>
+			<File
 				RelativePath=".\res\angeli-icons\Add.ico"
 				>
 			</File>
 			<File
 				RelativePath="..\..\Miranda-IM\res\addcontact.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\addmode.ico"
 				>
 			</File>
 			<File
@@ -870,7 +1146,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chat\Icons\bkgcolor.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\blank.ico"
+				>
+			</File>
+			<File
 				RelativePath=".\res\blocked.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\bold.ico"
 				>
 			</File>
 			<File
@@ -890,6 +1178,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chat\Icons\close.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\color.ico"
+				>
+			</File>
+			<File
 				RelativePath=".\res\delete.ico"
 				>
 			</File>
@@ -902,11 +1198,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Miranda-IM\res\dragcopy.cur"
+				RelativePath="..\..\src\res\dragcopy.cur"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\res\dragcopy.cur"
+				RelativePath="..\..\Miranda-IM\res\dragcopy.cur"
 				>
 			</File>
 			<File
@@ -926,11 +1222,23 @@
 				>
 			</File>
 			<File
-				RelativePath=".\res\angeli-icons\History.ico"
+				RelativePath=".\chat\Icons\filter.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\filter2.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\highlight.ico"
 				>
 			</File>
 			<File
 				RelativePath="..\..\Miranda-IM\res\history.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\res\angeli-icons\History.ico"
 				>
 			</File>
 			<File
@@ -966,11 +1274,35 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chat\Icons\info.ico"
+				>
+			</File>
+			<File
 				RelativePath=".\res\angeli-icons\Info.ico"
 				>
 			</File>
 			<File
+				RelativePath=".\chat\Icons\italics.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\join.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\kick.ico"
+				>
+			</File>
+			<File
 				RelativePath=".\res\leftarrow.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\message.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\messageout.ico"
 				>
 			</File>
 			<File
@@ -998,6 +1330,22 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chat\Icons\nick.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\nicklist.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\nicklist2.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\notice.ico"
+				>
+			</File>
+			<File
 				RelativePath=".\res\angeli-icons\Opt.ico"
 				>
 			</File>
@@ -1015,6 +1363,14 @@
 			</File>
 			<File
 				RelativePath=".\res\angeli-icons\Outg.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\overlay.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\part.ico"
 				>
 			</File>
 			<File
@@ -1050,11 +1406,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chat\Icons\quit.ico"
+				>
+			</File>
+			<File
 				RelativePath=".\res\quote.ico"
 				>
 			</File>
 			<File
 				RelativePath=".\res\angeli-icons\Quote02.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\removestatus.ico"
 				>
 			</File>
 			<File
@@ -1070,11 +1434,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\res\angeli-icons\Save.ico"
+				RelativePath=".\res\save.ico"
 				>
 			</File>
 			<File
-				RelativePath=".\res\save.ico"
+				RelativePath=".\res\angeli-icons\Save.ico"
 				>
 			</File>
 			<File
@@ -1090,11 +1454,31 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chat\Icons\smiley.ico"
+				>
+			</File>
+			<File
 				RelativePath=".\res\smiley_xp.ico"
 				>
 			</File>
 			<File
 				RelativePath=".\res\status.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\tag1.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\tag2.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\topic.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\topicbut.ico"
 				>
 			</File>
 			<File
@@ -1110,11 +1494,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chat\Icons\underline.ico"
+				>
+			</File>
+			<File
 				RelativePath="..\..\Miranda-IM\res\viewdetails.ico"
 				>
 			</File>
 			<File
 				RelativePath=".\res\visible.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\chat\Icons\window.ico"
 				>
 			</File>
 			<File

@@ -107,6 +107,7 @@ END
 IDD_MSGCONTAINER DIALOGEX 0, 0, 436, 233
 STYLE DS_SETFONT | DS_3DLOOK | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_CLIPCHILDREN | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 EXSTYLE WS_EX_APPWINDOW
+CLASS "TabSRMSG_Win"
 CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -428,8 +429,7 @@ BEGIN
     EDITTEXT        IDC_EDITTEMPLATE,11,109,344,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Quick help on Variables...",IDC_VARHELP,11,128,125,15
     LTEXT           "Double click a template to edit it. Select a template from the list box and click ""Update Preview"" to show a preview message.",IDC_STATIC,146,126,209,26
-    CONTROL         "Get more help on variables",IDC_VARIABLESHELP,
-                    "Hyperlink",WS_TABSTOP | 0x1,12,147,148,10
+    CONTROL         "Get more help on variables",IDC_VARIABLESHELP,"Hyperlink",WS_TABSTOP | 0x1,12,147,148,10
     LTEXT           "Define up to 5 colors which you can use with some variables",IDC_STATIC,12,193,174,17
     CONTROL         "",IDC_COLOR1,"ColourPicker",WS_TABSTOP,11,213,24,13
     CONTROL         "",IDC_COLOR2,"ColourPicker",WS_TABSTOP,43,213,24,13
@@ -976,8 +976,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,9,9,100
- PRODUCTVERSION 0,9,9,100
+ FILEVERSION 0,9,9,101
+ PRODUCTVERSION 0,9,9,101
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x29L
@@ -994,14 +994,14 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Miranda Open Source Project"
             VALUE "FileDescription", "Tabbed message plugin for Miranda IM"
-            VALUE "FileVersion", "0, 9, 9, 100"
+            VALUE "FileVersion", "0, 9, 9, 101"
             VALUE "InternalName", "tabSRMsg"
             VALUE "LegalCopyright", "Copyright © 2005 The Miranda IM project"
             VALUE "LegalTrademarks", "Gnu General Public License V2"
             VALUE "OriginalFilename", "tabSRMM.dll"
             VALUE "PrivateBuild", "No"
             VALUE "ProductName", " tabSRMM Dynamic Link Library (DLL)"
-            VALUE "ProductVersion", "0, 9, 9, 100"
+            VALUE "ProductVersion", "0, 9, 9, 101"
             VALUE "SpecialBuild", "PRE1"
         END
     END

@@ -453,6 +453,8 @@ CompositedWindow=0
 TitleButtonWidth = 12
 TitleButtonHeight = 12
 TabSkinning=1
+LightShadow=cccccc
+DarkShadow=808080
 
 ; client area metrics
 ;

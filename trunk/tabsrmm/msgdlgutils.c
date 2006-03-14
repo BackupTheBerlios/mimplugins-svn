@@ -28,14 +28,7 @@ $Id: msgdlgutils.c,v 1.115 2005/10/27 08:27:23 nightwish2004 Exp $
  */
 
 #include "commonheaders.h"
-
 #pragma hdrstop
-#include "../../include/m_clc.h"
-#include "../../include/m_clui.h"
-#include "../../include/m_userinfo.h"
-#include "../../include/m_history.h"
-#include "../../include/m_addcontact.h"
-
 #include "msgs.h"
 #include "m_popup.h"
 #include "nen.h"
@@ -62,8 +55,6 @@ int CheckThemeVersion(const char *szIniFilename);
 
 char *GetThemeFileName(int iMode);
 void CacheMsgLogIcons(), CacheLogFonts();
-void AdjustTabClientRect(struct ContainerWindowData *pContainer, RECT *rc);
-int MessageWindowOpened(WPARAM wParam, LPARAM LPARAM);
 extern BOOL CALLBACK DlgProcTabConfig(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern StatusItems_t StatusItems[];
 

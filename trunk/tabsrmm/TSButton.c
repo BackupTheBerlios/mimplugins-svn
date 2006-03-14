@@ -333,8 +333,19 @@ nonflat_themed:
 
 			DrawIconEx(hdcMem, rcClient.right - 13, (rcClient.bottom-rcClient.top)/2 - (myGlobals.m_smcyicon / 2),
 					   myGlobals.g_buttonBarIcons[16], 16, 16, 0, 0, DI_NORMAL);
-			if(!ctl->flatBtn || (ctl->pContainer && ctl->pContainer->bSkinned))
+			if(!ctl->flatBtn)
 				DrawEdge(hdcMem, &rcContent, EDGE_BUMP, BF_LEFT);
+            else if (ctl->pContainer && ctl->pContainer->bSkinned) {
+                HPEN hPenOld = SelectObject(hdcMem, myGlobals.g_SkinLightShadowPen);
+                POINT pt;
+
+                MoveToEx(hdcMem, rcContent.left, rcContent.top, &pt);
+                LineTo(hdcMem, rcContent.left, rcContent.bottom);
+                SelectObject(hdcMem, myGlobals.g_SkinDarkShadowPen);
+                MoveToEx(hdcMem, rcContent.left + 1, rcContent.bottom - 1, &pt);
+                LineTo(hdcMem, rcContent.left + 1, rcContent.top - 1);
+                SelectObject(hdcMem, hPenOld);
+            }
 		}
 
 		// If we have an icon or a bitmap, ignore text and only draw the image on the button

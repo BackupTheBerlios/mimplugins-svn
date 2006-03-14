@@ -29,8 +29,6 @@ $Id: msgoptions.c,v 1.133 2006/01/26 04:40:01 nightwish2004 Exp $
 #include "m_ieview.h"
 #include "m_fontservice.h"
 #include "msgdlgutils.h"
-#include "../../include/m_clc.h"
-#include "../../include/m_clui.h"
 
 #ifdef __MATHMOD_SUPPORT
     #include "m_MathModule.h"
@@ -46,14 +44,13 @@ extern struct ContainerWindowData *pFirstContainer;
 extern BOOL CALLBACK DlgProcPopupOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern BOOL CALLBACK DlgProcTemplateEditor(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
-TCHAR *MY_DBGetContactSettingString(HANDLE hContact, char *szModule, char *szSetting);
 HMENU BuildContainerMenu();
+
 void CacheMsgLogIcons(), CacheLogFonts(), ReloadGlobals(), LoadIconTheme(), UnloadIconTheme();
 void CreateImageList(BOOL bInitial);
-void _DBWriteContactSettingWString(HANDLE hContact, const char *szKey, const char *szSetting, wchar_t *value);
 BOOL CALLBACK DlgProcSetupStatusModes(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 static BOOL CALLBACK OptionsDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-void GetDefaultContainerTitleFormat();
+void GetDefaultContainerTitleFormat(), Chat_OptionsInitialize(WPARAM wParam, LPARAM lParam);
 
 struct FontOptionsList
 {
@@ -1824,6 +1821,8 @@ static BOOL CALLBACK DlgProcMsgWindowFonts(HWND hwndDlg, UINT msg, WPARAM wParam
 static int OptInitialise(WPARAM wParam, LPARAM lParam)
 {
     OPTIONSDIALOGPAGE odp = { 0 };
+
+	Chat_OptionsInitialize(wParam, lParam);
 
     odp.cbSize = sizeof(odp);
     odp.position = 910000000;

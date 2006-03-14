@@ -30,6 +30,9 @@ int LoadSendRecvMessageModule(void);
 int SplitmsgShutdown(void);
 int LogErrorMessage(HWND hwndDlg, struct MessageWindowData *dat, int i, char *szMsg);
 int ReadThemeFromINI(const char *szIniFilename, struct MessageWindowData *dat, int noAdvanced);
+void Chat_Load(PLUGINLINK *link);
+void Chat_Unload();
+
 DWORD g_mirandaVersion = 0;
 
 PLUGINLINK *pluginLink;
@@ -52,7 +55,7 @@ PLUGININFO pluginInfo = {
         "tabSRMsg",
     #endif    
 #endif
-    PLUGIN_MAKE_VERSION(0, 9, 9, 100),
+    PLUGIN_MAKE_VERSION(0, 9, 9, 101),
     "Send and receive instant messages, using a split mode interface and tab containers.",
     "The Miranda developers team",
     "silvercircle@gmail.com",
@@ -85,12 +88,14 @@ int __declspec(dllexport) Load(PLUGINLINK * link)
     memoryManagerInterface.cbSize = sizeof(memoryManagerInterface);
     CallService(MS_SYSTEM_GET_MMI, 0, (LPARAM) &memoryManagerInterface);
     
-    return LoadSendRecvMessageModule();
+	Chat_Load(pluginLink);
+	return LoadSendRecvMessageModule();
 }
 
 int __declspec(dllexport) Unload(void)
 {
-    return SplitmsgShutdown();
+    Chat_Unload();
+	return SplitmsgShutdown();
 }
 
 #ifdef _DEBUG

@@ -29,6 +29,7 @@ $Id: containeroptions.c,v 1.22 2006/01/13 23:21:58 ghazan Exp $
 #pragma hdrstop
 #include "msgs.h"
 #include "nen.h"
+#include "functions.h"
 
 int EnumContainers(HANDLE hContact, DWORD dwAction, const TCHAR *szTarget, const TCHAR *szNew, DWORD dwExtinfo, DWORD dwExtinfoEx);
 extern struct ContainerWindowData *pFirstContainer;

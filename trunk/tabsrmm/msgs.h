@@ -21,6 +21,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#ifndef _MSGS_H
+#define _MSGS_H
+
 #define __MATHMOD_SUPPORT 1
 // #define _RELEASE_BUILD 1
 
@@ -184,6 +187,7 @@ struct ProtocolData {
 #define EM_SEARCHSCROLLER         (WM_USER+0x103)
 #define EM_VALIDATEBOTTOM         (WM_USER+0x104)
 #define EM_THEMECHANGED           (WM_USER+0x105)
+#define EM_UNSUBCLASSED			  (WM_USER+0x106)
 
 #define HM_EVENTSENT         (WM_USER+10)
 #define DM_REMAKELOG         (WM_USER+11)
@@ -634,6 +638,9 @@ typedef struct {
 #define IMAGE_STRETCH_H 2
 #define IMAGE_STRETCH_B 4
 
+#define SESSIONTYPE_IM 1
+#define SESSIONTYPE_CHAT 2
+
 void __fastcall IMG_RenderImageItem(HDC hdc, ImageItem *item, RECT *rc);
 void IMG_InitDecoder();
 void LoadSkinItems(char *file);
@@ -644,3 +651,5 @@ void DrawAlpha(HDC hdcwnd, PRECT rc, DWORD basecolor, BYTE alpha, DWORD basecolo
 void SkinDrawBG(HWND hwndClient, HWND hwnd, struct ContainerWindowData *pContainer, RECT *rcClient, HDC hdcTarget);
 
 void ReloadContainerSkin();
+
+#endif

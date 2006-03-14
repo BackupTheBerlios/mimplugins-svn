@@ -78,6 +78,7 @@ static ImageItem *g_ImageItems = NULL;
 HBRUSH g_ContainerColorKeyBrush = 0;
 COLORREF g_ContainerColorKey = 0;
 SIZE g_titleBarButtonSize = {0};
+int g_titleButtonTopOff = 0;
 
 extern BOOL g_skinnedContainers;
 extern BOOL g_framelessSkinmode, g_compositedWindow;
@@ -319,7 +320,6 @@ void WriteThemeToINI(const char *szIniFilename, struct MessageWindowData *dat)
         }
 #endif        
     }
-
     for(i = 0; i < CUSTOM_COLORS; i++) {
         sprintf(szTemp, "cc%d", i + 1);
         if(dat == 0)
@@ -1317,8 +1317,10 @@ void IMG_DeleteItems()
 		DestroyIcon(myGlobals.g_maxGlyph);
 	if(g_ContainerColorKeyBrush)
 		DeleteObject(g_ContainerColorKeyBrush);
-
-	myGlobals.g_minGlyph = myGlobals.g_maxGlyph = myGlobals.g_closeGlyph = 0;
+    if(myGlobals.g_pulldownGlyph)
+        DeleteObject(myGlobals.g_pulldownGlyph);
+    
+	myGlobals.g_minGlyph = myGlobals.g_maxGlyph = myGlobals.g_closeGlyph = myGlobals.g_pulldownGlyph = 0;
 	g_ContainerColorKeyBrush = 0;
 }
 
@@ -1473,14 +1475,16 @@ void LoadSkinItems(char *file)
         i++;
     }
     
-	SkinLoadIcon(file, "CloseGlyph", &myGlobals.g_closeGlyph);
+    myGlobals.bAvatarBoderType = GetPrivateProfileIntA("Avatars", "BorderType", 0, file);
+    GetPrivateProfileStringA("Avatars", "BorderColor", "000000", buffer, 20, file);
+    DBWriteContactSettingDword(NULL, SRMSGMOD_T, "avborderclr", HexStringToLong(buffer));
+    
+    SkinLoadIcon(file, "CloseGlyph", &myGlobals.g_closeGlyph);
 	SkinLoadIcon(file, "MaximizeGlyph", &myGlobals.g_maxGlyph);
 	SkinLoadIcon(file, "MinimizeGlyph", &myGlobals.g_minGlyph);
     
 	//GetPrivateProfileStringA("Global", "FontColor", "None", buffer, 500, file);
     
-	g_titleBarButtonSize.cx = GetPrivateProfileIntA("Global", "TitleButtonWidth", 24, file);
-	g_titleBarButtonSize.cy = GetPrivateProfileIntA("Global", "TitleButtonHeight", 12, file);
 	g_framelessSkinmode = GetPrivateProfileIntA("Global", "framelessmode", 0, file);
 	g_compositedWindow = GetPrivateProfileIntA("Global", "compositedwindow", 0, file);
 
@@ -1493,18 +1497,43 @@ void LoadSkinItems(char *file)
 	myGlobals.g_SkinnedFrame_caption = GetPrivateProfileIntA("WindowFrame", "Caption", 24, file);
 	myGlobals.g_SkinnedFrame_bottom = GetPrivateProfileIntA("WindowFrame", "bottom", 4, file);
 
-	myGlobals.bClipBorder = GetPrivateProfileIntA("WindowFrame", "ClipFrame", 0, file);
+    g_titleBarButtonSize.cx = GetPrivateProfileIntA("WindowFrame", "TitleButtonWidth", 24, file);
+    g_titleBarButtonSize.cy = GetPrivateProfileIntA("WindowFrame", "TitleButtonHeight", 12, file);
+    g_titleButtonTopOff = GetPrivateProfileIntA("WindowFrame", "TitleButtonTopOffset", 0, file);
+    
+    myGlobals.bClipBorder = GetPrivateProfileIntA("WindowFrame", "ClipFrame", 0, file);
 	{
 		BYTE radius_tl, radius_tr, radius_bl, radius_br;
-
+        char szFinalName[MAX_PATH];
+        HANDLE hFile;
+        char szDrive[MAX_PATH], szPath[MAX_PATH];
+        
 		radius_tl = GetPrivateProfileIntA("WindowFrame", "RadiusTL", 0, file);
 		radius_tr = GetPrivateProfileIntA("WindowFrame", "RadiusTR", 0, file);
 		radius_bl = GetPrivateProfileIntA("WindowFrame", "RadiusBL", 0, file);
 		radius_br = GetPrivateProfileIntA("WindowFrame", "RadiusBR", 0, file);
 
 		myGlobals.bRoundedCorner = radius_tl;
+
+        GetPrivateProfileStringA("Theme", "File", "None", buffer, MAX_PATH, file);
+        
+        _splitpath(file, szDrive, szPath, NULL, NULL);
+        mir_snprintf(szFinalName, MAX_PATH, "%s\\%s\\%s", szDrive, szPath, buffer);
+        if((hFile = CreateFileA(szFinalName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE) {
+            CloseHandle(hFile);
+            ReadThemeFromINI(szFinalName, 0, FALSE);
+            CacheMsgLogIcons();
+            CacheLogFonts();
+        }
 	}
 
+    GetPrivateProfileStringA("Global", "LightShadow", "000000", buffer, 20, file);
+    data = HexStringToLong(buffer);
+    myGlobals.g_SkinLightShadowPen = CreatePen(PS_SOLID, 1, RGB(GetRValue(data), GetGValue(data), GetBValue(data)));
+    GetPrivateProfileStringA("Global", "DarkShadow", "000000", buffer, 20, file);
+    data = HexStringToLong(buffer);
+    myGlobals.g_SkinDarkShadowPen = CreatePen(PS_SOLID, 1, RGB(GetRValue(data), GetGValue(data), GetBValue(data)));
+    
 	SkinCalcFrameWidth();
 
 	if(strcmp(buffer, "None"))
@@ -1545,7 +1574,9 @@ void ReloadContainerSkin()
 	int i;
 
 	g_skinnedContainers = g_framelessSkinmode = g_compositedWindow = FALSE;
-
+    myGlobals.bClipBorder = 0;
+    myGlobals.bRoundedCorner = 0;
+    
 	if(pFirstContainer) {
 		if(MessageBox(0, TranslateT("All message containers need to close before the skin can be changed\nProceed?"), TranslateT("Change skin"), MB_YESNO | MB_ICONQUESTION) == IDYES) {
 			struct ContainerWindowData *pContainer = pFirstContainer;
@@ -1559,7 +1590,12 @@ void ReloadContainerSkin()
 	for(i = 0; i <= ID_EXTBK_LAST; i++)
 		StatusItems[i].IGNORED = 1;
 
-	IMG_DeleteItems();
+    if(myGlobals.g_SkinLightShadowPen)
+        DeleteObject(myGlobals.g_SkinLightShadowPen);
+    if(myGlobals.g_SkinDarkShadowPen)
+        DeleteObject(myGlobals.g_SkinDarkShadowPen);
+    
+    IMG_DeleteItems();
 
 	if(!DBGetContactSettingByte(NULL, SRMSGMOD_T, "useskin", 0))
 		return;

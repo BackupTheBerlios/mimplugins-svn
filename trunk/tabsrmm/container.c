@@ -46,11 +46,6 @@ $Id: container.c,v 1.132 2006/01/13 22:39:32 ghazan Exp $
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "../../include/m_clc.h"
-#include "../../include/m_clui.h"
-#include "../../include/m_userinfo.h"
-#include "../../include/m_history.h"
-#include "../../include/m_addcontact.h"
 #include "msgs.h"
 #include "m_popup.h"
 #include "nen.h"
@@ -58,6 +53,7 @@ $Id: container.c,v 1.132 2006/01/13 22:39:32 ghazan Exp $
 #include "msgdlgutils.h"
 #include "m_snapping_windows.h"
 #include "functions.h"
+#include "chat/chat.h"
 
 #ifdef __MATHMOD_SUPPORT
     #include "m_MathModule.h"
@@ -72,7 +68,6 @@ extern MYGLOBALS myGlobals;
 extern NEN_OPTIONS nen_options;
 extern HWND floaterOwner;
 extern HANDLE hMessageWindowList;
-extern struct CREOleCallback reOleCallback;
 extern HINSTANCE g_hInst;
 
 extern BOOL CALLBACK SelectContainerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -91,25 +86,7 @@ struct ContainerWindowData *pFirstContainer = 0;        // the linked list of st
 struct ContainerWindowData *pLastActiveContainer = NULL;
 
 TCHAR *MY_DBGetContactSettingString(HANDLE hContact, char *szModule, char *szSetting);
-int GetTabIndexFromHWND(HWND hwndTab, HWND hwnd);
-int GetTabItemFromMouse(HWND hwndTab, POINT *pt);
-int ActivateTabFromHWND(HWND hwndTab, HWND hwnd);
-int GetProtoIconFromList(const char *szProto, int iStatus);
-void AdjustTabClientRect(struct ContainerWindowData *pContainer, RECT *rc);
 HMENU BuildContainerMenu();
-void WriteStatsOnClose(HWND hwndDlg, struct MessageWindowData *dat);
-void FlashContainer(struct ContainerWindowData *pContainer, int iMode, int iCount);
-void ReflashContainer(struct ContainerWindowData *pContainer);
-HMENU BuildMCProtocolMenu(HWND hwndDlg);
-int IsMetaContact(HWND hwndDlg, struct MessageWindowData *dat);
-int EnumContainers(HANDLE hContact, DWORD dwAction, const TCHAR *szTarget, const TCHAR *szNew, DWORD dwExtinfo, DWORD dwExtinfoEx);
-void DeleteContainer(int iIndex), RenameContainer(int iIndex, const TCHAR *newName);
-#if defined(_UNICODE)
-    void _DBWriteContactSettingWString(HANDLE hContact, char *szKey, char *szSetting, const wchar_t *value);
-#endif
-
-struct ContainerWindowData *AppendToContainerList(struct ContainerWindowData *pContainer);
-struct ContainerWindowData *RemoveContainerFromList(struct ContainerWindowData *pContainer);
 
 static WNDPROC OldStatusBarproc;
 
@@ -134,6 +111,9 @@ BOOL g_compositedWindow = FALSE;
 extern HBRUSH g_ContainerColorKeyBrush;
 extern COLORREF g_ContainerColorKey;
 extern SIZE g_titleBarButtonSize;
+extern int g_titleButtonTopOff;
+
+static BOOL CALLBACK ContainerWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 /*
  * CreateContainer MUST malloc() a struct ContainerWindowData and pass its address
@@ -217,6 +197,23 @@ struct ContainerWindowData *CreateContainer(const TCHAR *name, int iTemp, HANDLE
     return NULL;
 }
 
+int RegisterContainer(void) 
+{
+	WNDCLASSEX wc;
+	
+	ZeroMemory(&wc, sizeof(wc));
+	wc.cbSize         = sizeof(wc);
+	wc.lpszClassName  = _T("TabSRMSG_Win");
+	wc.lpfnWndProc    = ContainerWndProc;
+	wc.hCursor        = LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground  = 0;
+	wc.style          = CS_GLOBALCLASS;
+    wc.cbWndExtra     = DLGWINDOWEXTRA;
+    wc.hInstance      = g_hInst;
+	RegisterClassEx(&wc);
+	return 0;
+}
+
 static LRESULT CALLBACK StatusBarSubclassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch(msg) {
@@ -236,7 +233,8 @@ static LRESULT CALLBACK StatusBarSubclassProc(HWND hWnd, UINT msg, WPARAM wParam
 			{
 				RECT rcClient;
 				struct ContainerWindowData *pContainer = (struct ContainerWindowData *)GetWindowLong(GetParent(hWnd), GWL_USERDATA);
-				if(pContainer && pContainer->bSkinned) {
+                if(pContainer && pContainer->bSkinned) {
+                    return 1;
 					GetClientRect(hWnd, &rcClient);
 					SkinDrawBG(hWnd, GetParent(hWnd), pContainer, &rcClient, (HDC)wParam);
 					return 1;
@@ -254,12 +252,24 @@ static LRESULT CALLBACK StatusBarSubclassProc(HWND hWnd, UINT msg, WPARAM wParam
 				HICON hIcon;
 				LONG height, width;
 				HDC hdc = BeginPaint(hWnd, &ps);
-				HFONT hFontOld = SelectObject(hdc, GetStockObject(DEFAULT_GUI_FONT));
+				HFONT hFontOld = 0;
 				UINT nParts = SendMessage(hWnd, SB_GETPARTS, 0, 0);
 				LRESULT result;
+                RECT rcClient;
+                struct ContainerWindowData *pContainer = (struct ContainerWindowData *)GetWindowLong(GetParent(hWnd), GWL_USERDATA);
+                HDC hdcMem = CreateCompatibleDC(hdc);
+                HBITMAP hbm, hbmOld;
+                
+                GetClientRect(hWnd, &rcClient);
+                
+                hbm = CreateCompatibleBitmap(hdc, rcClient.right, rcClient.bottom);
+                hbmOld = SelectObject(hdcMem, hbm);
+				SetBkMode(hdcMem, TRANSPARENT);
+				SetTextColor(hdcMem, myGlobals.skinDefaultFontColor);
+                hFontOld = SelectObject(hdcMem, GetStockObject(DEFAULT_GUI_FONT));
 
-				SetBkMode(hdc, TRANSPARENT);
-				SetTextColor(hdc, myGlobals.skinDefaultFontColor);
+                if(pContainer && pContainer->bSkinned)
+                    SkinDrawBG(hWnd, GetParent(hWnd), pContainer, &rcClient, hdcMem);
 
 				for(i = 0; i < (int)nParts; i++) {
 					SendMessage(hWnd, SB_GETRECT, (WPARAM)i, (LPARAM)&itemRect);
@@ -270,17 +280,23 @@ static LRESULT CALLBACK StatusBarSubclassProc(HWND hWnd, UINT msg, WPARAM wParam
 					result = SendMessageA(hWnd, SB_GETTEXTA, i, (LPARAM)szText);
 					if(hIcon) {
 						if(LOWORD(result) > 1) {				// we have a text
-							DrawIconEx(hdc, itemRect.left + 3, (height - 16) / 2, hIcon, 16, 16, 0, 0, DI_NORMAL);
+							DrawIconEx(hdcMem, itemRect.left + 3, (height - 16) / 2, hIcon, 16, 16, 0, 0, DI_NORMAL);
 							itemRect.left += 20;
-							DrawTextA(hdc, szText, -1, &itemRect, DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
+							DrawTextA(hdcMem, szText, -1, &itemRect, DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
 						}
 						else
-							DrawIconEx(hdc, itemRect.left + ((width - 16) / 2), (height - 16) / 2, hIcon, 16, 16, 0, 0, DI_NORMAL);
+							DrawIconEx(hdcMem, itemRect.left + ((width - 16) / 2), (height - 16) / 2, hIcon, 16, 16, 0, 0, DI_NORMAL);
 					}
 					else
-						DrawTextA(hdc, szText, -1, &itemRect, DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+						DrawTextA(hdcMem, szText, -1, &itemRect, DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 				}
-				SelectObject(hdc, hFontOld);
+
+                BitBlt(hdc, 0, 0, rcClient.right, rcClient.bottom, hdcMem, 0, 0, SRCCOPY);
+                SelectObject(hdcMem, hbmOld);
+                DeleteObject(hbm);
+                SelectObject(hdcMem, hFontOld);
+                DeleteDC(hdcMem);
+                
 				EndPaint(hWnd, &ps);
 				return 0;
 			}
@@ -352,7 +368,7 @@ void DrawSideBar(HWND hwndDlg, struct ContainerWindowData *pContainer, RECT *rc,
     //SetWindowPos(GetDlgItem(hwndDlg, IDC_SIDEBAR), HWND_BOTTOM, 0, 0, SIDEBARWIDTH - 2, (rc->bottom - rc->top) - menuSep - pContainer->statusBarHeight, SWP_DRAWFRAME);
 }
 
-static BOOL CALLBACK DlgProcContainerSubClass(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+static BOOL CALLBACK ContainerWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	struct ContainerWindowData *pContainer = (struct ContainerWindowData *)GetWindowLong(hwndDlg, GWL_USERDATA);
 
@@ -561,8 +577,8 @@ static BOOL CALLBACK DlgProcContainerSubClass(HWND hwndDlg, UINT msg, WPARAM wPa
 
 					// title buttons;
 
-					pContainer->rcClose.top = pContainer->rcMin.top = pContainer->rcMax.top = 7;
-					pContainer->rcClose.bottom = pContainer->rcMin.bottom = pContainer->rcMax.bottom = 7 + g_titleBarButtonSize.cy;
+					pContainer->rcClose.top = pContainer->rcMin.top = pContainer->rcMax.top = g_titleButtonTopOff;
+					pContainer->rcClose.bottom = pContainer->rcMin.bottom = pContainer->rcMax.bottom = g_titleButtonTopOff + g_titleBarButtonSize.cy;
 					
 					pContainer->rcClose.right = rcWindow.right - 10;
 					pContainer->rcClose.left = pContainer->rcClose.right - g_titleBarButtonSize.cx;
@@ -737,7 +753,6 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
                 SendMessage(hwndDlg, DM_OPTIONSAPPLIED, 0, 0);          // set options...
                 pContainer->dwFlags |= dwCreateFlags;
-				SetWindowLong(hwndDlg, GWL_WNDPROC, (LONG)DlgProcContainerSubClass);
                 /*
                  * create the sidebar buttons
                  */
@@ -1207,15 +1222,15 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                 //    DrawSideBar(hwndDlg, pContainer, &rcUnadjusted, menuSep);
 #ifdef __MATHMOD_SUPPORT
     			if(myGlobals.m_MathModAvail) {
-    						TMathWindowInfo mathWndInfo;
-
-    						RECT windRect;
-    						GetWindowRect(hwndDlg,&windRect);
-    						mathWndInfo.top=windRect.top;
-    						mathWndInfo.left=windRect.left;
-    						mathWndInfo.right=windRect.right;
-    						mathWndInfo.bottom=windRect.bottom;
-    						CallService(MTH_RESIZE,0,(LPARAM) &mathWndInfo);
+                    TMathWindowInfo mathWndInfo;
+    
+                    RECT windRect;
+                    GetWindowRect(hwndDlg,&windRect);
+                    mathWndInfo.top=windRect.top;
+                    mathWndInfo.left=windRect.left;
+                    mathWndInfo.right=windRect.right;
+                    mathWndInfo.bottom=windRect.bottom;
+                    CallService(MTH_RESIZE,0,(LPARAM) &mathWndInfo);
     			}
 #endif
 				if((myGlobals.bClipBorder != 0 || myGlobals.bRoundedCorner) && g_framelessSkinmode) {
@@ -1233,6 +1248,9 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 						rgn = CreateRectRgn(clip, clip, (rcWindow.right - rcWindow.left) - clip, (rcWindow.bottom - rcWindow.top) - clip);
 					SetWindowRgn(hwndDlg, rgn, TRUE);
 				}
+                else if(g_framelessSkinmode)
+                    SetWindowRgn(hwndDlg, NULL, TRUE);
+                
 				break;
             }
             case DM_UPDATETITLE:
@@ -1290,7 +1308,7 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                     free(hwndClients);
                 }
                 dat = (struct MessageWindowData *)GetWindowLong(pContainer->hwndActive, GWL_USERDATA);
-                if(dat) {
+                if(dat && dat->bType == SESSIONTYPE_IM) {
                     if((dat->idle || dat->timezone != -1) && pContainer->hwndActive && IsWindow(pContainer->hwndActive))
                         InvalidateRect(GetDlgItem(pContainer->hwndActive, IDC_PANELUIN), NULL, FALSE);
                 }
@@ -2857,15 +2875,6 @@ void RenameContainer(int iIndex, const TCHAR *szNew)
         DBFreeVariant(&dbv);
     }
 }
-
-#if defined(_UNICODE)
-void _DBWriteContactSettingWString(HANDLE hContact, char *szKey, char *szSetting, const wchar_t *value)
-{
-    char *utf8string = Utf8_Encode(value);
-    DBWriteContactSettingString(hContact, szKey, szSetting, utf8string);
-    free(utf8string);
-}
-#endif
 
 HMENU BuildContainerMenu()
 {

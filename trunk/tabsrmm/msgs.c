@@ -115,6 +115,7 @@ int FS_ReloadFonts(WPARAM wParam, LPARAM lParam);
 void FS_RegisterFonts();
 void FirstTimeConfig();
 void IMG_FreeDecoder(), tQHTM_Free(), tQHTM_Init();
+void RegisterContainer();
 
 /*
  * installed as a WH_GETMESSAGE hook in order to process unicode messages.
@@ -1039,6 +1040,7 @@ int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
     while(pFirstContainer)
         SendMessage(pFirstContainer->hwnd, WM_CLOSE, 0, 1);
 
+    UnregisterClass(_T("TabSRMSG_Win"), g_hInst);
     return 0;
 }
 
@@ -1271,6 +1273,7 @@ int LoadSendRecvMessageModule(void)
         myGlobals.hCurHyperlinkHand = LoadCursor(g_hInst, MAKEINTRESOURCE(IDC_HYPERLINKHAND));
 
     LoadTSButtonModule();
+    RegisterContainer();
     RegisterTabCtrlClass();
     ReloadGlobals();
     GetDataDir();

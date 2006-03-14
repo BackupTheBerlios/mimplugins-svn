@@ -74,6 +74,13 @@ typedef unsigned short wchar_t;
 #include "../../include/m_skin.h"
 #include "../../include/m_contacts.h"
 
+#include "../../include/m_clc.h"
+#include "../../include/m_clui.h"
+#include "../../include/m_userinfo.h"
+#include "../../include/m_history.h"
+#include "../../include/m_addcontact.h"
+#include "../../include/m_file.h"
+
 #define safe_sizeof(a) (sizeof((a)) / sizeof((a)[0]))
 
 #if !defined(_UNICODE)
