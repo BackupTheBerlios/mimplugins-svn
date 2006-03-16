@@ -417,7 +417,7 @@ static int DoControl(GCEVENT * gce, WPARAM wp)
 {
 	if(gce->pDest->iType == GC_EVENT_CONTROL)
 	{ 
-		switch (wp)
+        switch (wp)
 		{
 		case WINDOW_HIDDEN:
 			{
@@ -742,8 +742,13 @@ void ShowRoom(SESSION_INFO * si, WPARAM wp, BOOL bSetForeground)
 	if(!si)
 		return;
 
+#ifdef _DEBUG
+    _DebugTraceA("show room: %s, %x, %x", si->pszName, si->hWnd, si->pContainer);
+#endif    
 	if (si->hWnd == NULL) {
-        struct ContainerWindowData *pContainer = FindContainerByName(_T("default"));
+        struct ContainerWindowData *pContainer = si->pContainer;
+        if(pContainer == NULL)
+            pContainer = FindContainerByName(_T("default"));
         if(pContainer == NULL)
             pContainer = CreateContainer(_T("default"), FALSE, si->hContact);
 		si->hWnd = CreateNewRoom(pContainer, si, TRUE, FALSE, FALSE);

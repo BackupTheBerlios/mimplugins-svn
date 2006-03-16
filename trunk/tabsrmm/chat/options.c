@@ -28,7 +28,7 @@ extern HICON			hIcons[30];
 extern FONTINFO			aFonts[OPTIONS_FONTCOUNT];
 extern BOOL				PopUpInstalled;
 extern SESSION_INFO		g_TabSession;
-
+extern int              g_chat_integration_enabled;
 
 HANDLE			g_hOptions = NULL;
 
@@ -337,6 +337,42 @@ void LoadMsgDlgFont(int i, LOGFONT* lf, COLORREF* colour)
         }
     }
 }
+
+static struct _tagicons { char *szDesc; char *szName; int id; UINT size;} _icons[] = {
+	"Window Icon", "chat_window", IDI_CHANMGR, 16,
+	"Text colour", "chat_fgcol", IDI_COLOR, 16,
+	"Background colour", "chat_bkgcol", IDI_BKGCOLOR, 16,
+	"Room settings", "chat_settings", IDI_TOPICBUT, 16,
+	"Event filter disabled", "chat_filter", IDI_FILTER, 16,
+	"Event filter enabled", "chat_filter2", IDI_FILTER2, 16,
+	"Hide userlist", "chat_nicklist", IDI_NICKLIST, 16,
+	"Show userlist", "chat_nicklist2", IDI_NICKLIST2, 16,
+	"Icon overlay", "chat_overlay", IDI_OVERLAY, 16,
+	"Status 1 (10x10)", "chat_status0", IDI_STATUS0, 10,
+	"Status 2 (10x10)", "chat_status1", IDI_STATUS1, 10,
+	"Status 3 (10x10)", "chat_status2", IDI_STATUS2, 10,
+	"Status 4 (10x10)", "chat_status3", IDI_STATUS3, 10,
+	"Status 5 (10x10)", "chat_status4", IDI_STATUS4, 10,
+	"Status 6 (10x10)", "chat_status5", IDI_STATUS5, 10,
+	NULL, NULL, -1, 0
+};
+static struct _tag1icons { char *szDesc; char *szName; int id; UINT size;} _logicons[] = {
+	"Message in (10x10)", "chat_log_message_in", IDI_MESSAGE, 10,
+	"Message out (10x10)", "chat_log_message_out", IDI_MESSAGEOUT, 10,
+	"Action (10x10)", "chat_log_action", IDI_ACTION, 10,
+	"Add Status (10x10)", "chat_log_addstatus", IDI_ADDSTATUS, 10,
+	"Remove Status (10x10)", "chat_log_removestatus", IDI_REMSTATUS, 10,
+	"Join (10x10)", "chat_log_join", IDI_JOIN, 10,
+	"Leave (10x10)", "chat_log_part", IDI_PART, 10,
+	"Quit (10x10)", "chat_log_quit", IDI_QUIT, 10,
+	"Kick (10x10)", "chat_log_kick", IDI_KICK, 10,
+	"Notice (10x10)", "chat_log_notice", IDI_NOTICE, 10,
+	"Nickchange (10x10)", "chat_log_nick", IDI_NICK, 10,
+	"Topic (10x10)", "chat_log_topic", IDI_TOPIC, 10,
+	"Highlight (10x10)", "chat_log_highlight", IDI_HIGHLIGHT, 10,
+	"Information (10x10)", "chat_log_info", IDI_INFO, 10,
+	NULL, NULL, 0, 0
+};
 // add icons to the skinning module
 void AddIcons(void)
 {
@@ -344,173 +380,32 @@ void AddIcons(void)
 	{
 		SKINICONDESC3 sid = {0};
 		char szFile[MAX_PATH];
+		int i = 0;
 
 		// 16x16 icons
-		sid.cx = sid.cy = 16;
 		sid.cbSize = sizeof(SKINICONDESC3);
-
 		sid.pszSection = Translate("Chat windows");
 		GetModuleFileNameA(g_hInst, szFile, MAX_PATH);
 		sid.pszDefaultFile = szFile;
 
-		// add them one by one
-		sid.pszDescription = Translate("Window Icon");
-		sid.pszName = "chat_window";
-		sid.iDefaultIndex = -IDI_CHANMGR;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Text colour");
-		sid.pszName = "chat_fgcol";
-		sid.iDefaultIndex = -IDI_COLOR;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Background colour");
-		sid.pszName = "chat_bkgcol";
-		sid.iDefaultIndex = -IDI_BKGCOLOR;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Room history");
-		sid.pszName = "chat_history";
-		sid.iDefaultIndex = -IDI_HISTORY;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Room settings");
-		sid.pszName = "chat_settings";
-		sid.iDefaultIndex = -IDI_TOPICBUT;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Event filter disabled");
-		sid.pszName = "chat_filter";
-		sid.iDefaultIndex = -IDI_FILTER;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Event filter enabled");
-		sid.pszName = "chat_filter2";
-		sid.iDefaultIndex = -IDI_FILTER2;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Hide userlist");
-		sid.pszName = "chat_nicklist";
-		sid.iDefaultIndex = -IDI_NICKLIST;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Show userlist");
-		sid.pszName = "chat_nicklist2";
-		sid.iDefaultIndex = -IDI_NICKLIST2;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Icon overlay");
-		sid.pszName = "chat_overlay";
-		sid.iDefaultIndex = -IDI_OVERLAY;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Close");
-		sid.pszName = "chat_close";
-		sid.iDefaultIndex = -IDI_CLOSE;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.cx = sid.cy = 10;
-		sid.pszDescription = Translate("Status 1 (10x10)");
-		sid.pszName = "chat_status0";
-		sid.iDefaultIndex = -IDI_STATUS0;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Status 2 (10x10)");
-		sid.pszName = "chat_status1";
-		sid.iDefaultIndex = -IDI_STATUS1;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Status 3 (10x10)");
-		sid.pszName = "chat_status2";
-		sid.iDefaultIndex = -IDI_STATUS2;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Status 4 (10x10)");
-		sid.pszName = "chat_status3";
-		sid.iDefaultIndex = -IDI_STATUS3;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-	
-		sid.pszDescription = Translate("Status 5 (10x10)");
-		sid.pszName = "chat_status4";
-		sid.iDefaultIndex = -IDI_STATUS4;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-	
-		sid.pszDescription = Translate("Status 6 (10x10)");
-		sid.pszName = "chat_status5";
-		sid.iDefaultIndex = -IDI_STATUS5;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
+		while(_icons[i].szDesc != NULL) {
+			sid.cx = sid.cy = _icons[i].size;
+			sid.pszDescription = _icons[i].szDesc;
+			sid.pszName = _icons[i].szName;
+			sid.iDefaultIndex = -_icons[i].id;
+			CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
+			i++;
+		}
+		i = 0;
 		sid.pszSection = Translate("Chat log");
-		sid.pszDescription = Translate("Message in (10x10)");
-		sid.pszName = "chat_log_message_in";
-		sid.iDefaultIndex = -IDI_MESSAGE;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Message out (10x10)");
-		sid.pszName = "chat_log_message_out";
-		sid.iDefaultIndex = -IDI_MESSAGEOUT;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-
-		sid.pszDescription = Translate("Action (10x10)");
-		sid.pszName = "chat_log_action";
-		sid.iDefaultIndex = -IDI_ACTION;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Add Status (10x10)");
-		sid.pszName = "chat_log_addstatus";
-		sid.iDefaultIndex = -IDI_ADDSTATUS;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Remove status (10x10)");
-		sid.pszName = "chat_log_removestatus";
-		sid.iDefaultIndex = -IDI_REMSTATUS;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Join (10x10)");
-		sid.pszName = "chat_log_join";
-		sid.iDefaultIndex = -IDI_JOIN;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Leave (10x10)");
-		sid.pszName = "chat_log_part";
-		sid.iDefaultIndex = -IDI_PART;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Quit (10x10)");
-		sid.pszName = "chat_log_quit";
-		sid.iDefaultIndex = -IDI_QUIT;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Kick (10x10)");
-		sid.pszName = "chat_log_kick";
-		sid.iDefaultIndex = -IDI_KICK;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Nickchange (10x10)");
-		sid.pszName = "chat_log_nick";
-		sid.iDefaultIndex = -IDI_NICK;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Notice (10x10)");
-		sid.pszName = "chat_log_notice";
-		sid.iDefaultIndex = -IDI_NOTICE;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Topic (10x10)");
-		sid.pszName = "chat_log_topic";
-		sid.iDefaultIndex = -IDI_TOPIC;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Highlight (10x10)");
-		sid.pszName = "chat_log_highlight";
-		sid.iDefaultIndex = -IDI_HIGHLIGHT;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-		
-		sid.pszDescription = Translate("Information (10x10)");
-		sid.pszName = "chat_log_info";
-		sid.iDefaultIndex = -IDI_INFO;
-		CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-			
+		while(_logicons[i].szDesc != NULL) {
+			sid.cx = sid.cy = _logicons[i].size;
+			sid.pszDescription = _logicons[i].szDesc;
+			sid.pszName = _logicons[i].szName;
+			sid.iDefaultIndex = -_logicons[i].id;
+			CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
+			i++;
+		}
 	}
 	return;
 }
@@ -1194,7 +1089,10 @@ int Chat_OptionsInitialize(WPARAM wParam, LPARAM lParam)
 
 	OPTIONSDIALOGPAGE odp = {0};
 
-	ZeroMemory(&odp, sizeof(odp));
+    if(!g_chat_integration_enabled)
+        return 0;
+    
+    ZeroMemory(&odp, sizeof(odp));
 
 	odp.cbSize = sizeof(odp);
 	odp.position = 910000000;

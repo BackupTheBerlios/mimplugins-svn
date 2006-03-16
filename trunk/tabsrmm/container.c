@@ -69,6 +69,7 @@ extern NEN_OPTIONS nen_options;
 extern HWND floaterOwner;
 extern HANDLE hMessageWindowList;
 extern HINSTANCE g_hInst;
+extern SESSION_INFO *m_WndList;
 
 extern BOOL CALLBACK SelectContainerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -111,7 +112,7 @@ BOOL g_compositedWindow = FALSE;
 extern HBRUSH g_ContainerColorKeyBrush;
 extern COLORREF g_ContainerColorKey;
 extern SIZE g_titleBarButtonSize;
-extern int g_titleButtonTopOff;
+extern int g_titleButtonTopOff, g_captionOffset;
 
 static BOOL CALLBACK ContainerWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -565,7 +566,7 @@ static BOOL CALLBACK ContainerWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 					SetTextColor(dcMem, myGlobals.ipConfig.isValid ? myGlobals.ipConfig.clrs[IPFONTCOUNT - 1] : GetSysColor(COLOR_CAPTIONTEXT));
 					SetBkMode(dcMem, TRANSPARENT);
 					rcText.left = 26; rcText.right = rcWindow.right - 3 * g_titleBarButtonSize.cx - 11;
-					rcText.top = 3 + myGlobals.bClipBorder; rcText.bottom = rcText.top + tm.tmHeight;
+					rcText.top = g_captionOffset + myGlobals.bClipBorder; rcText.bottom = rcText.top + tm.tmHeight;
 					DrawText(dcMem, szWindowText, -1, &rcText, DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
 					SelectObject(dcMem, hOldFont);
 					/*
@@ -1259,6 +1260,14 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                 TCHAR *szNewTitle = NULL;
                 struct MessageWindowData *dat = NULL;
 
+                if(lParam) {                // lparen != 0 means sent by a chat window
+                    char szText[512];
+
+                    GetWindowTextA((HWND)wParam, szText, 512);
+                    szText[511] = 0;
+                    SetWindowTextA(hwndDlg, szText);
+                    break;
+                }
                 if(wParam == 0) {            // no hContact given - obtain the hContact for the active tab
                     if(pContainer->hwndActive && IsWindow(pContainer->hwndActive))
                         SendMessage(pContainer->hwndActive, DM_QUERYHCONTACT, 0, (LPARAM)&hContact);
@@ -2206,6 +2215,7 @@ panel_found:
             {
                 int i = 0;
                 TCITEM item;
+                SESSION_INFO *node = m_WndList;
 
                 DestroyWindow(hwndTab);
                 ZeroMemory((void *)&item, sizeof(item));
@@ -2247,7 +2257,16 @@ panel_found:
                 if(myGlobals.m_MathModAvail)
                     CallService(MTH_HIDE, 0, 0);
 #endif
-				if(pContainer->cachedDC) {
+                while(node) {
+                    if(node->pContainer == pContainer) {
+                        node->pContainer = 0;
+#ifdef _DEBUG
+                        _DebugTraceA("removing container from %x", node);
+#endif                        
+                    }
+                    node = node->next;
+                }
+                if(pContainer->cachedDC) {
 					SelectObject(pContainer->cachedDC, pContainer->oldHBM);
 					DeleteObject(pContainer->cachedHBM);
 					DeleteDC(pContainer->cachedDC);
@@ -2264,10 +2283,6 @@ panel_found:
                 char *szSetting = "CNTW_";
 #else
                 char *szSetting = "CNT_";
-#endif
-#if defined(_STREAMTHREADING)
-                if(pContainer->pendingStream)
-                    return TRUE;
 #endif
                 if (lParam == 0 && TabCtrl_GetItemCount(GetDlgItem(hwndDlg, IDC_MSGTABS)) > 0) {    // dont ask if container is empty (no tabs)
                     if (DBGetContactSettingByte(NULL, SRMSGMOD_T, "warnonexit", 0)) {

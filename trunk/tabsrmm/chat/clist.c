@@ -177,12 +177,11 @@ int	CList_RoomDoubleclicked(WPARAM wParam,LPARAM lParam)
 					&& DBGetContactSettingByte(NULL, "Chat", "ToggleVisibility", 0)==1 
 					&& !CallService(MS_CLIST_GETEVENT, (WPARAM)hContact, 0)
 					&& IsWindowVisible(si->hWnd)
-					&& !IsIconic(si->hWnd))
-			{
-					PostMessage(si->hWnd, GC_CLOSEWINDOW, 0, 0);	
-					DBFreeVariant(&dbv);
-					return 1;
-				}
+					&& !IsIconic(si->pContainer->hwnd)) {
+					    PostMessage(si->hWnd, GC_CLOSEWINDOW, 0, 0);	
+                        DBFreeVariant(&dbv);
+                        return 1;
+                }
 				ShowRoom(si, WINDOW_VISIBLE, TRUE);
 			}
 			DBFreeVariant(&dbv);

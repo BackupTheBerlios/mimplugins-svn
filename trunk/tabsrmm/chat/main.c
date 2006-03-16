@@ -41,6 +41,7 @@ HIMAGELIST		hIconsList = NULL;
 
 char *			pszActiveWndID = 0;
 char *			pszActiveWndModule = 0;
+int             g_chat_integration_enabled = 0;
 
 int Chat_Load(PLUGINLINK *link)
 {
@@ -52,7 +53,12 @@ int Chat_Load(PLUGINLINK *link)
 	_CrtSetDbgFlag(flag); // Set flag to the new value
 	#endif
 
-	UpgradeCheck();
+    if(!DBGetContactSettingByte(NULL, SRMSGMOD_T, "enable_chat", 0))
+        return 0;
+    
+    g_chat_integration_enabled = 1;
+    
+    UpgradeCheck();
 
 	CallService(MS_SYSTEM_GET_MMI, 0, (LPARAM) &mmi);
 	g_hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_MENU));
@@ -68,7 +74,10 @@ int Chat_Load(PLUGINLINK *link)
 
 int Chat_Unload(void)
 {
-	DBWriteContactSettingWord(NULL, "Chat", "SplitterX", (WORD)g_Settings.iSplitterX);
+    if(!g_chat_integration_enabled)
+        return 0;
+    
+    DBWriteContactSettingWord(NULL, "Chat", "SplitterX", (WORD)g_Settings.iSplitterX);
 	DBWriteContactSettingWord(NULL, "Chat", "SplitterY", (WORD)g_Settings.iSplitterY);
 	DBWriteContactSettingDword(NULL, "Chat", "roomx", g_Settings.iX);
 	DBWriteContactSettingDword(NULL, "Chat", "roomy", g_Settings.iY);

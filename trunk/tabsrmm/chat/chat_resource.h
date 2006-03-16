@@ -32,7 +32,6 @@
 #define IDI_STATUS1                     156
 #define IDI_STATUS0                     157
 #define IDI_STATUS5                     158
-#define IDI_CLOSE                       159
 #define IDI_OVERLAY                     160
 #define IDI_NICKLIST2                   161
 #define IDI_FILTER2                     162

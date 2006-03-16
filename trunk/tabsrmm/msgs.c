@@ -876,12 +876,6 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
 #if defined(_UNICODE)
     ConvertAllToUTF8();
 #endif    
-	hDLL = GetModuleHandleA("user32");
-	pSetLayeredWindowAttributes = (PSLWA) GetProcAddress(hDLL,"SetLayeredWindowAttributes");
-	pUpdateLayeredWindow = (PULW) GetProcAddress(hDLL, "UpdateLayeredWindow");
-	MyFlashWindowEx = (PFWEX) GetProcAddress(hDLL, "FlashWindowEx");
-	MyAlphaBlend = (PAB) GetProcAddress(GetModuleHandleA("msimg32"), "AlphaBlend");
-	MyGradientFill = (PGF) GetProcAddress(GetModuleHandleA("msimg32"), "GradientFill");
 
     mii.cbSize = sizeof(mii);
     mii.fMask = MIIM_BITMAP;
@@ -994,8 +988,6 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
 
 	//FirstTimeConfig();
     CacheLogFonts();
-	IMG_InitDecoder();
-	ReloadContainerSkin();
 	//tQHTM_Init();
 	return 0;
 }
@@ -1122,7 +1114,7 @@ int SplitmsgShutdown(void)
         DeleteCachedIcon(&ttb_Slist);
     if(ttb_Traymenu.hBmp)
         DeleteCachedIcon(&ttb_Traymenu);
-    
+
 	IMG_DeleteItems();
 	IMG_FreeDecoder();
 	//tQHTM_Free();
@@ -1294,6 +1286,16 @@ int LoadSendRecvMessageModule(void)
         myGlobals.m_GlobalContainerFlags = CNT_FLAGS_DEFAULT;
     myGlobals.m_GlobalContainerTrans = DBGetContactSettingDword(NULL, SRMSGMOD_T, "containertrans", CNT_TRANS_DEFAULT);
     myGlobals.local_gmt_diff = nOffset;
+
+    hDLL = GetModuleHandleA("user32");
+    pSetLayeredWindowAttributes = (PSLWA) GetProcAddress(hDLL,"SetLayeredWindowAttributes");
+    pUpdateLayeredWindow = (PULW) GetProcAddress(hDLL, "UpdateLayeredWindow");
+    MyFlashWindowEx = (PFWEX) GetProcAddress(hDLL, "FlashWindowEx");
+    MyAlphaBlend = (PAB) GetProcAddress(GetModuleHandleA("msimg32"), "AlphaBlend");
+    MyGradientFill = (PGF) GetProcAddress(GetModuleHandleA("msimg32"), "GradientFill");
+
+    IMG_InitDecoder();
+    ReloadContainerSkin();
     return 0;
 }
 
@@ -1431,7 +1433,8 @@ int ActivateExistingTab(struct ContainerWindowData *pContainer, HWND hwndChild)
             TabCtrl_SetCurSel(GetDlgItem(pContainer->hwnd, IDC_MSGTABS), GetTabIndexFromHWND(GetDlgItem(pContainer->hwnd, IDC_MSGTABS), hwndChild));
             SendMessage(pContainer->hwnd, WM_NOTIFY, 0, (LPARAM) &nmhdr);	// just select the tab and let WM_NOTIFY do the rest
         }
-        SendMessage(pContainer->hwnd, DM_UPDATETITLE, (WPARAM)dat->hContact, 0);
+        if(dat->bType == SESSIONTYPE_IM)
+            SendMessage(pContainer->hwnd, DM_UPDATETITLE, (WPARAM)dat->hContact, 0);
         if(IsIconic(pContainer->hwnd)) {
             SendMessage(pContainer->hwnd, WM_SYSCOMMAND, SC_RESTORE, 0);
             SetForegroundWindow(pContainer->hwnd);

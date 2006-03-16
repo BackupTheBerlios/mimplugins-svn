@@ -923,24 +923,29 @@ static LRESULT CALLBACK SplitterSubclassProc(HWND hwnd, UINT msg, WPARAM wParam,
                 SendMessage(GetParent(hwnd), DM_SPLITTERMOVED, rc.right > rc.bottom ? (short) HIWORD(GetMessagePos()) + rc.bottom / 2 : (short) LOWORD(GetMessagePos()) + rc.right / 2, (LPARAM) hwnd);
             }
             return 0;
-		case WM_PAINT:
-			{
-				struct MessageWindowData *dat = (struct MessageWindowData *)GetWindowLong(GetParent(hwnd), GWL_USERDATA);
-				if(dat) {
-					RECT rcClient;
-
-					GetClientRect(hwnd, &rcClient);
-					if(dat->pContainer->bSkinned) {
-						PAINTSTRUCT ps;
-
-						HDC hdc = BeginPaint(hwnd, &ps);
-						SkinDrawBG(hwnd, dat->pContainer->hwnd, dat->pContainer, &rcClient, hdc);
-						EndPaint(hwnd, &ps);
-						return 0;
-					}
-				}
-				break;
-			}
+        case WM_NCPAINT:
+            {
+                struct MessageWindowData *dat = (struct MessageWindowData *)GetWindowLong(GetParent(hwnd), GWL_USERDATA);
+                
+                if(dat && dat->pContainer->bSkinned) {
+                    HDC dc = GetWindowDC(hwnd);
+                    POINT pt;
+                    RECT rc;
+                    HPEN hPenOld;
+                    
+                    GetWindowRect(hwnd, &rc);
+                    MoveToEx(dc, 0, 0, &pt);
+                    hPenOld = SelectObject(dc, myGlobals.g_SkinDarkShadowPen);
+                    LineTo(dc, rc.right - rc.left, 0);
+                    MoveToEx(dc, rc.right - rc.left, 1, &pt);
+                    SelectObject(dc, myGlobals.g_SkinLightShadowPen);
+                    LineTo(dc, -1, 1);
+                    SelectObject(dc, hPenOld);
+                    ReleaseDC(hwnd, dc);
+                    return 0;
+                }
+                break;
+            }
         case WM_LBUTTONUP:
             ReleaseCapture();
             SendMessage(GetParent(hwnd), DM_SCROLLLOGTOBOTTOM, 0, 1);

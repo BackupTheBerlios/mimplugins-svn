@@ -34,9 +34,9 @@ $Id: msgdlgutils.c,v 1.115 2005/10/27 08:27:23 nightwish2004 Exp $
 #include "nen.h"
 #include "m_metacontacts.h"
 #include "msgdlgutils.h"
-#include "m_smileyadd.h"
 #include "m_ieview.h"
 #include "functions.h"
+#include "chat/chat.h"
 
 extern MYGLOBALS myGlobals;
 extern NEN_OPTIONS nen_options;
@@ -526,7 +526,11 @@ void UpdateReadChars(HWND hwndDlg, struct MessageWindowData *dat)
 {
     if (dat->pContainer->hwndStatus && SendMessage(dat->pContainer->hwndStatus, SB_GETPARTS, 0, 0) >= 3) {
         char buf[128];
-        int len = GetWindowTextLength(GetDlgItem(hwndDlg, IDC_MESSAGE));
+        int len;
+        if(dat->bType == SESSIONTYPE_CHAT)
+            len = GetWindowTextLength(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE));
+        else
+            len = GetWindowTextLength(GetDlgItem(hwndDlg, IDC_MESSAGE));
 
         _snprintf(buf, sizeof(buf), "%s %d/%d", dat->lcID, dat->iOpenJobs, len);
         SendMessageA(dat->pContainer->hwndStatus, SB_SETTEXTA, 1 | SBT_NOBORDERS, (LPARAM) buf);
@@ -1823,7 +1827,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         DWORD aceFlags = 0;
         HBRUSH bgBrush = 0;
         BYTE borderType = myGlobals.bAvatarBoderType;
-		HPEN hPenBorder = CreatePen(PS_SOLID, 1, (COLORREF)DBGetContactSettingDword(NULL, SRMSGMOD_T, "avborderclr", RGB(0, 0, 0))), hPenOld = 0;
+		HPEN hPenBorder = 0, hPenOld = 0;
 		HRGN clipRgn = 0;
 
         if(bPanelPic) {
@@ -1852,6 +1856,9 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         cy = rcClient.bottom;
         if(cx < 5 || cy < 5)
             return TRUE;
+
+        hPenBorder = CreatePen(PS_SOLID, 1, (COLORREF)DBGetContactSettingDword(NULL, SRMSGMOD_T, "avborderclr", RGB(0, 0, 0)));
+        
         hdcDraw = CreateCompatibleDC(dis->hDC);
         hbmDraw = CreateCompatibleBitmap(dis->hDC, cx, cy);
         hbmOld = SelectObject(hdcDraw, hbmDraw);

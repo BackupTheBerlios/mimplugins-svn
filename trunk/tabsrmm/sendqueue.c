@@ -429,6 +429,7 @@ static int CALLBACK PopupDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
             if (HIWORD(wParam) == STN_CLICKED) {
                 HWND hwnd;
                 struct MessageWindowData *dat;
+
                 
                 hwnd = (HWND)CallService(MS_POPUP_GETPLUGINDATA, (WPARAM)hWnd,(LPARAM)&hwnd);
                 dat = (struct MessageWindowData *)GetWindowLong(hwnd, GWL_USERDATA);
