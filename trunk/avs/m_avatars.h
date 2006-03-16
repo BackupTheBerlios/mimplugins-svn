@@ -75,7 +75,7 @@ struct avatarCacheEntry {
     DWORD t_lastAccess;            // last access time (currently unused, but plugins should still
                                     // use it whenever they access the avatar. may be used in the future
                                     // to implement cache expiration
-    LPVOID lpDIBSection;
+    LPVOID lpDIBSection;			// unused field
     char szFilename[MAX_PATH];      // filename of the avatar (absolute path)
 };
 

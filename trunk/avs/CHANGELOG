@@ -1,6 +1,10 @@
 
         Version history:
 
+0.0.1.19 - 2006/03/15
+
+		+ removed dependency of imagedecoder
+
 0.0.1.16 - 2006/02/11
        
 		+ option to make all avatars square

@@ -5,7 +5,6 @@
 	Name="avatars"
 	ProjectGUID="{987F026D-EB1F-4013-ADA8-2406ACCDA526}"
 	RootNamespace="clist"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -83,7 +82,8 @@
 				SuppressStartupBanner="true"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="../../bin/debug/plugins/loadavatars.pdb"
-				GenerateMapFile="false"
+				GenerateMapFile="true"
+				MapExports="true"
 				BaseAddress="0x6590000"
 				ImportLibrary=".\Debug/loadavatars.lib"
 				TargetMachine="1"

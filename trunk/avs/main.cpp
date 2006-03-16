@@ -60,12 +60,6 @@ DWORD dwPendingAvatarJobs = 0;
 
 int ChangeAvatar(HANDLE hContact);
 
-pfnImgNewDecoder ImgNewDecoder = 0;
-pfnImgDeleteDecoder ImgDeleteDecoder = 0;
-pfnImgNewDIBFromFile ImgNewDIBFromFile = 0;
-pfnImgDeleteDIBSection ImgDeleteDIBSection = 0;
-pfnImgGetHandle ImgGetHandle = 0;
-
 PLUGININFO pluginInfo = {
     sizeof(PLUGININFO), 
 #if defined(_UNICODE)
@@ -73,7 +67,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 1, 18), 
+	PLUGIN_MAKE_VERSION(0, 0, 1, 19), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -273,7 +267,6 @@ HBITMAP CopyBitmapTo32(HBITMAP hBitmap)
 		HDC hdcOrig, hdcDest;
 		HBITMAP oldOrig, oldDest;
 		
-
 		hdcOrig = CreateCompatibleDC(NULL);
 		oldOrig = (HBITMAP) SelectObject(hdcOrig, hBitmap);
 
@@ -386,7 +379,7 @@ void AddToStack(int *stack, int *topPos, int x, int y)
 }
 
 
-BOOL GetColorForPoint(int colorDiff, BYTE *p, int width, int height, BOOL hasTransparency, 
+BOOL GetColorForPoint(int colorDiff, BYTE *p, int width, int height, 
 					  int x0, int y0, int x1, int y1, int x2, int y2, BOOL *foundBkg, BYTE colors[][3])
 {
 	BYTE *px1, *px2, *px3; 
@@ -396,7 +389,8 @@ BOOL GetColorForPoint(int colorDiff, BYTE *p, int width, int height, BOOL hasTra
 	px3 = GET_PIXEL(p, x2,y2);
 
 	// If any of the corners have transparency, forget about it
-	if (hasTransparency && (px1[3] != 255 || px2[3] != 255 || px3[3] != 255))
+	// Not using != 255 because some MSN bmps have 254 in some positions
+	if (px1[3] < 253 || px2[3] < 253 || px3[3] < 253)
 		return FALSE;
 
 	// See if is the same color
@@ -434,13 +428,15 @@ static DWORD GetImgHash(HBITMAP hBitmap)
 	for (DWORD i = 0 ; i < dwLen/2 ; i++)
 		ret += p[i];
 
+	free(p);
+
 	return ret;
 }
 
 /*
  * Changes the handle to a grayscale image
  */
-static BOOL MakeGrayscale(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha)
+static BOOL MakeGrayscale(HANDLE hContact, HBITMAP *hBitmap)
 {
 	BYTE *p = NULL;
 	DWORD dwLen;
@@ -466,14 +462,7 @@ static BOOL MakeGrayscale(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha)
 		*hBitmap = hBmpTmp;
 
 		GetBitmapBits(*hBitmap, dwLen, p);
-
 	} 
-	else if (!hasAplpha)
-	{
-		GetBitmapBits(*hBitmap, dwLen, p);
-
-		CorrectBitmap32Alpha(*hBitmap, p, width, height);
-	}
 	else
 	{
 		GetBitmapBits(*hBitmap, dwLen, p);
@@ -500,7 +489,7 @@ static BOOL MakeGrayscale(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha)
  * See if finds a transparent background in image, and set its transparency
  * Return TRUE if found a transparent background
  */
-static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha)
+static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap)
 {
 	BYTE *p = NULL;
 	DWORD dwLen;
@@ -510,17 +499,14 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 	BOOL foundBkg[8];
 	BYTE *px1; 
 	int count, maxCount, selectedColor;
-	BOOL hasTransparency;
 	HBITMAP hBmpTmp;
 	int colorDiff;
 
 	GetObject(*hBitmap, sizeof(bmp), &bmp);
     width = bmp.bmWidth;
 	height = bmp.bmHeight;
-	hasTransparency = (bmp.bmBitsPixel == 32) && hasAplpha;
 	colorDiff = DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", 
 					DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgColorDiff", 10));
-
 
 	// Min 5x5 to easy things in loop
 	if (width <= 4 || height <= 4)
@@ -548,7 +534,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 	// **** Get corner colors
 
 	// Top left
-	if (!GetColorForPoint(colorDiff, p, width, height, hasTransparency, 
+	if (!GetColorForPoint(colorDiff, p, width, height, 
 						  0, 0, 0, 1, 1, 0, &foundBkg[0], &colors[0]))
 	{
 		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
@@ -557,7 +543,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 	}
 
 	// Top center
-	if (!GetColorForPoint(colorDiff, p, width, height, hasTransparency, 
+	if (!GetColorForPoint(colorDiff, p, width, height, 
 						  width/2, 0, width/2-1, 0, width/2+1, 0, &foundBkg[1], &colors[1]))
 	{
 		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
@@ -566,7 +552,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 	}
 
 	// Top Right
-	if (!GetColorForPoint(colorDiff, p, width, height, hasTransparency, 
+	if (!GetColorForPoint(colorDiff, p, width, height, 
 						  width-1, 0, width-1, 1, width-2, 0, &foundBkg[2], &colors[2]))
 	{
 		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
@@ -575,7 +561,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 	}
 
 	// Center left
-	if (!GetColorForPoint(colorDiff, p, width, height, hasTransparency, 
+	if (!GetColorForPoint(colorDiff, p, width, height, 
 						  0, height/2, 0, height/2-1, 0, height/2+1, &foundBkg[3], &colors[3]))
 	{
 		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
@@ -584,7 +570,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 	}
 
 	// Center left
-	if (!GetColorForPoint(colorDiff, p, width, height, hasTransparency, 
+	if (!GetColorForPoint(colorDiff, p, width, height, 
 						  width-1, height/2, width-1, height/2-1, width-1, height/2+1, &foundBkg[4], &colors[4]))
 	{
 		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
@@ -593,7 +579,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 	}
 
 	// Bottom left
-	if (!GetColorForPoint(colorDiff, p, width, height, hasTransparency, 
+	if (!GetColorForPoint(colorDiff, p, width, height, 
 						  0, height-1, 0, height-2, 1, height-1, &foundBkg[5], &colors[5]))
 	{
 		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
@@ -602,7 +588,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 	}
 
 	// Bottom center
-	if (!GetColorForPoint(colorDiff, p, width, height, hasTransparency, 
+	if (!GetColorForPoint(colorDiff, p, width, height, 
 						  width/2, height-1, width/2-1, height-1, width/2+1, height-1, &foundBkg[6], &colors[6]))
 	{
 		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
@@ -611,7 +597,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 	}
 
 	// Bottom Right
-	if (!GetColorForPoint(colorDiff, p, width, height, hasTransparency, 
+	if (!GetColorForPoint(colorDiff, p, width, height, 
 						  width-1, height-1, width-1, height-2, width-2, height-1, &foundBkg[7], &colors[7]))
 	{
 		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
@@ -704,10 +690,6 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 		GetObject(*hBitmap, sizeof(bmp), &bmp);
 		GetBitmapBits(*hBitmap, dwLen, p);
 	}
-	else if (!hasAplpha)
-	{
-		CorrectBitmap32Alpha(*hBitmap, p, width, height);
-	}
 
 	{
 		// Set alpha from borders
@@ -744,15 +726,17 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap, BOOL hasAplpha
 
 			// It won't change the transparency if one exists
 			// (This avoid an endless loop too)
-			if (px1[3] == 255)
+			// Not using == 255 because some MSN bmps have 254 in some positions
+			if (px1[3] >= 253)
 			{
 				if (ColorsAreTheSame(colorDiff, px1, (BYTE *) &colors[selectedColor]))
 				{
 					if (transpProportional)
 					{
-						px1[3] = (abs(px1[0] - colors[selectedColor][0]) 
+						px1[3] = min(252, 
+								(abs(px1[0] - colors[selectedColor][0]) 
 								+ abs(px1[1] - colors[selectedColor][1]) 
-								+ abs(px1[2] - colors[selectedColor][2])) / 3;
+								+ abs(px1[2] - colors[selectedColor][2])) / 3);
 					}
 					else
 					{
@@ -1084,12 +1068,13 @@ done:
         return -1;
     }
 
-	ace->hbmPic = LoadAnyImage(szFilename, &ace->lpDIBSection);
+	ace->hbmPic = LoadAnyImage(szFilename);
     if(ace->hbmPic != 0) {
         BITMAP bminfo;
 		BOOL transpBkg;
 
         GetObject(ace->hbmPic, sizeof(bminfo), &bminfo);
+
         ace->cbSize = sizeof(struct avatarCacheEntry);
         ace->dwFlags = AVS_BITMAP_VALID;
         if(DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0))
@@ -1117,7 +1102,7 @@ done:
 			DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0) && 
 			DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 1))
 		{
-			if (MakeTransparentBkg(hContact, &ace->hbmPic, ace->lpDIBSection != 0))
+			if (MakeTransparentBkg(hContact, &ace->hbmPic))
 			{
 				ace->dwFlags |= AVS_CUSTOMTRANSPBKG | AVS_HASTRANSPARENCY;
 				transpBkg = TRUE;
@@ -1127,13 +1112,13 @@ done:
 
 		if (DBGetContactSettingByte(0, AVS_MODULE, "MakeGrayscale", 0))
 		{
-			if (MakeGrayscale(hContact, &ace->hbmPic, transpBkg || ace->lpDIBSection != 0))
+			if (MakeGrayscale(hContact, &ace->hbmPic))
 			{
 				transpBkg = TRUE;
 			}
 		}
 
-        if(transpBkg || ace->lpDIBSection != 0) {
+        if(transpBkg) {
             int mode = bminfo.bmBitsPixel == 32 ? 1 : 0;
             if (PreMultiply(ace->hbmPic, mode))
 			{
@@ -1452,8 +1437,7 @@ int SetMyAvatar(WPARAM wParam, LPARAM lParam)
         
     // file exists...
 
-	LPVOID lpDIBSection;
-	HBITMAP hBmp = LoadAnyImage(szFinalName, &lpDIBSection);
+	HBITMAP hBmp = LoadAnyImage(szFinalName);
     if (hBmp == 0)
 		return -4;
 
@@ -1685,8 +1669,6 @@ int DeleteAvatar(HANDLE hContact)
 	EnterCriticalSection(&cachecs);
 	while(pNode) {
         if(pNode->ace.hContact == hContact) {
-            if(pNode->ace.lpDIBSection != NULL && ImgDeleteDIBSection)
-                ImgDeleteDIBSection(pNode->ace.lpDIBSection);
             if(pNode->ace.hbmPic != 0)
                 DeleteObject(pNode->ace.hbmPic);
             ZeroMemory((void *)&pNode->ace, sizeof(struct avatarCacheEntry));
@@ -1719,8 +1701,6 @@ int ChangeAvatar(HANDLE hContact)
 	EnterCriticalSection(&cachecs);
 	while(pNode) {
         if(pNode->ace.hContact == hContact) {
-            if(pNode->ace.lpDIBSection && ImgDeleteDIBSection)
-                ImgDeleteDIBSection(pNode->ace.lpDIBSection);
             if(pNode->ace.hbmPic != 0)
                 DeleteObject(pNode->ace.hbmPic);
             ZeroMemory((void *)&pNode->ace, sizeof(struct avatarCacheEntry));
@@ -1875,8 +1855,6 @@ static void ReloadMyAvatar(LPVOID lpParam)
 	Sleep(5000);
 	for(int i = 0; i < g_protocount; i++) {
 		if(!strcmp(g_MyAvatars[i].szProtoname, szProto) && lstrlenA(szProto) == lstrlenA(g_MyAvatars[i].szProtoname)) {
-			if(g_MyAvatars[i].lpDIBSection && ImgDeleteDIBSection)
-				ImgDeleteDIBSection(g_MyAvatars[i].lpDIBSection);
 			if(g_MyAvatars[i].hbmPic)
 				DeleteObject(g_MyAvatars[i].hbmPic);
 
@@ -1951,8 +1929,6 @@ static int ContactDeleted(WPARAM wParam, LPARAM lParam)
     EnterCriticalSection(&cachecs);
 	while(pNode) {
         if(pNode->ace.hContact == (HANDLE)wParam) {
-            if(pNode->ace.lpDIBSection && ImgDeleteDIBSection)
-                ImgDeleteDIBSection(pNode->ace.lpDIBSection);
             if(pNode->ace.hbmPic != 0)
                 DeleteObject(pNode->ace.hbmPic);
             ZeroMemory((void *)&pNode->ace, sizeof(struct avatarCacheEntry));
@@ -2016,8 +1992,6 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 
 	struct CacheNode *pNode = g_Cache;
 	while(pNode) {
-        if(pNode->ace.lpDIBSection && ImgDeleteDIBSection)
-            ImgDeleteDIBSection(pNode->ace.lpDIBSection);
         if(pNode->ace.hbmPic != 0)
             DeleteObject(pNode->ace.hbmPic);
 		pNode = pNode->pNextNode;
@@ -2027,13 +2001,8 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 		free(g_cacheBlocks[i]);
 
 	for(int i = 0; i < g_protocount; i++) {
-        if(g_ProtoPictures[i].lpDIBSection && ImgDeleteDIBSection)
-            ImgDeleteDIBSection(g_ProtoPictures[i].lpDIBSection);
         if(g_ProtoPictures[i].hbmPic != 0)
             DeleteObject(g_ProtoPictures[i].hbmPic);
-
-		if(g_MyAvatars[i].lpDIBSection && ImgDeleteDIBSection)
-			ImgDeleteDIBSection(g_MyAvatars[i].lpDIBSection);
 		if(g_MyAvatars[i].hbmPic != 0)
 			DeleteObject(g_MyAvatars[i].hbmPic);
     }
@@ -2189,7 +2158,7 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
 
 static int LoadAvatarModule()
 {
-    HMODULE hModule;
+//    HMODULE hModule;
 
 	HookEvent(ME_OPT_INITIALISE, OptInit);
     HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
@@ -2215,25 +2184,6 @@ static int LoadAvatarModule()
 
     InitializeCriticalSection(&avcs);
     InitializeCriticalSection(&cachecs);
-
-    /*
-     * initialize imgdecoder (if available)
-     */
-    
-    if((hModule = LoadLibraryA("imgdecoder.dll")) == 0) {
-        if((hModule = LoadLibraryA("plugins\\imgdecoder.dll")) != 0)
-            g_imgDecoderAvail = TRUE;
-    }
-    else
-        g_imgDecoderAvail = TRUE;
-
-    if(hModule) {
-        ImgNewDecoder = (pfnImgNewDecoder )GetProcAddress(hModule, "ImgNewDecoder");
-        ImgDeleteDecoder=(pfnImgDeleteDecoder )GetProcAddress(hModule, "ImgDeleteDecoder");
-        ImgNewDIBFromFile=(pfnImgNewDIBFromFile)GetProcAddress(hModule, "ImgNewDIBFromFile");
-        ImgDeleteDIBSection=(pfnImgDeleteDIBSection)GetProcAddress(hModule, "ImgDeleteDIBSection");
-        ImgGetHandle=(pfnImgGetHandle)GetProcAddress(hModule, "ImgGetHandle");
-    }
 
     CallService(MS_DB_GETPROFILEPATH, MAX_PATH, (LPARAM)g_szDBPath);
 

@@ -7,57 +7,48 @@ using namespace Gdiplus;
 
 INT GetEncoderClsid(const WCHAR* format, CLSID* pClsid);  // helper function
 
-
-
-HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename)
+// Correct alpha from bitmaps loaded without it (it cames with 0 and should be 255)
+void CorrectBitmap32Alpha(HBITMAP hBitmap)
 {
-    LPVOID imgDecoder = NULL;
-    LPVOID pImg = NULL;
-    HBITMAP hBitmap = 0;
-    LPVOID pBitmapBits = NULL;
-    LPVOID m_pImgDecoder = NULL;
+	BITMAP bmp;
+	DWORD dwLen;
+	BYTE *p;
+	int x, y;
 
-    if(!g_imgDecoderAvail)
-        return 0;
-    
-    ImgNewDecoder(&m_pImgDecoder);
-	if (!ImgNewDIBFromFile(m_pImgDecoder, szFilename, &pImg)) {
-		if(pImg)
-			ImgGetHandle(pImg, &hBitmap, (LPVOID *)&pBitmapBits);
-	}
-    ImgDeleteDecoder(m_pImgDecoder);
-    if(hBitmap == 0)
-        return 0;
-    ace->hbmPic = hBitmap;
-    ace->lpDIBSection = pImg;
-    return hBitmap;
+	GetObject(hBitmap, sizeof(bmp), &bmp);
+
+	if (bmp.bmBitsPixel != 32)
+		return;
+
+	dwLen = bmp.bmWidth * bmp.bmHeight * (bmp.bmBitsPixel / 8);
+	p = (BYTE *)malloc(dwLen);
+	if (p == NULL)
+		return;
+	memset(p, 0, dwLen);
+
+	GetBitmapBits(hBitmap, dwLen, p);
+
+	for (y = 0; y < bmp.bmHeight; ++y) {
+        BYTE *px = p + bmp.bmWidth * 4 * y;
+
+        for (x = 0; x < bmp.bmWidth; ++x) 
+		{
+			px[3] = 255;
+            px += 4;
+        }
+    }
+
+	SetBitmapBits(hBitmap, bmp.bmWidth * bmp.bmHeight * 4, p);
+
+	free(p);
 }
 
 
-HBITMAP LoadAnyImage(char *szFilename, LPVOID *lpDIBSection)
+HBITMAP LoadAnyImage(char *szFilename)
 {
-	HBITMAP hBmp;
-    char *szExt = &szFilename[lstrlenA(szFilename) - 4];
-
-    if(!(!_stricmp(szExt, ".jpg") || (!_stricmp(szExt, ".gif") && !g_imgDecoderAvail) || !_stricmp(szExt, ".bmp") || !_stricmp(szExt, ".dat"))) {
-		// Gif too can have transparency... image decoder today cant load it, but a gif with tranpsarency load by imagedecoder seens better than
-		// one loaded from MS_UTILS_LOADBITMAP
-        if(!_stricmp(szExt, ".png") || !_stricmp(szExt, ".gif")) { 
-            struct avatarCacheEntry ace_private = {0};
-            
-            hBmp = LoadPNG(&ace_private, szFilename);
-            if(hBmp == 0)
-                return 0;
-            *lpDIBSection = ace_private.lpDIBSection;
-        }
-        else
-            return 0;
-    }
-    else {
-        hBmp = (HBITMAP)CallService(MS_UTILS_LOADBITMAP, 0, (LPARAM)szFilename);
-        *lpDIBSection = NULL;
-    }
-
+	HBITMAP hBmp = (HBITMAP)CallService(MS_UTILS_LOADBITMAP, 0, (LPARAM)szFilename);
+	// TODO: Remove this when core miranda adds LR_CREATEDIBSECTION to LoadImageA
+	CorrectBitmap32Alpha(hBmp);
 	return hBmp;
 }
 

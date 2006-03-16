@@ -100,20 +100,6 @@ __inline char * mir_strdup(const char *src)
     return p;
 }
 
-typedef  DWORD  (__stdcall *pfnImgNewDecoder)(void ** ppDecoder); 
-typedef DWORD (__stdcall *pfnImgDeleteDecoder)(void * pDecoder);
-typedef  DWORD  (__stdcall *pfnImgNewDIBFromFile)(LPVOID /*in*/pDecoder, LPCSTR /*in*/pFileName, LPVOID /*out*/*pImg);
-typedef DWORD (__stdcall *pfnImgDeleteDIBSection)(LPVOID /*in*/pImg);
-typedef DWORD (__stdcall *pfnImgGetHandle)(LPVOID /*in*/pImg, HBITMAP /*out*/*pBitmap, LPVOID /*out*/*ppDIBBits);
-
-extern BOOL g_imgDecoderAvail;
-
-extern pfnImgNewDecoder ImgNewDecoder;
-extern pfnImgDeleteDecoder ImgDeleteDecoder;
-extern pfnImgNewDIBFromFile ImgNewDIBFromFile;
-extern pfnImgDeleteDIBSection ImgDeleteDIBSection;
-extern pfnImgGetHandle ImgGetHandle;
-
 struct protoPicCacheEntry {
     DWORD cbSize;                   // set to sizeof(struct)
     HANDLE hContact;                // contacts handle, 0, if it is a protocol avatar
@@ -123,7 +109,6 @@ struct protoPicCacheEntry {
     time_t t_lastAccess;            // last access time (currently unused, but plugins should still
                                     // use it whenever they access the avatar. may be used in the future
                                     // to implement cache expiration
-    LPVOID lpDIBSection;
     char szFilename[MAX_PATH];      // filename of the avatar (absolute path)
     char szProtoname[100];
 };

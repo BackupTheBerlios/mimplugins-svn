@@ -45,12 +45,6 @@ extern HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename);
 
 static BOOL dialoginit = TRUE;
 
-extern pfnImgNewDecoder ImgNewDecoder;
-extern pfnImgDeleteDecoder ImgDeleteDecoder;
-extern pfnImgNewDIBFromFile ImgNewDIBFromFile;
-extern pfnImgDeleteDIBSection ImgDeleteDIBSection;
-extern pfnImgGetHandle ImgGetHandle;
-
 static void RemoveProtoPic(const char *szProto)
 {
     DBDeleteContactSetting(NULL, PPICT_MODULE, szProto);
@@ -58,8 +52,6 @@ static void RemoveProtoPic(const char *szProto)
     if(szProto) {
         for(int i = 0; i < g_protocount; i++) {
             if(g_ProtoPictures[i].szProtoname != NULL && !strcmp(g_ProtoPictures[i].szProtoname, szProto)) {
-                if(g_ProtoPictures[i].lpDIBSection != 0 && ImgDeleteDIBSection)
-                    ImgDeleteDIBSection(g_ProtoPictures[i].lpDIBSection);
                 if(g_ProtoPictures[i].hbmPic != 0)
                     DeleteObject(g_ProtoPictures[i].hbmPic);
                 ZeroMemory((void *)&g_ProtoPictures[i], sizeof(struct avatarCacheEntry));
@@ -103,8 +95,6 @@ static void SetProtoPic(char *szProto)
                 if(lstrlenA(g_ProtoPictures[i].szProtoname) == 0)
                     break;
                 if(!strcmp(g_ProtoPictures[i].szProtoname, szProto) && lstrlenA(g_ProtoPictures[i].szProtoname) == lstrlenA(szProto)) {
-                    if(g_ProtoPictures[i].lpDIBSection && ImgDeleteDIBSection)
-                        ImgDeleteDIBSection(g_ProtoPictures[i].lpDIBSection);
                     if(g_ProtoPictures[i].hbmPic != 0) 
                         DeleteObject(g_ProtoPictures[i].hbmPic);
                     ZeroMemory((void *)&g_ProtoPictures[i], sizeof(struct protoPicCacheEntry));
