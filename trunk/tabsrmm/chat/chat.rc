@@ -30,9 +30,9 @@ IDD_CHANNEL DIALOGEX 0, 0, 252, 140
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_CLIPCHILDREN
 FONT 8, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
-    CONTROL         "",IDC_CHAT_MESSAGE,"RichEdit20A",ES_MULTILINE | ES_AUTOVSCROLL | 
-						ES_NOHIDESEL | ES_WANTRETURN |  
-						WS_VSCROLL | WS_TABSTOP,0,128,127,12,WS_EX_STATICEDGE
+    CONTROL         "",IDC_SPLITTERX,"Static",SS_ENHMETAFILE,172,23,10,73
+    CONTROL         "",IDC_SPLITTERY,"Static",SS_ENHMETAFILE,0,132,251,6
+    CONTROL         "",IDC_CHAT_MESSAGE,"RichEdit20A",ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL | ES_WANTRETURN | WS_VSCROLL | WS_TABSTOP,0,128,127,12,WS_EX_STATICEDGE
     PUSHBUTTON      "&Send",IDOK,136,126,115,14,WS_DISABLED
     CONTROL         "",IDC_SMILEY,"TSButtonClass",WS_DISABLED | WS_TABSTOP,112,108,14,13,0x18000000L
     CONTROL         "",IDC_CHAT_BOLD,"TSButtonClass",WS_DISABLED | WS_TABSTOP,8,108,14,13,0x18000000L
@@ -46,8 +46,6 @@ BEGIN
     CONTROL         "",IDC_SHOWNICKLIST,"TSButtonClass",WS_TABSTOP,220,108,14,13,0x18000000L
     CONTROL         "",IDC_CLOSE,"TSButtonClass",WS_TABSTOP,236,108,14,13,0x18000000L
     CONTROL         "",IDC_CHAT_LOG,"RichEdit20A",ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,8,23,164,73,WS_EX_STATICEDGE
-    CONTROL         "",IDC_SPLITTERX,"Static",SS_ENHMETAFILE,172,23,10,73,WS_EX_STATICEDGE
-    CONTROL         "",IDC_SPLITTERY,"Static",SS_ENHMETAFILE,0,132,251,6
     LISTBOX         IDC_LIST,182,23,69,73,LBS_OWNERDRAWFIXED | LBS_NOINTEGRALHEIGHT | LBS_NODATA | NOT WS_BORDER | WS_VSCROLL | WS_TABSTOP,WS_EX_STATICEDGE
 END
 
@@ -140,44 +138,55 @@ BEGIN
 END
 
 IDD_OPTIONS2 DIALOGEX 0, 0, 300, 240
-STYLE DS_SETFONT | WS_POPUP | WS_VISIBLE
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE
 EXSTYLE WS_EX_CONTROLPARENT
 FONT 8, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
-    LISTBOX         IDC_FONTLIST,10,12,134,88,LBS_OWNERDRAWVARIABLE | LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "",IDC_FONTCOLOR,"ColourPicker",WS_TABSTOP,148,25,20,14,0x18000000L
-    CONTROL         "Custom1",IDC_LOGBKG,"ColourPicker",WS_TABSTOP,266,12,20,14
-    CONTROL         "Custom1",IDC_MESSAGEBKG,"ColourPicker",WS_TABSTOP,266,28,20,14
-    CONTROL         "Custom1",IDC_NICKLISTBKG,"ColourPicker",WS_TABSTOP,266,44,20,14
-    EDITTEXT        IDC_OUTSTAMP,10,126,35,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_INSTAMP,60,126,35,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_TIMESTAMP,118,126,81,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_LOGTIMESTAMP,205,126,81,14,ES_AUTOHSCROLL
-    CONTROL         "Enable highlighting",IDC_HIGHLIGHT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,153,118,10
-    EDITTEXT        IDC_LOGLIMIT,248,151,38,14,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "Spin1",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS | UDS_HOTTRACK,281,151,11,14
-    EDITTEXT        IDC_HIGHLIGHTWORDS,10,174,276,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_LOGDIRECTORY,10,212,211,14,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "...",IDC_FONTCHOOSE,221,212,19,14
-    EDITTEXT        IDC_LIMIT,248,212,38,14,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "Spin1",IDC_SPIN3,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS | UDS_HOTTRACK,281,212,11,14
-    GROUPBOX        "Fonts 'n Colors",IDC_STATIC,1,1,294,107
-    GROUPBOX        "Log Options",IDC_STATIC,1,108,294,130
-    LTEXT           "Log background",IDC_STATIC,183,15,80,8
-    LTEXT           "Message background",IDC_STATIC,183,31,81,8
-    LTEXT           "Userlist background",IDC_STATIC,183,47,81,8
-    LTEXT           "Timestamp",IDC_STATIC,118,118,78,8
-    LTEXT           "Other name",IDC_STATIC,60,118,57,8
-    LTEXT           "Your name",IDC_STATIC,10,118,50,8
-    LTEXT           "Limit log text to (events):",IDC_STATIC,144,154,101,8
-    LTEXT           "Trim to (kB)",IDC_STATIC,248,204,38,8
-    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,10,145,276,1
-    LTEXT           "Log timestamp",IDC_STATIC,205,118,81,8
-    LTEXT           "Words to highlight (wildcards allowed)",IDC_STATIC,10,166,240,8
-    LTEXT           "Log directory",IDC_STATIC,10,204,211,8
+    LISTBOX         IDC_FONTLIST,10,33,134,83,LBS_OWNERDRAWVARIABLE | LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_FONTCOLOR,"ColourPicker",WS_TABSTOP,148,32,20,14,0x18000000L
+    CONTROL         "Custom1",IDC_LOGBKG,"ColourPicker",WS_TABSTOP,266,12,22,10
+    CONTROL         "Custom1",IDC_MESSAGEBKG,"ColourPicker",WS_TABSTOP,266,27,22,10
+    CONTROL         "Custom1",IDC_NICKLISTBKG,"ColourPicker",WS_TABSTOP,266,42,22,10
+    EDITTEXT        IDC_OUTSTAMP,10,140,35,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_INSTAMP,60,140,35,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_TIMESTAMP,118,140,81,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LOGTIMESTAMP,205,140,81,14,ES_AUTOHSCROLL
+    CONTROL         "Enable highlighting",IDC_HIGHLIGHT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,162,118,10
+    EDITTEXT        IDC_LOGLIMIT,248,160,38,14,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Spin1",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS | UDS_HOTTRACK,281,160,11,14
+    EDITTEXT        IDC_HIGHLIGHTWORDS,10,183,276,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LOGDIRECTORY,10,219,211,14,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "...",IDC_FONTCHOOSE,221,219,19,14
+    EDITTEXT        IDC_LIMIT,248,219,38,14,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Spin1",IDC_SPIN3,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS | UDS_HOTTRACK,281,219,11,14
+    GROUPBOX        "Fonts 'n Colors",IDC_STATIC,1,0,294,120
+    GROUPBOX        "Log Options",IDC_STATIC,1,121,294,118
+    LTEXT           "Log background",IDC_STATIC,180,14,81,10
+    LTEXT           "Message background",IDC_STATIC,180,28,81,10
+    LTEXT           "Userlist background",IDC_STATIC,180,43,81,10
+    LTEXT           "Timestamp",IDC_STATIC,118,130,78,8
+    LTEXT           "Other name",IDC_STATIC,60,130,57,8
+    LTEXT           "Your name",IDC_STATIC,10,130,50,8
+    LTEXT           "Limit log text to (events):",IDC_STATIC,144,163,101,8
+    LTEXT           "Trim to (kB)",IDC_STATIC,248,211,38,8
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,10,157,276,1
+    LTEXT           "Log timestamp",IDC_STATIC,205,130,81,8
+    LTEXT           "Words to highlight (wildcards allowed)",IDC_STATIC,10,175,240,8
+    LTEXT           "Log directory",IDC_STATIC,10,211,211,8
     CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDVERT,176,12,1,88
-    PUSHBUTTON      "...",IDC_CHOOSEFONT,148,51,20,14
-    CONTROL         "Enable logging to disk",IDC_LOGGING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,193,211,10
+    PUSHBUTTON      "...",IDC_CHOOSEFONT,148,58,20,14
+    CONTROL         "Enable logging to disk",IDC_LOGGING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,200,211,10
+    CONTROL         "Fonts used for instant message sessions",IDC_FONTSIM,
+                    "Button",BS_AUTORADIOBUTTON,16,12,152,10
+    CONTROL         "Fonts used for chat rooms",IDC_FONTSCHAT,"Button",BS_AUTORADIOBUTTON,16,23,152,10
+    CONTROL         "",IDC_INFOPANELBG,"ColourPicker",WS_TABSTOP,266,57,22,10
+    LTEXT           "Info panel fields",IDC_STATIC,180,58,81,10
+    CONTROL         "",IDC_GRIDLINES,"ColourPicker",WS_TABSTOP,266,72,22,10
+    LTEXT           "Horizontal grid lines:",IDC_STATIC,180,72,81,10
+    CONTROL         "",IDC_BKGOUTGOING,"ColourPicker",WS_TABSTOP,266,87,22,10
+    CONTROL         "",IDC_BKGINCOMING,"ColourPicker",WS_TABSTOP,266,102,22,10
+    LTEXT           "Outgoing background:",IDC_STATIC,180,88,81,10
+    LTEXT           "Incoming background:",IDC_STATIC,180,102,81,10
 END
 
 IDD_OPTIONSPOPUP DIALOGEX 0, 0, 277, 177
@@ -299,6 +308,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
+IDI_TOPICBUT            ICON                    "Icons\\topicbut.ico"
 IDI_JOIN                ICON                    "Icons\\join.ico"
 IDI_TOPIC               ICON                    "Icons\\topic.ico"
 IDI_ADDSTATUS           ICON                    "Icons\\addmode.ico"
@@ -313,12 +323,9 @@ IDI_REMSTATUS           ICON                    "Icons\\removestatus.ico"
 IDI_HIGHLIGHT           ICON                    "Icons\\highlight.ico"
 IDI_MESSAGEOUT          ICON                    "Icons\\messageout.ico"
 IDI_ACTION              ICON                    "Icons\\action.ico"
-IDI_TOPICBUT            ICON                    "Icons\\topicbut.ico"
 IDI_BKGCOLOR            ICON                    "Icons\\bkgcolor.ico"
 IDI_CHANMGR             ICON                    "Icons\\window.ico"
-IDI_COLOR               ICON                    "Icons\\color.ico"
 IDI_FILTER              ICON                    "Icons\\filter.ico"
-IDI_NICKLIST            ICON                    "Icons\\nicklist.ico"
 IDI_BLANK               ICON                    "Icons\\blank.ico"
 IDI_STATUS3             ICON                    "Icons\\4.ico"
 IDI_STATUS2             ICON                    "Icons\\3.ico"
@@ -327,7 +334,6 @@ IDI_STATUS1             ICON                    "Icons\\2.ico"
 IDI_STATUS0             ICON                    "Icons\\1.ico"
 IDI_STATUS5             ICON                    "Icons\\6.ico"
 IDI_OVERLAY             ICON                    "Icons\\overlay.ico"
-IDI_NICKLIST2           ICON                    "Icons\\nicklist2.ico"
 IDI_FILTER2             ICON                    "Icons\\filter2.ico"
 
 #ifdef APSTUDIO_INVOKED

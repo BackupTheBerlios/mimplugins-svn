@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // The code for streaming the text is to a large extent copied from
 // the srmm module and then modified to fit the chat module.
 
-extern FONTINFO aFonts[OPTIONS_FONTCOUNT];
-extern HICON	hIcons[30];
-extern BOOL		SmileyAddInstalled;
+extern FONTINFO		aFonts[OPTIONS_FONTCOUNT];
+extern HICON		hIcons[30];
+extern MYGLOBALS	myGlobals;
 
 static PBYTE pLogIconBmpBits[14];
 static int logIconBmpSize[sizeof(pLogIconBmpBits) / sizeof(pLogIconBmpBits[0])];
@@ -598,7 +598,7 @@ void Log_StreamInEvent(HWND hwndDlg,  LOGINFO* lin, SESSION_INFO* si, BOOL bRedr
 
 		// do smileys
 		SendMessage(hwndRich, EM_EXGETSEL, (WPARAM)0, (LPARAM)&newsel);
-		if (SmileyAddInstalled && (bRedraw 
+		if (myGlobals.g_SmileyAddAvail && (bRedraw 
 						|| (lin->pszText 
 			             && lin->iType != GC_EVENT_JOIN
 			             && lin->iType != GC_EVENT_NICK

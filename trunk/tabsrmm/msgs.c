@@ -29,29 +29,21 @@ $Id: msgs.c,v 1.160 2006/01/06 12:10:46 ghazan Exp $
 #include "msgdlgutils.h"
 #include "m_popup.h"
 #include "nen.h"
-#include "m_smileyadd.h"
 #include "m_ieview.h"
 #include "m_metacontacts.h"
-#include "IcoLib.h"
 #include "functions.h"
 #include "m_toptoolbar.h"
 #include "m_fontservice.h"
-#include "../../include/m_clc.h"
-#include "../../include/m_clui.h"
 #include "m_updater.h"
 #include "m_avatars.h"
+#include "chat/chat.h"
 
 #ifdef __MATHMOD_SUPPORT
-//mathMod begin
-#define QUESTIONMathExists "req_Is_MathModule_Installed"
-#define ANSWERMathExists "automaticAnswer:MathModule_Is_Installed"
-#define REPORTMathModuleInstalled_SERVICENAME "MATHMODULE_SEND_INSTALLED"
-#define MTH_GETBITMAP "Math/GetBitmap"
-#include <windows.h>
-#include "../../include/m_protomod.h"
-#include "../../include/m_protosvc.h"
-#include "m_MathModule.h"
-//mathMod end
+    #define QUESTIONMathExists "req_Is_MathModule_Installed"
+    #define ANSWERMathExists "automaticAnswer:MathModule_Is_Installed"
+    #define REPORTMathModuleInstalled_SERVICENAME "MATHMODULE_SEND_INSTALLED"
+    #define MTH_GETBITMAP "Math/GetBitmap"
+    #include "m_MathModule.h"
 #endif
 
 MYGLOBALS myGlobals;
@@ -70,8 +62,6 @@ static HANDLE hEventSmileyAdd = 0;
 HANDLE *hMsgMenuItem = NULL;
 int hMsgMenuItemCount = 0;
 
-
-extern HINSTANCE g_hInst;
 HMODULE hDLL;
 PSLWA pSetLayeredWindowAttributes = 0;
 PULW pUpdateLayeredWindow = 0;
@@ -79,42 +69,27 @@ PFWEX MyFlashWindowEx = 0;
 PAB MyAlphaBlend = 0;
 PGF MyGradientFill = 0;
 
-extern struct ContainerWindowData *pFirstContainer;
-extern BOOL CALLBACK DlgProcUserPrefs(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-DWORD g_gdiplusToken = 0;
-BOOL gdiPlusFail = FALSE;
-
-// send jobs...
-
-extern struct SendJob sendJobs[NR_SENDJOBS];
+extern      struct ContainerWindowData *pFirstContainer;
+extern      BOOL CALLBACK DlgProcUserPrefs(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+extern      int g_chat_integration_enabled;
+extern      struct SendJob sendJobs[NR_SENDJOBS];
+extern      struct MsgLogIcon msgLogIcons[NR_LOGICONS * 3];
+extern      HINSTANCE g_hInst;
 
 HANDLE g_hEvent_MsgWin;
 
-HICON LoadOneIcon(int iconId, char *szName);
-
-extern struct MsgLogIcon msgLogIcons[NR_LOGICONS * 3];
-
-int _log(const char *fmt, ...);
-struct ContainerWindowData *CreateContainer(const TCHAR *name, int iTemp, HANDLE hContactFrom);
-int GetTabIndexFromHWND(HWND hwndTab, HWND hwnd);
-
-struct ContainerWindowData *FindContainerByName(const TCHAR *name);
-struct ContainerWindowData *FindMatchingContainer(const TCHAR *name, HANDLE hContact);
-
-int GetContainerNameForContact(HANDLE hContact, TCHAR *szName, int iNameLen);
 HMENU BuildContainerMenu();
 BOOL CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 static struct MsgLogIcon ttb_Slist = {0}, ttb_Traymenu = {0};
 
 HMODULE g_hIconDLL = 0;
-// nls stuff...
 
 void BuildCodePageList();
 int tabSRMM_ShowPopup(WPARAM wParam, LPARAM lParam, WORD eventType, int windowOpen, struct ContainerWindowData *pContainer, HWND hwndChild, char *szProto, struct MessageWindowData *dat);
 int FS_ReloadFonts(WPARAM wParam, LPARAM lParam);
 void FS_RegisterFonts();
 void FirstTimeConfig();
-void IMG_FreeDecoder(), tQHTM_Free(), tQHTM_Init();
+void IMG_FreeDecoder();
 void RegisterContainer();
 
 /*
@@ -131,6 +106,8 @@ static int IEViewOptionsChanged(WPARAM wParam, LPARAM lParam)
 static int SmileyAddOptionsChanged(WPARAM wParam, LPARAM lParam)
 {
     WindowList_Broadcast(hMessageWindowList, DM_SMILEYOPTIONSCHANGED, 0, 0);
+    if(g_chat_integration_enabled)
+        SM_BroadcastMessage(NULL, GC_REDRAWLOG, 0, 1, FALSE);
     return 0;
 }
 
@@ -872,7 +849,7 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
         myGlobals.g_buttonBarIcons[i] = 0;
     LoadIconTheme();
     CreateImageList(TRUE);
-    
+
 #if defined(_UNICODE)
     ConvertAllToUTF8();
 #endif    
@@ -989,6 +966,7 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
 	//FirstTimeConfig();
     CacheLogFonts();
 	//tQHTM_Init();
+    Chat_ModulesLoaded();
 	return 0;
 }
 
@@ -1032,7 +1010,7 @@ int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
     while(pFirstContainer)
         SendMessage(pFirstContainer->hwnd, WM_CLOSE, 0, 1);
 
-    UnregisterClass(_T("TabSRMSG_Win"), g_hInst);
+    //UnregisterClass(_T("TabSRMSG_Win"), g_hInst);
     return 0;
 }
 
@@ -1265,7 +1243,7 @@ int LoadSendRecvMessageModule(void)
         myGlobals.hCurHyperlinkHand = LoadCursor(g_hInst, MAKEINTRESOURCE(IDC_HYPERLINKHAND));
 
     LoadTSButtonModule();
-    RegisterContainer();
+    //RegisterContainer();
     RegisterTabCtrlClass();
     ReloadGlobals();
     GetDataDir();

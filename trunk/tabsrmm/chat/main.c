@@ -27,9 +27,7 @@ HMENU			g_hMenu = NULL;
 
 FONTINFO		aFonts[OPTIONS_FONTCOUNT];
 HICON			hIcons[30];
-BOOL			SmileyAddInstalled = FALSE;
 BOOL			IEviewInstalled = FALSE;
-BOOL			PopUpInstalled = FALSE;
 HBRUSH			hEditBkgBrush = NULL;
 HBRUSH			hListBkgBrush = NULL;
 

@@ -22,17 +22,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 extern HANDLE hMessageWindowList;
 extern HIMAGELIST	hImageList;
 extern HIMAGELIST	hIconsList;
-extern BOOL			SmileyAddInstalled;
-extern BOOL			PopUpInstalled;
 extern BOOL			IEviewInstalled;
+extern int          g_chat_integration_enabled;
 
 HANDLE				hSendEvent;
 HANDLE				hBuildMenuEvent ;
-HANDLE				g_hModulesLoaded;
 HANDLE				g_hSystemPreShutdown;
 HANDLE				g_hHookContactDblClick;
 HANDLE				g_hIconsChanged;
-HANDLE				g_hSmileyOptionsChanged = NULL;
 HANDLE				g_hIconsChanged2;
 SESSION_INFO		g_TabSession;
 CRITICAL_SECTION	cs;
@@ -53,7 +50,6 @@ static HANDLE     hServiceRegister = NULL,
 void HookEvents(void)
 {
 	InitializeCriticalSection(&cs);
-	g_hModulesLoaded =			HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
 	g_hHookContactDblClick=		HookEvent(ME_CLIST_DOUBLECLICKED, CList_RoomDoubleclicked);
 	g_hSystemPreShutdown =		HookEvent(ME_SYSTEM_PRESHUTDOWN, PreShutdown);
 	g_hIconsChanged =			HookEvent(ME_SKIN_ICONSCHANGED, IconsChanged);
@@ -62,13 +58,10 @@ void HookEvents(void)
 
 void UnhookEvents(void)
 {
-	UnhookEvent(g_hModulesLoaded);
 	UnhookEvent(g_hSystemPreShutdown);
 	UnhookEvent(g_hHookContactDblClick);
 	UnhookEvent(g_hIconsChanged);
 	UnhookEvent(g_hIconsChanged2);
-	if(g_hSmileyOptionsChanged)
-		UnhookEvent(g_hSmileyOptionsChanged);
 	DeleteCriticalSection(&cs);
 	return;
 }
@@ -122,11 +115,12 @@ void TabsInit(void)
 	return;
 }
 
-int ModulesLoaded(WPARAM wParam,LPARAM lParam)
+int Chat_ModulesLoaded(WPARAM wParam,LPARAM lParam)
 {
-
-	{ //add as a known module in DB Editor ++
-
+    if(!g_chat_integration_enabled)
+        return 0;
+    
+    { 
 		char * mods[3] = {"Chat","ChatFonts"};
 		CallService("DBEditorpp/RegisterModule",(WPARAM)mods,(LPARAM)2);
 	}
@@ -136,25 +130,11 @@ int ModulesLoaded(WPARAM wParam,LPARAM lParam)
 
 	g_hIconsChanged2 =	HookEvent(ME_SKIN2_ICONSCHANGED, IconsChanged);
 
-	if(ServiceExists(MS_SMILEYADD_SHOWSELECTION))
-	{
-		SmileyAddInstalled = TRUE;
-		g_hSmileyOptionsChanged = HookEvent(ME_SMILEYADD_OPTIONSCHANGED, SmileyOptionsChanged);		
-	}
-	if(ServiceExists(MS_POPUP_ADDPOPUPEX))
-		PopUpInstalled = TRUE;
 	if (ServiceExists(MS_IEVIEW_WINDOW))
 		IEviewInstalled = TRUE;
 	CList_SetAllOffline(TRUE);
 
  	return 0;
-}
-
-
-int SmileyOptionsChanged(WPARAM wParam,LPARAM lParam)
-{
-	SM_BroadcastMessage(NULL, GC_REDRAWLOG, 0, 1, FALSE);
-	return 0;
 }
 
 int PreShutdown(WPARAM wParam,LPARAM lParam)
@@ -410,9 +390,6 @@ void AddStatus(GCEVENT * gce)
 	return;
 }
 
-
-
-
 static int DoControl(GCEVENT * gce, WPARAM wp)
 {
 	if(gce->pDest->iType == GC_EVENT_CONTROL)
@@ -568,9 +545,6 @@ static int DoControl(GCEVENT * gce, WPARAM wp)
 
 	return 0;
 }
-
-
-
 
 static void AddUser(GCEVENT * gce)
 {

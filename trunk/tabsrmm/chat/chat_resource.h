@@ -5,9 +5,7 @@
 #define IDI_TOPICBUT                    124
 #define IDI_BKGCOLOR                    125
 #define IDI_CHANMGR                     126
-#define IDI_COLOR                       127
 #define IDI_FILTER                      128
-#define IDI_NICKLIST                    130
 #define IDI_JOIN                        131
 #define IDI_PART                        132
 #define IDI_QUIT                        133
@@ -33,7 +31,6 @@
 #define IDI_STATUS0                     157
 #define IDI_STATUS5                     158
 #define IDI_OVERLAY                     160
-#define IDI_NICKLIST2                   161
 #define IDI_FILTER2                     162
 #define IDD_CHANNEL                     401
 #define IDD_OPTIONS1                    402
@@ -56,7 +53,6 @@
 #define IDC_BKGCOLOR                    1019
 #define IDC_CHECKBOXES                  1021
 #define IDC_NICKLISTBKG                 1021
-#define IDC_HISTORY                     1022
 #define IDC_CLOSE                       1023
 #define IDC_NICKROW                     1024
 #define IDC_LOGLIMIT                    1024
@@ -90,7 +86,9 @@
 #define IDC_LIST                        1072
 #define IDC_1                           1075
 #define IDC_2                           1076
+#define IDC_FONTSIM                     1076
 #define IDC_3                           1077
+#define IDC_FONTSCHAT                   1077
 #define IDC_4                           1078
 #define IDC_5                           1079
 #define IDC_6                           1080
@@ -99,6 +97,11 @@
 #define IDC_9                           1083
 #define IDC_10                          1084
 #define IDC_11                          1085
+#define IDC_HISTORY                     1111
+#define IDC_INFOPANELBG                 1124
+#define IDC_BKGOUTGOING                 1125
+#define IDC_BKGINCOMING                 1126
+#define IDC_GRIDLINES                   1127
 #define ID_MESS                         40001
 #define ID_NEW                          40002
 #define ID_CURR                         40003
@@ -126,7 +129,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        163
 #define _APS_NEXT_COMMAND_VALUE         40030
-#define _APS_NEXT_CONTROL_VALUE         1076
+#define _APS_NEXT_CONTROL_VALUE         1077
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

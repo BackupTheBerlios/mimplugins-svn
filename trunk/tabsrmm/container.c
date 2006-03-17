@@ -89,7 +89,7 @@ struct ContainerWindowData *pLastActiveContainer = NULL;
 TCHAR *MY_DBGetContactSettingString(HANDLE hContact, char *szModule, char *szSetting);
 HMENU BuildContainerMenu();
 
-static WNDPROC OldStatusBarproc;
+static WNDPROC OldStatusBarproc, OldContainerWndProc;
 
 static struct SIDEBARITEM sbarItems[] = {
     IDC_SBAR_SLIST, SBI_TOP, &myGlobals.g_sideBarIcons[0], "Session List",
@@ -742,10 +742,13 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                 int iMenuItems;
                 int i = 0;
 
-				if(myGlobals.m_TabAppearance & TCF_FLAT)
+                OldContainerWndProc = (WNDPROC)SetWindowLong(hwndDlg, GWL_WNDPROC, (LONG)ContainerWndProc);
+
+                if(myGlobals.m_TabAppearance & TCF_FLAT)
                     SetWindowLong(hwndTab, GWL_STYLE, GetWindowLong(hwndTab, GWL_STYLE) | TCS_BUTTONS);
                 pContainer = (struct ContainerWindowData *) lParam;
                 SetWindowLong(hwndDlg, GWL_USERDATA, (LONG) pContainer);
+                
                 pContainer->iLastClick = 0xffffffff;
 				pContainer->hwnd = hwndDlg;
                 dwCreateFlags = pContainer->dwFlags;
@@ -2274,6 +2277,7 @@ panel_found:
 				if (pContainer)
                     free(pContainer);
     			SetWindowLong(hwndDlg, GWL_USERDATA, 0);
+                SetWindowLong(hwndDlg, GWL_WNDPROC, (LONG)OldContainerWndProc);
                 return 0;
             }
         case WM_CLOSE: {

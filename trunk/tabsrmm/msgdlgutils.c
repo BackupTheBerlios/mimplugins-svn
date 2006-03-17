@@ -43,7 +43,6 @@ extern NEN_OPTIONS nen_options;
 extern LOGFONTA logfonts[MSGDLGFONTCOUNT + 2];
 extern COLORREF fontcolors[MSGDLGFONTCOUNT + 2];
 extern TemplateSet LTR_Active, RTL_Active;
-extern DWORD g_gdiplusToken;
 extern PAB MyAlphaBlend;
 
 extern HMODULE g_hInst;

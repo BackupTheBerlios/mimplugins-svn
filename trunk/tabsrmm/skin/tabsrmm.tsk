@@ -498,3 +498,8 @@ TitleButtonWidth = 12
 TitleButtonHeight = 12
 TitleButtonTopOffset = 7
 CaptionOffset = 6
+
+[Avatars]
+BorderType=4
+BorderColor=202020
+

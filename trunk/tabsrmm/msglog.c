@@ -169,7 +169,7 @@ void CacheLogFonts()
 
     ZeroMemory((void *)logfonts, sizeof(LOGFONTA) * MSGDLGFONTCOUNT + 2);
     for(i = 0; i < MSGDLGFONTCOUNT; i++) {
-        LoadLogfont(i, &logfonts[i], &fontcolors[i]);
+        LoadLogfont(i, &logfonts[i], &fontcolors[i], FONTMODULE);
         wsprintfA(rtfFontsGlobal[i], "\\f%u\\cf%u\\b%d\\i%d\\ul%d\\fs%u", i, i, logfonts[i].lfWeight >= FW_BOLD ? 1 : 0, logfonts[i].lfItalic, logfonts[i].lfUnderline, 2 * abs(logfonts[i].lfHeight) * 74 / logPixelSY);
     }
     wsprintfA(rtfFontsGlobal[MSGDLGFONTCOUNT], "\\f%u\\cf%u\\b%d\\i%d\\ul%d\\fs%u", MSGDLGFONTCOUNT, MSGDLGFONTCOUNT, 0, 0, 0, 0);
@@ -189,7 +189,7 @@ void CacheLogFonts()
         for(i = 0; i < IPFONTCOUNT; i++) {
             if(myGlobals.ipConfig.hFonts[i])
                 DeleteObject(myGlobals.ipConfig.hFonts[i]);
-            LoadLogfont(i + 100, &lf, &clr);
+            LoadLogfont(i + 100, &lf, &clr, FONTMODULE);
             myGlobals.ipConfig.hFonts[i] = CreateFontIndirectA(&lf);
             myGlobals.ipConfig.clrs[i] = clr;
         }

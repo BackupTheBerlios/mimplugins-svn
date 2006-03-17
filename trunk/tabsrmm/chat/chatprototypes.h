@@ -22,7 +22,7 @@ int					GetTextPixelSize(char * pszText, HFONT hFont, BOOL bWidth);
 //options.c
 int					OptionsInit(void);
 int					OptionsUnInit(void);
-void				LoadMsgDlgFont(int i, LOGFONT * lf, COLORREF * colour);
+void				LoadMsgDlgFont(int i, LOGFONT * lf, COLORREF * colour, char *szmod);
 void				LoadGlobalSettings(void);
 void				AddIcons(void);
 HICON				LoadIconEx(int iIndex, char * pszIcoLibName, int iX, int iY);

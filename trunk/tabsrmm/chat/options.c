@@ -26,9 +26,10 @@ extern HBRUSH 			hEditBkgBrush;
 extern HBRUSH 			hListBkgBrush;
 extern HICON			hIcons[30];	
 extern FONTINFO			aFonts[OPTIONS_FONTCOUNT];
-extern BOOL				PopUpInstalled;
 extern SESSION_INFO		g_TabSession;
 extern int              g_chat_integration_enabled;
+extern HANDLE			hMessageWindowList;
+extern MYGLOBALS		myGlobals;
 
 HANDLE			g_hOptions = NULL;
 
@@ -45,10 +46,12 @@ struct FontOptionsList
     TCHAR    szFace[LF_FACESIZE];
     BYTE     charset, style;
     char     size;
-}
+};
 
 //remeber to put these in the Translate( ) template file too
-static fontOptionsList[] = {
+
+
+static struct FontOptionsList CHAT_fontOptionsList[] = {
 	{_T("Timestamp"), RGB(50, 50, 240), _T("Terminal"), DEFAULT_CHARSET, 0, -8},
 	{_T("Others nicknames"), RGB(0, 0, 0), _T("Verdana"), DEFAULT_CHARSET, FONTF_BOLD, -13},
 	{_T("Your nickname"), RGB(0, 0, 0), _T("Verdana"), DEFAULT_CHARSET, FONTF_BOLD, -13},
@@ -70,7 +73,34 @@ static fontOptionsList[] = {
 	{_T("User list members (Online)"), RGB(0,0, 0), _T("Verdana"), DEFAULT_CHARSET, 0, -12},
 	{_T("User list members (away)"), RGB(170, 170, 170), _T("Verdana"), DEFAULT_CHARSET, 0, -12},
 };
-const int msgDlgFontCount = SIZEOF(fontOptionsList);
+const int msgDlgFontCount = SIZEOF(CHAT_fontOptionsList);
+
+static struct FontOptionsList IM_fontOptionsList[] = {
+	{_T(">> Outgoing messages"), RGB(50, 50, 240), _T("Terminal"), DEFAULT_CHARSET, 0, -8},
+	{_T(">> Outgoing misc events"), RGB(0, 0, 0), _T("Verdana"), DEFAULT_CHARSET, FONTF_BOLD, -13},
+	{_T("<< Incoming messages"), RGB(0, 0, 0), _T("Verdana"), DEFAULT_CHARSET, FONTF_BOLD, -13},
+	{_T("<< Incoming misc events"), RGB(90, 160, 90), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T(">> Outgoing name"), RGB(160, 160, 90), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T(">> Outgoing timestamp"), RGB(160, 90, 90), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T("<< Incoming name"), RGB(100, 100, 100), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T("<< Incoming timestamp"), RGB(90, 90, 160), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T(">> Outgoing messages (old)"), RGB(160, 130, 60), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T(">> Outgoing misc events (old)"), RGB(90, 90, 90), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T("<< Incoming messages (old)"), RGB(90, 90, 90), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T("<< Incoming misc events (old)"), RGB(70, 70, 160), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T(">> Outgoing name (old)"), RGB(130, 130, 195), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T(">> Outgoing time (old)"), RGB(70, 150, 70), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T("<< Incoming name (old)"), RGB(150, 70, 70), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T("<< Incoming time (old)"), RGB(160, 90, 160), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T("* Message Input Area"), RGB(180, 150, 80), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+	{_T("* Status changes"), RGB(0, 0, 40), _T("Verdana"), DEFAULT_CHARSET, 0, -14},
+	{_T("* Dividers"), RGB(0,0, 0), _T("Verdana"), DEFAULT_CHARSET, 0, -12},
+	{_T("* Error and warning Messages"), RGB(170, 170, 170), _T("Verdana"), DEFAULT_CHARSET, 0, -12},
+    {_T("* Symbols (incoming)"), RGB(170, 170, 170), _T("Verdana"), DEFAULT_CHARSET, 0, -12},
+    {_T("* Symbols (outgoing)"), RGB(170, 170, 170), _T("Verdana"), DEFAULT_CHARSET, 0, -12},
+};
+
+static struct FontOptionsList *fontOptionsList = CHAT_fontOptionsList;
 
 struct branch_t
 {
@@ -167,6 +197,45 @@ static struct branch_t branch6[] = {
 	{_T("Show pop-up for status changes"), "PopupFlags", GC_EVENT_ADDSTATUS, 0, NULL},
 };
 
+
+void LoadMsgDlgFont(int i, LOGFONT *lf, COLORREF* colour, char *szMod)
+{
+    char str[32];
+    int style;
+    DBVARIANT dbv;
+
+    if (colour) {
+        wsprintfA(str, "Font%dCol", i);
+        *colour = DBGetContactSettingDword(NULL, szMod, str, fontOptionsList[i].defColour);
+    }
+    if (lf) {
+        wsprintfA(str, "Font%dSize", i);
+        lf->lfHeight = (char) DBGetContactSettingByte(NULL, szMod, str, fontOptionsList[i].defSize);
+        lf->lfWidth = 0;
+        lf->lfEscapement = 0;
+        lf->lfOrientation = 0;
+        wsprintfA(str, "Font%dSty", i);
+        style = DBGetContactSettingByte(NULL, szMod, str, fontOptionsList[i].defStyle);
+        lf->lfWeight = style & FONTF_BOLD ? FW_BOLD : FW_NORMAL;
+        lf->lfItalic = style & FONTF_ITALIC ? 1 : 0;
+        lf->lfUnderline = 0;
+        lf->lfStrikeOut = 0;
+        wsprintfA(str, "Font%dSet", i);
+        lf->lfCharSet = DBGetContactSettingByte(NULL, szMod, str, fontOptionsList[i].defCharset);
+        lf->lfOutPrecision = OUT_DEFAULT_PRECIS;
+        lf->lfClipPrecision = CLIP_DEFAULT_PRECIS;
+        lf->lfQuality = DEFAULT_QUALITY;
+        lf->lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
+        wsprintfA(str, "Font%d", i);
+        if (DBGetContactSettingTString(NULL, szMod, str, &dbv)) {
+            lstrcpy(lf->lfFaceName, fontOptionsList[i].szDefFace);
+        }
+        else {
+            lstrcpyn(lf->lfFaceName, dbv.ptszVal, SIZEOF(lf->lfFaceName));
+            DBFreeVariant(&dbv);
+        }
+    }
+}
 
 static HTREEITEM InsertBranch(HWND hwndTree, TCHAR* pszDescr, BOOL bExpanded)
 {
@@ -296,57 +365,17 @@ static void LoadLogFonts(void)
 {
 	int i;
 
-	for( i = 0; i<OPTIONS_FONTCOUNT; i++)
-		LoadMsgDlgFont(i, &aFonts[i].lf, &aFonts[i].color);
-}
-
-void LoadMsgDlgFont(int i, LOGFONT* lf, COLORREF* colour)
-{
-    char str[32];
-    int style;
-    DBVARIANT dbv;
-
-    if (colour) {
-        wsprintfA(str, "Font%dCol", i);
-        *colour = DBGetContactSettingDword(NULL, "ChatFonts", str, fontOptionsList[i].defColour);
-    }
-    if (lf) {
-        wsprintfA(str, "Font%dSize", i);
-        lf->lfHeight = (char) DBGetContactSettingByte(NULL, "ChatFonts", str, fontOptionsList[i].defSize);
-        lf->lfWidth = 0;
-        lf->lfEscapement = 0;
-        lf->lfOrientation = 0;
-        wsprintfA(str, "Font%dSty", i);
-        style = DBGetContactSettingByte(NULL, "ChatFonts", str, fontOptionsList[i].defStyle);
-        lf->lfWeight = style & FONTF_BOLD ? FW_BOLD : FW_NORMAL;
-        lf->lfItalic = style & FONTF_ITALIC ? 1 : 0;
-        lf->lfUnderline = 0;
-        lf->lfStrikeOut = 0;
-        wsprintfA(str, "Font%dSet", i);
-        lf->lfCharSet = DBGetContactSettingByte(NULL, "ChatFonts", str, fontOptionsList[i].defCharset);
-        lf->lfOutPrecision = OUT_DEFAULT_PRECIS;
-        lf->lfClipPrecision = CLIP_DEFAULT_PRECIS;
-        lf->lfQuality = DEFAULT_QUALITY;
-        lf->lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
-        wsprintfA(str, "Font%d", i);
-        if (DBGetContactSettingTString(NULL, "ChatFonts", str, &dbv))
-            lstrcpy(lf->lfFaceName, fontOptionsList[i].szDefFace);
-        else {
-            lstrcpyn(lf->lfFaceName, dbv.ptszVal, sizeof(lf->lfFaceName));
-            DBFreeVariant(&dbv);
-        }
-    }
+	for( i = 0; i<OPTIONS_FONTCOUNT; i++) {
+		LoadMsgDlgFont(i, &aFonts[i].lf, &aFonts[i].color, "ChatFonts");
+	}
 }
 
 static struct _tagicons { char *szDesc; char *szName; int id; UINT size;} _icons[] = {
 	"Window Icon", "chat_window", IDI_CHANMGR, 16,
-	"Text colour", "chat_fgcol", IDI_COLOR, 16,
 	"Background colour", "chat_bkgcol", IDI_BKGCOLOR, 16,
 	"Room settings", "chat_settings", IDI_TOPICBUT, 16,
 	"Event filter disabled", "chat_filter", IDI_FILTER, 16,
 	"Event filter enabled", "chat_filter2", IDI_FILTER2, 16,
-	"Hide userlist", "chat_nicklist", IDI_NICKLIST, 16,
-	"Show userlist", "chat_nicklist2", IDI_NICKLIST2, 16,
 	"Icon overlay", "chat_overlay", IDI_OVERLAY, 16,
 	"Status 1 (10x10)", "chat_status0", IDI_STATUS0, 10,
 	"Status 2 (10x10)", "chat_status1", IDI_STATUS1, 10,
@@ -467,7 +496,7 @@ static BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 		hListHeading3 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Default events to show in new chat rooms if the \'event filter\' is enabled"), DBGetContactSettingByte(NULL, "Chat", "Branch3Exp", 0)?TRUE:FALSE);
 		hListHeading4 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Icons to display in the message log"), DBGetContactSettingByte(NULL, "Chat", "Branch4Exp", 0)?TRUE:FALSE);
 		hListHeading5 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Icons to display in the tray"), DBGetContactSettingByte(NULL, "Chat", "Branch5Exp", 0)?TRUE:FALSE);
-		if(PopUpInstalled)
+        if(myGlobals.g_PopupAvail)
 			hListHeading6 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Pop-ups to display"), DBGetContactSettingByte(NULL, "Chat", "Branch6Exp", 0)?TRUE:FALSE);
 		FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading1, branch1, SIZEOF(branch1), 0);
 		FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading2, branch2, SIZEOF(branch2), 0);
@@ -574,7 +603,7 @@ static BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 						SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch3, sizeof(branch3) / sizeof(branch3[0]));
 						SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch4, sizeof(branch4) / sizeof(branch4[0]));
 						SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch5, sizeof(branch5) / sizeof(branch5[0]));
-						if(PopUpInstalled)
+						if(myGlobals.g_PopupAvail)
 							SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch6, sizeof(branch6) / sizeof(branch6[0]));
 						g_Settings.dwIconFlags = DBGetContactSettingDword(NULL, "Chat", "IconFlags", 0x0000);
 						g_Settings.dwTrayIconFlags = DBGetContactSettingDword(NULL, "Chat", "TrayIconFlags", 0x1000);
@@ -605,7 +634,7 @@ static BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 		DBWriteContactSettingByte(NULL, "Chat", "Branch5Exp", b);
 		b = TreeView_GetItemState(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading0, TVIS_EXPANDED)&TVIS_EXPANDED?1:0;
 		DBWriteContactSettingByte(NULL, "Chat", "Branch0Exp", b);
-		if(PopUpInstalled)
+		if(myGlobals.g_PopupAvail)
 		{
 			b = TreeView_GetItemState(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading6, TVIS_EXPANDED)&TVIS_EXPANDED?1:0;
 			DBWriteContactSettingByte(NULL, "Chat", "Branch6Exp", b);
@@ -617,6 +646,23 @@ static BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 	return FALSE;
 }
 
+static void LoadFontsToList(HWND hwndDlg)
+{
+	int i;
+    LOGFONT lf;
+    char *szModule = fontOptionsList == CHAT_fontOptionsList ? "ChatFonts" : FONTMODULE;
+    
+    for (i = 0; i < (fontOptionsList == CHAT_fontOptionsList ? msgDlgFontCount : MSGDLGFONTCOUNT); i++) {
+        LoadMsgDlgFont(i, &lf, &fontOptionsList[i].colour, szModule);
+		lstrcpy(fontOptionsList[i].szFace, lf.lfFaceName);
+        fontOptionsList[i].size = (char) lf.lfHeight;
+        fontOptionsList[i].style = (lf.lfWeight >= FW_BOLD ? FONTF_BOLD : 0) | (lf.lfItalic ? FONTF_ITALIC : 0);
+        fontOptionsList[i].charset = lf.lfCharSet;
+        //I *think* some OSs will fail LB_ADDSTRING if lParam==0
+        SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_ADDSTRING, 0, i + 1);
+    }
+}
+
 static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 {
 	static HBRUSH hBkgColourBrush;
@@ -626,7 +672,8 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 	case WM_INITDIALOG:
 	{
 		char szTemp[MAX_PATH];
-
+        COLORREF defwndcol;
+        
 		TranslateDialogDefault(hwndDlg);
 		SendDlgItemMessage(hwndDlg,IDC_SPIN2,UDM_SETRANGE,0,MAKELONG(5000,0));
 		SendDlgItemMessage(hwndDlg,IDC_SPIN2,UDM_SETPOS,0,MAKELONG(DBGetContactSettingWord(NULL,"Chat","LogLimit",100),0));
@@ -655,21 +702,29 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 		EnableWindow(GetDlgItem(hwndDlg, IDC_FONTCHOOSE), g_Settings.LoggingEnabled?TRUE:FALSE);
 		EnableWindow(GetDlgItem(hwndDlg, IDC_LIMIT), g_Settings.LoggingEnabled?TRUE:FALSE);
 
-		{	int i;
-			LOGFONT lf;
-			for (i = 0; i < SIZEOF(fontOptionsList); i++) {
-				LoadMsgDlgFont(i, &lf, &fontOptionsList[i].colour);
-				lstrcpy(fontOptionsList[i].szFace, lf.lfFaceName);
-				fontOptionsList[i].size = (char) lf.lfHeight;
-				fontOptionsList[i].style = (lf.lfWeight >= FW_BOLD ? FONTF_BOLD : 0) | (lf.lfItalic ? FONTF_ITALIC : 0);
-				fontOptionsList[i].charset = lf.lfCharSet;
-				//I *think* some OSs will fail LB_ADDSTRING if lParam==0
-				SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_ADDSTRING, 0, i + 1);
-			}
-			SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_SETSEL, TRUE, 0);
-			SendDlgItemMessage(hwndDlg, IDC_FONTCOLOR, CPM_SETCOLOUR, 0, fontOptionsList[0].colour);
-			SendDlgItemMessage(hwndDlg, IDC_FONTCOLOR, CPM_SETDEFAULTCOLOUR, 0, fontOptionsList[0].defColour);
-		}
+        defwndcol = GetSysColor(COLOR_WINDOW);
+        
+        SendDlgItemMessage(hwndDlg, IDC_INFOPANELBG, CPM_SETCOLOUR, 0, DBGetContactSettingDword(NULL, FONTMODULE, "ipfieldsbg",  GetSysColor(COLOR_3DFACE)));
+        SendDlgItemMessage(hwndDlg, IDC_INFOPANELBG, CPM_SETDEFAULTCOLOUR, 0, GetSysColor(COLOR_3DFACE));
+
+        SendDlgItemMessage(hwndDlg, IDC_GRIDLINES, CPM_SETCOLOUR, 0, DBGetContactSettingDword(NULL, FONTMODULE, "hgrid",  RGB(20, 20, 20)));
+        SendDlgItemMessage(hwndDlg, IDC_GRIDLINES, CPM_SETDEFAULTCOLOUR, 0, RGB(20, 20, 20));
+
+        SendDlgItemMessage(hwndDlg, IDC_BKGINCOMING, CPM_SETCOLOUR, 0, DBGetContactSettingDword(NULL, FONTMODULE, "inbg",  defwndcol));
+        SendDlgItemMessage(hwndDlg, IDC_BKGINCOMING, CPM_SETDEFAULTCOLOUR, 0, defwndcol);
+
+        SendDlgItemMessage(hwndDlg, IDC_BKGOUTGOING, CPM_SETCOLOUR, 0, DBGetContactSettingDword(NULL, FONTMODULE, "outbg",  defwndcol));
+        SendDlgItemMessage(hwndDlg, IDC_BKGOUTGOING, CPM_SETDEFAULTCOLOUR, 0, defwndcol);
+
+        CheckDlgButton(hwndDlg, IDC_FONTSCHAT, 1);
+        
+        fontOptionsList = CHAT_fontOptionsList;
+
+        LoadFontsToList(hwndDlg);
+        
+        SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_SETSEL, TRUE, 0);
+        SendDlgItemMessage(hwndDlg, IDC_FONTCOLOR, CPM_SETCOLOUR, 0, fontOptionsList[0].colour);
+        SendDlgItemMessage(hwndDlg, IDC_FONTCOLOR, CPM_SETDEFAULTCOLOUR, 0, fontOptionsList[0].defColour);
 		break;
 	}
 	case WM_MEASUREITEM:
@@ -736,6 +791,17 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 				&& (HIWORD(wParam)!=EN_CHANGE || (HWND)lParam!=GetFocus()))	return 0;
 
 		switch (LOWORD(wParam)) {
+        case IDC_FONTSCHAT:
+        case IDC_FONTSIM:
+            {
+                if(LOWORD(wParam) == IDC_FONTSCHAT)
+                    fontOptionsList = CHAT_fontOptionsList;
+                else if(LOWORD(wParam) == IDC_FONTSIM)
+                    fontOptionsList = IM_fontOptionsList;
+                SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_RESETCONTENT, 0, 0);
+                LoadFontsToList(hwndDlg);
+                break;
+            }
 		case IDC_MESSAGEBKG:
 			DeleteObject(hMessageColourBrush);
 			hMessageColourBrush = CreateSolidBrush(SendDlgItemMessage(hwndDlg, IDC_MESSAGEBKG, CPM_GETCOLOUR, 0, 0));
@@ -791,10 +857,10 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 			cf.lpLogFont = &lf;
 			cf.Flags = CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT | CF_SCREENFONTS;
 			if (ChooseFont(&cf)) {
-				int selItems[sizeof(fontOptionsList) / sizeof(fontOptionsList[0])];
+				int selItems[sizeof(IM_fontOptionsList) / sizeof(IM_fontOptionsList[0])];
 				int sel, selCount;
 
-				selCount = SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_GETSELITEMS, sizeof(fontOptionsList) / sizeof(fontOptionsList[0]), (LPARAM) selItems);
+				selCount = SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_GETSELITEMS, MSGDLGFONTCOUNT, (LPARAM) selItems);
 				for (sel = 0; sel < selCount; sel++) {
 					i = SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_GETITEMDATA, selItems[sel], 0) - 1;
 					fontOptionsList[i].size = (char) lf.lfHeight;
@@ -845,10 +911,10 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 		}
 		case IDC_FONTCOLOR:
 		{
-			int selItems[sizeof(fontOptionsList) / sizeof(fontOptionsList[0])];
+			int selItems[sizeof(IM_fontOptionsList) / sizeof(IM_fontOptionsList[0])];
 			int sel, selCount, i;
 
-			selCount = SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_GETSELITEMS, sizeof(fontOptionsList) / sizeof(fontOptionsList[0]), (LPARAM) selItems);
+			selCount = SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_GETSELITEMS, MSGDLGFONTCOUNT, (LPARAM) selItems);
 			for (sel = 0; sel < selCount; sel++) {
 				i = SendDlgItemMessage(hwndDlg, IDC_FONTLIST, LB_GETITEMDATA, selItems[sel], 0) - 1;
 				fontOptionsList[i].colour = SendDlgItemMessage(hwndDlg, IDC_FONTCOLOR, CPM_GETCOLOUR, 0, 0);
@@ -943,6 +1009,15 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 			DBWriteContactSettingDword(NULL, "Chat", "ColorLogBG", (DWORD)SendDlgItemMessage(hwndDlg,IDC_LOGBKG,CPM_GETCOLOUR,0,0));
 			DBWriteContactSettingDword(NULL, "Chat", "ColorMessageBG", (DWORD)SendDlgItemMessage(hwndDlg,IDC_MESSAGEBKG,CPM_GETCOLOUR,0,0));
 			DBWriteContactSettingDword(NULL, "Chat", "ColorNicklistBG", (DWORD)SendDlgItemMessage(hwndDlg,IDC_NICKLISTBKG,CPM_GETCOLOUR,0,0));
+
+            DBWriteContactSettingDword(NULL, FONTMODULE, SRMSGSET_BKGCOLOUR, (DWORD)SendDlgItemMessage(hwndDlg,IDC_LOGBKG, CPM_GETCOLOUR, 0, 0));
+            DBWriteContactSettingDword(NULL, FONTMODULE, "inputbg", (DWORD)SendDlgItemMessage(hwndDlg,IDC_MESSAGEBKG, CPM_GETCOLOUR, 0, 0));
+            
+            DBWriteContactSettingDword(NULL, FONTMODULE, "hgrid", (DWORD)SendDlgItemMessage(hwndDlg,IDC_GRIDLINES, CPM_GETCOLOUR, 0, 0));
+            DBWriteContactSettingDword(NULL, FONTMODULE, "inbg", (DWORD)SendDlgItemMessage(hwndDlg,IDC_BKGINCOMING, CPM_GETCOLOUR, 0, 0));
+            DBWriteContactSettingDword(NULL, FONTMODULE, "outbg", (DWORD)SendDlgItemMessage(hwndDlg,IDC_BKGOUTGOING, CPM_GETCOLOUR, 0, 0));
+            DBWriteContactSettingDword(NULL, FONTMODULE, "ipfieldsbg", (DWORD)SendDlgItemMessage(hwndDlg,IDC_INFOPANELBG, CPM_GETCOLOUR, 0, 0));
+            
 			if(pszText != NULL)
 				free(pszText);
 			if(hEditBkgBrush)
@@ -954,17 +1029,26 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 
 			{	int i;
 				char str[32];
-				for (i = 0; i < sizeof(fontOptionsList) / sizeof(fontOptionsList[0]); i++) {
+                char *szMod = fontOptionsList == CHAT_fontOptionsList ? "ChatFonts" : FONTMODULE;
+                
+				for (i = 0; i < (fontOptionsList == CHAT_fontOptionsList ? msgDlgFontCount : MSGDLGFONTCOUNT); i++) {
 					wsprintfA(str, "Font%d", i);
-					DBWriteContactSettingTString(NULL, "ChatFonts", str, fontOptionsList[i].szFace);
+                    if(fontOptionsList == CHAT_fontOptionsList)
+                        DBWriteContactSettingTString(NULL, szMod, str, fontOptionsList[i].szFace);
+                    else {
+                        char szFacename[LF_FACESIZE];
+                        
+                        WideCharToMultiByte(CP_ACP, 0, fontOptionsList[i].szFace, -1, szFacename, LF_FACESIZE, 0, 0);
+                        DBWriteContactSettingString(NULL, szMod, str, szFacename);
+                    }
 					wsprintfA(str, "Font%dSize", i);
-					DBWriteContactSettingByte(NULL, "ChatFonts", str, fontOptionsList[i].size);
+					DBWriteContactSettingByte(NULL, szMod, str, fontOptionsList[i].size);
 					wsprintfA(str, "Font%dSty", i);
-					DBWriteContactSettingByte(NULL, "ChatFonts", str, fontOptionsList[i].style);
+					DBWriteContactSettingByte(NULL, szMod, str, fontOptionsList[i].style);
 					wsprintfA(str, "Font%dSet", i);
-					DBWriteContactSettingByte(NULL, "ChatFonts", str, fontOptionsList[i].charset);
+					DBWriteContactSettingByte(NULL, szMod, str, fontOptionsList[i].charset);
 					wsprintfA(str, "Font%dCol", i);
-					DBWriteContactSettingDword(NULL, "ChatFonts", str, fontOptionsList[i].colour);
+					DBWriteContactSettingDword(NULL, szMod, str, fontOptionsList[i].colour);
 			}	}
 
 			LoadLogFonts();
@@ -975,7 +1059,7 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 				HFONT hFont;
 				int iText;
 
-				LoadMsgDlgFont(0, &lf, NULL);
+				LoadMsgDlgFont(0, &lf, NULL, "ChatFonts");
 				hFont = CreateFontIndirect(&lf);
 				iText = GetTextPixelSize(MakeTimeStamp(g_Settings.pszTimeStamp, time(NULL)),hFont, TRUE);
 				DeleteObject(hFont);
@@ -986,6 +1070,11 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 			MM_FontsChanged();						
 			MM_FixColors();
 			SM_BroadcastMessage(NULL, GC_SETWNDPROPS, 0, 0, TRUE);
+
+            ReloadGlobals();
+            CacheMsgLogIcons();
+            CacheLogFonts();
+            WindowList_Broadcast(hMessageWindowList, DM_OPTIONSAPPLIED, 1, 0);
 			return TRUE;
 		}
 		break;
@@ -1086,13 +1175,23 @@ static BOOL CALLBACK DlgProcOptionsPopup(HWND hwndDlg,UINT uMsg,WPARAM wParam,LP
 
 int Chat_OptionsInitialize(WPARAM wParam, LPARAM lParam)
 {
-
 	OPTIONSDIALOGPAGE odp = {0};
 
-    if(!g_chat_integration_enabled)
+    ZeroMemory(&odp, sizeof(odp));
+
+    odp.cbSize = sizeof(odp);
+    odp.position = 910000001;
+    odp.hInstance = g_hInst;
+    odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS2);
+    odp.pszTitle = "Fonts and colors";
+    odp.pszGroup = "Message sessions";
+    odp.pfnDlgProc = DlgProcOptions2;
+    odp.flags = ODPF_BOLDGROUPS;
+    CallService(MS_OPT_ADDPAGE, wParam, (LPARAM)&odp);
+
+	if(!g_chat_integration_enabled)
         return 0;
     
-    ZeroMemory(&odp, sizeof(odp));
 
 	odp.cbSize = sizeof(odp);
 	odp.position = 910000000;
@@ -1104,17 +1203,7 @@ int Chat_OptionsInitialize(WPARAM wParam, LPARAM lParam)
 	odp.flags = ODPF_BOLDGROUPS;
 	CallService(MS_OPT_ADDPAGE, wParam, (LPARAM)&odp);
 
-	odp.cbSize = sizeof(odp);
-	odp.position = 910000001;
-	odp.hInstance = g_hInst;
-	odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS2);
-	odp.pszTitle = "Chat Log";
-	odp.pszGroup = "Events";
-	odp.pfnDlgProc = DlgProcOptions2;
-	odp.flags = ODPF_BOLDGROUPS;
-	CallService(MS_OPT_ADDPAGE, wParam, (LPARAM)&odp);
-
-	if(PopUpInstalled)
+	if(myGlobals.g_PopupAvail)
 	{
 		odp.cbSize = sizeof(odp);
 		odp.position = 910000002;
@@ -1185,22 +1274,20 @@ void LoadGlobalSettings(void)
 
 	if(g_Settings.MessageBoxFont)
 		DeleteObject(g_Settings.MessageBoxFont);
-	LoadMsgDlgFont(17, &lf, NULL);
+	LoadMsgDlgFont(17, &lf, NULL, "ChatFonts");
 	g_Settings.MessageBoxFont = CreateFontIndirect(&lf);
 
 	if(g_Settings.UserListFont)
 		DeleteObject(g_Settings.UserListFont);
-	LoadMsgDlgFont(18, &lf, NULL);
+	LoadMsgDlgFont(18, &lf, NULL, "ChatFonts");
 	g_Settings.UserListFont = CreateFontIndirect(&lf);
 	
 	if(g_Settings.UserListHeadingsFont)
 		DeleteObject(g_Settings.UserListHeadingsFont);
-	LoadMsgDlgFont(19, &lf, NULL);
+	LoadMsgDlgFont(19, &lf, NULL, "ChatFonts");
 	g_Settings.UserListHeadingsFont = CreateFontIndirect(&lf);
-
-
-
 }
+
 static void FreeGlobalSettings(void)
 {
 	free(g_Settings.pszTimeStamp);
@@ -1224,7 +1311,7 @@ int OptionsInit(void)
 	//g_hOptions = HookEvent(ME_OPT_INITIALISE, OptionsInitialize);
 
 	LoadLogFonts();
-	LoadMsgDlgFont(18, &lf, NULL);
+	LoadMsgDlgFont(18, &lf, NULL, "ChatFonts");
 	lstrcpy(lf.lfFaceName, _T("MS Shell Dlg"));
 	lf.lfUnderline = lf.lfItalic = lf.lfStrikeOut = 0;
 	lf.lfHeight = -17;
@@ -1266,7 +1353,7 @@ int OptionsInit(void)
 		HFONT hFont;
 		int iText;
 
-		LoadMsgDlgFont(0, &lf, NULL);
+		LoadMsgDlgFont(0, &lf, NULL, "ChatFonts");
 		hFont = CreateFontIndirect(&lf);
 		iText = GetTextPixelSize(MakeTimeStamp(g_Settings.pszTimeStamp, time(NULL)),hFont, TRUE);
 		DeleteObject(hFont);

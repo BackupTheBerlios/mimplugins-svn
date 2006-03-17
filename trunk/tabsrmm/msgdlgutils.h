@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 $Id: msgdlgutils.h,v 1.33 2005/09/20 13:34:08 nightwish2004 Exp $
 */
 
+#ifndef _MSGDLGUTILS_H
+#define _MSGDLGUTILS_H
+
 void CalcDynamicAvatarSize(HWND hwndDlg, struct MessageWindowData *dat, BITMAP *bminfo);
 int IsMetaContact(HWND hwndDlg, struct MessageWindowData *dat);
 char *GetCurrentMetaContactProto(HWND hwndDlg, struct MessageWindowData *dat);
@@ -85,3 +88,4 @@ struct RTFColorTable {
     int menuid;
 };
 
+#endif

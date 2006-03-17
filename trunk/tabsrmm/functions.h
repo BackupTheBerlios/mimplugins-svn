@@ -62,6 +62,7 @@ void DeleteContainer(int iIndex), RenameContainer(int iIndex, const TCHAR *newNa
 int EnumContainers(HANDLE hContact, DWORD dwAction, const TCHAR *szTarget, const TCHAR *szNew, DWORD dwExtinfo, DWORD dwExtinfoEx);
 void GetLocaleID(struct MessageWindowData *dat, char *szKLName);
 UINT DrawRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC OldWndProc);
+UINT NcCalcRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC OldWndProc);
 
 // the cached message log icons
 void CacheMsgLogIcons();
@@ -85,7 +86,7 @@ void StreamInEvents(HWND hwndDlg,HANDLE hDbEventFirst,int count,int fAppend, DBE
 void LoadMsgLogIcons(void);
 void FreeMsgLogIcons(void);
 
-void LoadLogfont(int i,LOGFONTA *lf,COLORREF *colour);
+void LoadLogfont(int i,LOGFONTA *lf,COLORREF *colour, char *szModule);
 
 int _DebugPopup(HANDLE hContact, const char *fmt, ...);
 int _DebugMessage(HWND hwndDlg, struct MessageWindowData *dat, const char *fmt, ...);

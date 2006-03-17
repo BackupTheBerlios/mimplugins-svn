@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <shlwapi.h>
 
 extern HICON		hIcons[30];
-extern BOOL			PopUpInstalled;
 extern FONTINFO		aFonts[OPTIONS_FONTCOUNT];
 extern HMENU		g_hMenu;
 extern HANDLE		hBuildMenuEvent ;
@@ -442,7 +441,7 @@ void CheckColorsInModule(char * pszModule)
 	COLORREF crFG;
 	COLORREF crBG = (COLORREF)DBGetContactSettingDword(NULL, "Chat", "ColorMessageBG", GetSysColor(COLOR_WINDOW));
 
-	LoadMsgDlgFont(17, NULL, &crFG);
+	LoadMsgDlgFont(17, NULL, &crFG, "ChatFonts");
 
 	if(!pMod)
 		return;

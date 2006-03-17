@@ -70,7 +70,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //defines
 #define OPTIONS_FONTCOUNT 17
 #define GC_UPDATETITLE			(WM_USER+100)
-#define GC_SPLITTERMOVED		(WM_USER+101)
 #define GC_CLOSEWINDOW			(WM_USER+103)
 #define GC_GETITEMDATA			(WM_USER+104)
 #define GC_SETITEMDATA			(WM_USER+105)
@@ -164,7 +163,7 @@ typedef struct COMMAND_INFO_TYPE
 } COMMAND_INFO;
 
 typedef struct{
-	LOGFONT	lf;
+	LOGFONT  lf;
 	COLORREF color;
 }FONTINFO;
 
@@ -360,6 +359,7 @@ typedef struct{
 #include "../msgs.h"
 #include "../nen.h"
 #include "../functions.h"
+#include "../msgdlgutils.h"
 
 #endif
 
