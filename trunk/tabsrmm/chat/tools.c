@@ -26,6 +26,7 @@ extern HMENU		g_hMenu;
 extern HANDLE		hBuildMenuEvent ;
 extern HANDLE		hSendEvent;
 extern SESSION_INFO g_TabSession;
+extern MYGLOBALS	myGlobals;
 
 int GetRichTextLength(HWND hwnd)
 {
@@ -325,7 +326,41 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 
 	iEvent = gce->pDest->iType;
 
-	if(bHighlight)
+    if(si->hWnd) {
+        struct MessageWindowData *dat = (struct MessageWindowData *)GetWindowLong(si->hWnd, GWL_USERDATA);
+        if(dat) {
+            HWND hwndTab = GetParent(si->hWnd);
+            
+            if((IsIconic(dat->pContainer->hwnd) || TabCtrl_GetCurSel(hwndTab) != dat->iTabID)) {
+                dat->iFlashIcon = myGlobals.g_IconMsgEvent;
+                SetTimer(si->hWnd, TIMERID_FLASHWND, TIMEOUT_FLASHWND, NULL);
+                dat->mayFlashTab = TRUE;
+            }
+
+            // autoswitch tab..
+            if(IsIconic(dat->pContainer->hwnd) && !IsZoomed(dat->pContainer->hwnd) && myGlobals.m_AutoSwitchTabs && dat->pContainer->hwndActive != si->hWnd) {
+                int iItem = GetTabIndexFromHWND(hwndTab, si->hWnd);
+                if (iItem >= 0) {
+                    TabCtrl_SetCurSel(hwndTab, iItem);
+                    ShowWindow(dat->pContainer->hwndActive, SW_HIDE);
+                    dat->pContainer->hwndActive = si->hWnd;
+                    SendMessage(dat->pContainer->hwnd, DM_UPDATETITLE, (WPARAM)dat->hContact, 0);
+                    dat->pContainer->dwFlags |= CNT_DEFERREDTABSELECT;
+                }
+            }
+            /*
+             * flash window if it is not focused
+             */
+            if ((GetActiveWindow() != dat->pContainer->hwnd || GetForegroundWindow() != dat->pContainer->hwnd)) {
+                if (!(dat->pContainer->dwFlags & CNT_NOFLASH))
+                    FlashContainer(dat->pContainer, 1, 0);
+                SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)LoadSkinnedIcon(SKINICON_EVENT_MESSAGE));
+                dat->pContainer->dwFlags |= CNT_NEED_UPDATETITLE;
+            }
+        }
+    }
+    
+    if(bHighlight)
 	{
 		gce->pDest->iType |= GC_EVENT_HIGHLIGHT;
 		if(bInactive || !g_Settings.SoundsFocus)
@@ -439,9 +474,9 @@ void CheckColorsInModule(char * pszModule)
 	MODULEINFO * pMod = MM_FindModule(pszModule);
 	int i = 0;
 	COLORREF crFG;
-	COLORREF crBG = (COLORREF)DBGetContactSettingDword(NULL, "Chat", "ColorMessageBG", GetSysColor(COLOR_WINDOW));
+	COLORREF crBG = (COLORREF)DBGetContactSettingDword(NULL, FONTMODULE, "inputbg", GetSysColor(COLOR_WINDOW));
 
-	LoadMsgDlgFont(17, NULL, &crFG, "ChatFonts");
+	LoadLogfont(MSGFONTID_MESSAGEAREA, NULL, &crFG, FONTMODULE);
 
 	if(!pMod)
 		return;

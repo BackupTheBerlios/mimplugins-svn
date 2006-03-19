@@ -48,6 +48,7 @@ int					Service_SetSBText(WPARAM wParam, LPARAM lParam);
 int					Service_SetVisibility(WPARAM wParam, LPARAM lParam);
 int					Service_GetCount(WPARAM wParam,LPARAM lParam);
 int					Service_GetInfo(WPARAM wParam,LPARAM lParam);
+HWND                CreateNewRoom(struct ContainerWindowData *pContainer, SESSION_INFO *si, BOOL bActivateTab, BOOL bPopupContainer, BOOL bWantPopup);
 
 //manager.c
 void				SetActiveSession(char * pszID, char * pszModule);
@@ -83,6 +84,8 @@ char *				SM_GetPrevCommand(char *pszID, char * pszModule);
 char *				SM_GetNextCommand(char *pszID, char * pszModule);
 int					SM_GetCount(char * pszModule);
 SESSION_INFO *		SM_FindSessionByIndex(char * pszModule, int iItem);
+SESSION_INFO *		SM_FindSessionByHWND(HWND h);
+SESSION_INFO *		SM_FindSessionByHCONTACT(HANDLE h);
 char *				SM_GetUsers(SESSION_INFO * si);
 USERINFO *			SM_GetUserFromIndex(char *pszID, char * pszModule, int index);
 MODULEINFO *		MM_AddModule(char* pszModule);

@@ -29,6 +29,7 @@ $Id: msgoptions.c,v 1.133 2006/01/26 04:40:01 nightwish2004 Exp $
 #include "m_ieview.h"
 #include "m_fontservice.h"
 #include "msgdlgutils.h"
+#include "chat/chat_resource.h"
 
 #ifdef __MATHMOD_SUPPORT
     #include "m_MathModule.h"
@@ -36,13 +37,15 @@ $Id: msgoptions.c,v 1.133 2006/01/26 04:40:01 nightwish2004 Exp $
 
 #define DM_GETSTATUSMASK (WM_USER + 10)
 
-extern MYGLOBALS myGlobals;
-extern HANDLE hMessageWindowList;
-extern HINSTANCE g_hInst;
-extern struct ContainerWindowData *pFirstContainer;
+extern		MYGLOBALS myGlobals;
+extern		HANDLE hMessageWindowList;
+extern		HINSTANCE g_hInst;
+extern		struct ContainerWindowData *pFirstContainer;
+extern		int g_chat_integration_enabled;
 
 extern BOOL CALLBACK DlgProcPopupOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern BOOL CALLBACK DlgProcTemplateEditor(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+extern BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
 
 HMENU BuildContainerMenu();
 
@@ -63,6 +66,7 @@ struct FontOptionsList
     BYTE charset, style;
     char size;
 }
+
 static fontOptionsList[] = {
     {RGB(0, 0, 0), "Tahoma", DEFAULT_CHARSET, 0, -10}};
     
@@ -137,7 +141,7 @@ void LoadLogfont(int i, LOGFONTA * lf, COLORREF * colour, char *szModule)
     }
 }
 
-
+/*
 static const char *szFontIdDescr[MSGDLGFONTCOUNT] = {
         ">> Outgoing messages", 
         ">> Outgoing misc events",
@@ -169,6 +173,7 @@ static const char *szIPFontDescr[IPFONTCOUNT] = {
         "Infopanel / Protocol",
         "Infopanel / Contacts local time",
 		"Window caption (skinned mode"};
+*/        
 
         /*
  * Font Service support
@@ -183,6 +188,8 @@ static struct _colornames { char *szName; char *szModule; char *szSetting; DWORD
     NULL, NULL, NULL
 };
 
+
+/*
 void FS_RegisterFonts()
 {
     FontID fid = {0};
@@ -300,6 +307,8 @@ int FS_ReloadFonts(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+*/
+
 static struct LISTOPTIONSGROUP defaultGroups[] = {
     0, _T("Message window behaviour"),
     0, _T("Sending messages"),
@@ -310,6 +319,7 @@ static struct LISTOPTIONSGROUP defaultGroups[] = {
 static struct LISTOPTIONSITEM defaultItems[] = {
     0, _T("Send on SHIFT - Enter"), IDC_SENDONSHIFTENTER, LOI_TYPE_SETTING, (UINT_PTR)"sendonshiftenter", 1,
     0, _T("Send message on 'Enter'"), SRMSGDEFSET_SENDONENTER, LOI_TYPE_SETTING, (UINT_PTR)SRMSGSET_SENDONENTER, 1,
+    0, _T("Send message on double 'Enter'"), 0, LOI_TYPE_SETTING, (UINT_PTR)"SendOnDblEnter", 1,
     0, _T("Minimize the message window on send"), SRMSGDEFSET_AUTOMIN, LOI_TYPE_SETTING, (UINT_PTR)SRMSGSET_AUTOMIN, 1,
     0, _T("Allow the toolbar to hide the send button"), 1, LOI_TYPE_SETTING, (UINT_PTR)"hidesend", 1,
     0, _T("Flash contact list and tray icons for new events in unfocused windows"), 0, LOI_TYPE_SETTING, (UINT_PTR)"flashcl", 0,
@@ -1456,6 +1466,14 @@ static BOOL CALLBACK OptionsDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
          TabCtrl_InsertItem(GetDlgItem(hwnd, IDC_OPTIONSTAB), 4, &tci);
          MoveWindow((HWND)tci.lParam,5,26,rcClient.right-8,rcClient.bottom-29,1);
          ShowWindow((HWND)tci.lParam, SW_HIDE);
+
+         if(g_chat_integration_enabled) {
+             tci.lParam = (LPARAM)CreateDialog(g_hInst,MAKEINTRESOURCE(IDD_OPTIONS1),hwnd, DlgProcOptions1);
+             tci.pszText = TranslateT("Group chats");
+             TabCtrl_InsertItem(GetDlgItem(hwnd, IDC_OPTIONSTAB), 4, &tci);
+             MoveWindow((HWND)tci.lParam,5,26,rcClient.right-8,rcClient.bottom-29,1);
+             ShowWindow((HWND)tci.lParam, SW_HIDE);
+         }
          // add more tabs here if needed
          // activate the final tab
          iInit = FALSE;
@@ -1524,6 +1542,7 @@ void ReloadGlobals()
      myGlobals.m_SmileyPluginEnabled = (int)DBGetContactSettingByte(NULL, "SmileyAdd", "PluginSupportEnabled", 0);
      myGlobals.m_SendOnShiftEnter = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "sendonshiftenter", 1);
      myGlobals.m_SendOnEnter = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, SRMSGSET_SENDONENTER, SRMSGDEFSET_SENDONENTER);
+     myGlobals.m_SendOnDblEnter = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "SendOnDblEnter", 0);
      myGlobals.m_AutoLocaleSupport = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "al", 0);
      myGlobals.m_AutoSwitchTabs = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "autoswitchtabs", 0);
      myGlobals.m_CutContactNameTo = (int) DBGetContactSettingWord(NULL, SRMSGMOD_T, "cut_at", 15);

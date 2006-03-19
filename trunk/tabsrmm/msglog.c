@@ -180,7 +180,8 @@ void CacheLogFonts()
     /*
      * cache/create the info panel fonts
      */
-    myGlobals.ipConfig.isValid = ServiceExists(MS_FONT_REGISTER) ? TRUE : FALSE;
+
+    myGlobals.ipConfig.isValid = 1;
     
     if(myGlobals.ipConfig.isValid) {
         COLORREF clr;
@@ -190,20 +191,13 @@ void CacheLogFonts()
             if(myGlobals.ipConfig.hFonts[i])
                 DeleteObject(myGlobals.ipConfig.hFonts[i]);
             LoadLogfont(i + 100, &lf, &clr, FONTMODULE);
+            lf.lfHeight = MulDiv(lf.lfHeight, logPixelSY, 72);
+            //lf.lfHeight = 2 * abs(lf.lfHeight) * 74 / logPixelSY;
             myGlobals.ipConfig.hFonts[i] = CreateFontIndirectA(&lf);
             myGlobals.ipConfig.clrs[i] = clr;
         }
 		myGlobals.hFontCaption = myGlobals.ipConfig.hFonts[IPFONTCOUNT - 1];
     }
-	else {
-		 NONCLIENTMETRICS ncm = {0};
-
-		 ncm.cbSize = sizeof(ncm);
-		 SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
-		 if(myGlobals.hFontCaption)
-			 DeleteObject(myGlobals.hFontCaption);
-		 myGlobals.hFontCaption = CreateFontIndirect(&ncm.lfCaptionFont);
-	}
 
     if(myGlobals.ipConfig.bkgBrush)
         DeleteObject(myGlobals.ipConfig.bkgBrush);

@@ -346,7 +346,7 @@ UINT NcCalcRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID
         HDC hdc = GetDC(GetParent(hwnd));
 
         if(MyGetThemeBackgroundContentRect(mwdat->hTheme, hdc, 1, 1, &nccp->rgrc[0], &rcClient) == S_OK) {
-            //InflateRect(&rcClient, -1, -1);
+            InflateRect(&rcClient, -1, -1);
             CopyRect(&nccp->rgrc[0], &rcClient);
             bReturn = TRUE;
         }
@@ -434,12 +434,14 @@ static LRESULT CALLBACK MessageLogSubclassProc(HWND hwnd, UINT msg, WPARAM wPara
 
 static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    LONG lastEnterTime = GetWindowLong(hwnd, GWL_USERDATA);
     HWND hwndParent = GetParent(hwnd);
-    struct MsgEditSubclassData *dat;
     struct MessageWindowData *mwdat = (struct MessageWindowData *)GetWindowLong(hwndParent, GWL_USERDATA);
 
-    dat = (struct MsgEditSubclassData *) GetWindowLong(hwnd, GWL_USERDATA);
     switch (msg) {
+        case EM_SUBCLASSED:
+            SetWindowLong(hwnd, GWL_USERDATA, 0);
+            return 0;
 		case WM_NCCALCSIZE:
             return(NcCalcRichEditFrame(hwnd, mwdat, ID_EXTBKINPUTAREA, msg, wParam, lParam, OldMessageEditProc));
 		case WM_NCPAINT:
@@ -496,8 +498,10 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
             TCHITTESTINFO hti;
             HWND hwndTab;
             
-            if(myGlobals.m_WheelDefault)
-                break;
+            if(myGlobals.m_WheelDefault) {
+                SetWindowLong(hwnd, GWL_USERDATA, 0);
+                return TRUE;
+            }
             
             GetCursorPos(&pt);
             GetWindowRect(hwnd, &rc);
@@ -586,10 +590,23 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
                     PostMessage(hwndParent, WM_COMMAND, IDOK, 0);
                     return 0;
                 }
-                if(myGlobals.m_SendOnEnter) {
+                if(myGlobals.m_SendOnEnter || myGlobals.m_SendOnDblEnter) {
                     if(GetKeyState(VK_CONTROL) & 0x8000)
                         break;
                     else {
+                        if (myGlobals.m_SendOnDblEnter) {
+                            if (lastEnterTime + 2 < time(NULL)) {
+                                lastEnterTime = time(NULL);
+                                SetWindowLong(hwnd, GWL_USERDATA, lastEnterTime);
+                                break;
+                            }
+                            else {
+                                SendMessage(hwnd, WM_KEYDOWN, VK_BACK, 0);
+                                SendMessage(hwnd, WM_KEYUP, VK_BACK, 0);
+                                PostMessage(hwndParent, WM_COMMAND, IDOK, 0);
+                                return 0;
+                            }
+                        }
                         PostMessage(hwndParent, WM_COMMAND, IDOK, 0);
                         return 0;
                     }
@@ -597,9 +614,14 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
                 else 
                     break;
             }
+            else
+                SetWindowLong(hwnd, GWL_USERDATA, 0);
+            
             if ((GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000) && !(GetKeyState(VK_SHIFT) & 0x8000)) {
                 if (!(GetKeyState(VK_SHIFT) & 0x8000) && (wParam == VK_UP || wParam == VK_DOWN)) {          // input history scrolling (ctrl-up / down)
                     SETTEXTEX stx = {ST_DEFAULT,CP_UTF8};
+
+                    SetWindowLong(hwnd, GWL_USERDATA, 0);
                     if(mwdat) {
                         if(mwdat->history != NULL && mwdat->history[0].szText != NULL) {      // at least one entry needs to be alloced, otherwise we get a nice infinite loop ;)
                             if(mwdat->dwFlags & MWF_NEEDHISTORYSAVE) {
@@ -656,6 +678,8 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
                     case VK_END:
                     {
                         WPARAM wp = 0;
+
+                        SetWindowLong(hwnd, GWL_USERDATA, 0);
                         if (wParam == VK_UP)
                             wp = MAKEWPARAM(SB_LINEUP, 0);
                         else if (wParam == VK_PRIOR)
@@ -975,7 +999,8 @@ LRESULT CALLBACK SplitterSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
     
                         dat->dwEventIsShown |= MWF_SHOW_SPLITTEROVERRIDE;
                         DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "splitoverride", 1);
-                        SaveSplitter(hwnd, dat);
+                        if(dat->bType == SESSIONTYPE_IM)
+                            SaveSplitter(hwndParent, dat);
                         break;
                     }
                     case ID_SPLITTERCONTEXT_SETPOSITIONFORTHISSESSION:
@@ -985,10 +1010,18 @@ LRESULT CALLBACK SplitterSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
                         RECT rcWin;
     
                         GetWindowRect(hwndParent, &rcWin);
-                        dat->dwEventIsShown &= ~(MWF_SHOW_SPLITTEROVERRIDE);
-                        DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "splitoverride", 0);
-                        WindowList_Broadcast(hMessageWindowList, DM_SPLITTERMOVEDGLOBAL, 
-                                             rcWin.bottom - HIWORD(messagePos), rc.bottom);
+                        if(dat->bType == SESSIONTYPE_IM) {
+                            dat->dwEventIsShown &= ~(MWF_SHOW_SPLITTEROVERRIDE);
+                            DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "splitoverride", 0);
+                            WindowList_Broadcast(hMessageWindowList, DM_SPLITTERMOVEDGLOBAL, 
+                                                 rcWin.bottom - HIWORD(messagePos), rc.bottom);
+                        }
+                        else {
+                            SM_BroadcastMessage(NULL, DM_SAVESIZE, 0, 0, 0);
+                            SM_BroadcastMessage(NULL, DM_SPLITTERMOVED, (short) HIWORD(messagePos) + rc.bottom / 2, (LPARAM) -1, 0);
+                            SM_BroadcastMessage(NULL, WM_SIZE, 0, 0, 1);
+                        }
+                        
                         break;
                     }
                     default:
@@ -1578,7 +1611,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     }
                 }
                 OldMessageEditProc = (WNDPROC) SetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_WNDPROC, (LONG) MessageEditSubclassProc);
-
+                SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), EM_SUBCLASSED, 0, 0);
+                
                 OldAvatarWndProc = (WNDPROC) SetWindowLong(GetDlgItem(hwndDlg, IDC_CONTACTPIC), GWL_WNDPROC, (LONG) AvatarSubclassProc);
                 SetWindowLong(GetDlgItem(hwndDlg, IDC_PANELPIC), GWL_WNDPROC, (LONG) AvatarSubclassProc);
 

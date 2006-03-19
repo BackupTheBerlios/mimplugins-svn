@@ -1265,10 +1265,13 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
                 if(lParam) {                // lparen != 0 means sent by a chat window
                     char szText[512];
+                    dat = (struct MessageWindowData *)GetWindowLong((HWND)lParam, GWL_USERDATA);
 
                     GetWindowTextA((HWND)wParam, szText, 512);
                     szText[511] = 0;
                     SetWindowTextA(hwndDlg, szText);
+                    if(dat)
+                        SendMessage(hwndDlg, DM_SETICON, (WPARAM) ICON_BIG, (LPARAM)(dat->hXStatusIcon ? dat->hXStatusIcon : dat->hTabStatusIcon));
                     break;
                 }
                 if(wParam == 0) {            // no hContact given - obtain the hContact for the active tab
@@ -1280,6 +1283,13 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                 }
                 else {
                     HWND hwnd = WindowList_Find(hMessageWindowList, (HANDLE)wParam);
+                    if(hwnd == 0) {
+                        SESSION_INFO *si = SM_FindSessionByHCONTACT((HANDLE)wParam);
+                        if(si) {
+                            SendMessage(si->hWnd, GC_UPDATETITLE, 0, 0);
+                            return 0;
+                        }
+                    }
                     hContact = (HANDLE)wParam;
                     if(hwnd && hContact)
                         dat = (struct MessageWindowData *)GetWindowLong(hwnd, GWL_USERDATA);

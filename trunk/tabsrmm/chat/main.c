@@ -31,11 +31,9 @@ BOOL			IEviewInstalled = FALSE;
 HBRUSH			hEditBkgBrush = NULL;
 HBRUSH			hListBkgBrush = NULL;
 
-HIMAGELIST		hImageList = NULL;
-
 struct GlobalLogSettings_t g_Settings;
 
-HIMAGELIST		hIconsList = NULL;
+//HIMAGELIST		hIconsList = NULL;
 
 char *			pszActiveWndID = 0;
 char *			pszActiveWndModule = 0;
@@ -174,20 +172,20 @@ void LoadIcons(void)
 	
 	LoadMsgLogBitmaps();
 
-	hImageList = ImageList_Create(GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON),IsWinVerXPPlus()? ILC_COLOR32 | ILC_MASK : ILC_COLOR16 | ILC_MASK,0,3);
+    /*
+    hImageList = ImageList_Create(GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON),IsWinVerXPPlus()? ILC_COLOR32 | ILC_MASK : ILC_COLOR16 | ILC_MASK,0,3);
 	hIconsList = ImageList_Create(GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON),IsWinVerXPPlus()? ILC_COLOR32 | ILC_MASK : ILC_COLOR16 | ILC_MASK,0,100);
 	ImageList_AddIcon(hIconsList,LoadSkinnedIcon( SKINICON_EVENT_MESSAGE));
 	ImageList_AddIcon(hIconsList,LoadIconEx(IDI_OVERLAY, "overlay", 0, 0));
 	ImageList_SetOverlayImage(hIconsList, 1, 1);
 	ImageList_AddIcon(hImageList,LoadImage(g_hInst,MAKEINTRESOURCE(IDI_BLANK),IMAGE_ICON,0,0,0));
 	ImageList_AddIcon(hImageList,LoadImage(g_hInst,MAKEINTRESOURCE(IDI_BLANK),IMAGE_ICON,0,0,0));
+    */
 	return ;
 }
 
 void FreeIcons(void)
 {
 	FreeMsgLogBitmaps();
-	ImageList_Destroy(hImageList);
-	ImageList_Destroy(hIconsList);
 	return;
 }

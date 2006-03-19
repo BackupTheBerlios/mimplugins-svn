@@ -87,10 +87,11 @@ HMODULE g_hIconDLL = 0;
 void BuildCodePageList();
 int tabSRMM_ShowPopup(WPARAM wParam, LPARAM lParam, WORD eventType, int windowOpen, struct ContainerWindowData *pContainer, HWND hwndChild, char *szProto, struct MessageWindowData *dat);
 int FS_ReloadFonts(WPARAM wParam, LPARAM lParam);
-void FS_RegisterFonts();
 void FirstTimeConfig();
 void IMG_FreeDecoder();
 void RegisterContainer();
+
+int Chat_IconsChanged(WPARAM wp, LPARAM lp), Chat_ModulesLoaded(WPARAM wp, LPARAM lp);
 
 /*
  * installed as a WH_GETMESSAGE hook in order to process unicode messages.
@@ -912,11 +913,13 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
     if(ServiceExists(MS_POPUP_ADDPOPUPW))
         myGlobals.g_PopupWAvail = 1;
 #endif    
+    /*
     if(ServiceExists(MS_FONT_REGISTER)) {
         myGlobals.g_FontServiceAvail = 1;
         FS_RegisterFonts();
         hEvent_FontService = HookEvent(ME_FONT_RELOAD, FS_ReloadFonts);
     }
+    */
     if(DBGetContactSettingByte(NULL, SRMSGMOD_T, "avatarmode", -1) == -1)
         DBWriteContactSettingByte(NULL, SRMSGMOD_T, "avatarmode", 2);
 
@@ -966,7 +969,7 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
 	//FirstTimeConfig();
     CacheLogFonts();
 	//tQHTM_Init();
-    Chat_ModulesLoaded();
+    Chat_ModulesLoaded(wParam, lParam);
 	return 0;
 }
 
@@ -1141,6 +1144,8 @@ static int IcoLibIconsChanged(WPARAM wParam, LPARAM lParam)
 {
     LoadFromIconLib();
     CacheMsgLogIcons();
+    if(g_chat_integration_enabled)
+        Chat_IconsChanged(wParam, lParam);
     return 0;
 }
 
@@ -1162,6 +1167,9 @@ static int IconsChanged(WPARAM wParam, LPARAM lParam)
     CacheMsgLogIcons();
     WindowList_Broadcast(hMessageWindowList, DM_OPTIONSAPPLIED, 0, 0);
     WindowList_Broadcast(hMessageWindowList, DM_UPDATEWINICON, 0, 0);
+    if(g_chat_integration_enabled)
+        Chat_IconsChanged(wParam, lParam);
+    
     return 0;
 }
 

@@ -331,7 +331,6 @@ struct GlobalLogSettings_t {
 	char *		pszLogDir;
 	HFONT		UserListFont;
 	HFONT		UserListHeadingsFont;
-	HFONT		MessageBoxFont;
 	HFONT		NameFont;
 	COLORREF	crLogBackground;
 	COLORREF	crUserListColor;

@@ -204,7 +204,7 @@ void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nHint, in
         HBRUSH bg;
         HFONT oldFont;
         DWORD dwStyle = tabdat->dwStyle;
-        BOOL bFill = (dwStyle & TCS_BUTTONS && (tabdat->m_skinning == FALSE || myGlobals.m_TabAppearance & TCF_NOSKINNING));
+        BOOL bFill = ((dwStyle & TCS_BUTTONS && !tabdat->pContainer->bSkinned) && (tabdat->m_skinning == FALSE || myGlobals.m_TabAppearance & TCF_NOSKINNING));
         int oldMode = 0;
         InflateRect(rcItem, -1, -1);
         
@@ -301,12 +301,26 @@ void DrawItemRect(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nHint
             
             rcItem->right += 6;
             if(bClassicDraw) {
-                if(nHint & HINT_ACTIVE_ITEM)
-                    DrawEdge(dc, rcItem, EDGE_ETCHED, BF_RECT|BF_SOFT);
-                else if(nHint & HINT_HOTTRACK)
-                    DrawEdge(dc, rcItem, EDGE_BUMP, BF_RECT | BF_MONO | BF_SOFT);
-                else
-                    DrawEdge(dc, rcItem, EDGE_RAISED, BF_RECT|BF_SOFT);
+                if(tabdat->pContainer->bSkinned) {
+                    StatusItems_t *item = nHint & HINT_ACTIVE_ITEM ? &StatusItems[ID_EXTBKBUTTONSPRESSED] : (nHint & HINT_HOTTRACK ? &StatusItems[ID_EXTBKBUTTONSMOUSEOVER] : &StatusItems[ID_EXTBKBUTTONSNPRESSED]);
+
+                    if(!item->IGNORED) {
+                        SkinDrawBG(tabdat->hwnd, tabdat->pContainer->hwnd, tabdat->pContainer, rcItem, dc);
+                        DrawAlpha(dc, rcItem, item->COLOR, item->ALPHA, item->COLOR2, item->COLOR2_TRANSPARENT,
+                                  item->GRADIENT, item->CORNER, item->RADIUS, item->imageItem);
+                    }
+                    else
+                        goto b_nonskinned;
+                }
+                else {
+b_nonskinned:                    
+                    if(nHint & HINT_ACTIVE_ITEM)
+                        DrawEdge(dc, rcItem, EDGE_ETCHED, BF_RECT|BF_SOFT);
+                    else if(nHint & HINT_HOTTRACK)
+                        DrawEdge(dc, rcItem, EDGE_BUMP, BF_RECT | BF_MONO | BF_SOFT);
+                    else
+                        DrawEdge(dc, rcItem, EDGE_RAISED, BF_RECT|BF_SOFT);
+                }
             }
             else {
                 FillRect(dc, rcItem, GetSysColorBrush(COLOR_3DFACE));

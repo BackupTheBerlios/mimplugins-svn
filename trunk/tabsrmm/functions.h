@@ -61,6 +61,7 @@ struct ContainerWindowData *RemoveContainerFromList(struct ContainerWindowData *
 void DeleteContainer(int iIndex), RenameContainer(int iIndex, const TCHAR *newName);
 int EnumContainers(HANDLE hContact, DWORD dwAction, const TCHAR *szTarget, const TCHAR *szNew, DWORD dwExtinfo, DWORD dwExtinfoEx);
 void GetLocaleID(struct MessageWindowData *dat, char *szKLName);
+int GetContainerNameForContact(HANDLE hContact, TCHAR *szName, int iNameLen);
 UINT DrawRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC OldWndProc);
 UINT NcCalcRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC OldWndProc);
 

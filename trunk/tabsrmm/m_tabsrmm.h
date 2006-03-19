@@ -433,6 +433,7 @@ typedef struct _globals {
     int m_SmileyPluginEnabled;
     int m_SendOnShiftEnter;
     int m_SendOnEnter;
+    int m_SendOnDblEnter;
     int m_AutoLocaleSupport;
     int m_AutoSwitchTabs;
     int m_CutContactNameOnTabs;

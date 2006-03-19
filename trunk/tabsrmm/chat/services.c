@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "chat.h"
 
 extern HANDLE hMessageWindowList;
-extern HIMAGELIST	hImageList;
-extern HIMAGELIST	hIconsList;
 extern BOOL			IEviewInstalled;
 extern int          g_chat_integration_enabled;
 
@@ -29,8 +27,6 @@ HANDLE				hSendEvent;
 HANDLE				hBuildMenuEvent ;
 HANDLE				g_hSystemPreShutdown;
 HANDLE				g_hHookContactDblClick;
-HANDLE				g_hIconsChanged;
-HANDLE				g_hIconsChanged2;
 SESSION_INFO		g_TabSession;
 CRITICAL_SECTION	cs;
 
@@ -52,7 +48,6 @@ void HookEvents(void)
 	InitializeCriticalSection(&cs);
 	g_hHookContactDblClick=		HookEvent(ME_CLIST_DOUBLECLICKED, CList_RoomDoubleclicked);
 	g_hSystemPreShutdown =		HookEvent(ME_SYSTEM_PRESHUTDOWN, PreShutdown);
-	g_hIconsChanged =			HookEvent(ME_SKIN_ICONSCHANGED, IconsChanged);
 	return;
 }
 
@@ -60,8 +55,6 @@ void UnhookEvents(void)
 {
 	UnhookEvent(g_hSystemPreShutdown);
 	UnhookEvent(g_hHookContactDblClick);
-	UnhookEvent(g_hIconsChanged);
-	UnhookEvent(g_hIconsChanged2);
 	DeleteCriticalSection(&cs);
 	return;
 }
@@ -128,8 +121,6 @@ int Chat_ModulesLoaded(WPARAM wParam,LPARAM lParam)
 	AddIcons();
 	LoadIcons();
 
-	g_hIconsChanged2 =	HookEvent(ME_SKIN2_ICONSCHANGED, IconsChanged);
-
 	if (ServiceExists(MS_IEVIEW_WINDOW))
 		IEviewInstalled = TRUE;
 	CList_SetAllOffline(TRUE);
@@ -148,7 +139,7 @@ int PreShutdown(WPARAM wParam,LPARAM lParam)
 	return 0;
 }
 
-int IconsChanged(WPARAM wParam,LPARAM lParam)
+int Chat_IconsChanged(WPARAM wParam,LPARAM lParam)
 {
 //	int i;
 
@@ -268,18 +259,6 @@ int Service_Register(WPARAM wParam, LPARAM lParam)
 			mi->crColors = malloc(sizeof(COLORREF) * gcr->nColors);
 			memcpy(mi->crColors, gcr->pColors, sizeof(COLORREF) * gcr->nColors);
 		}
-		mi->OnlineIconIndex = ImageList_AddIcon(hIconsList, LoadSkinnedProtoIcon(gcr->pszModule, ID_STATUS_ONLINE)); 
-		mi->hOnlineIcon = ImageList_GetIcon(hIconsList, mi->OnlineIconIndex, ILD_TRANSPARENT);
-
-		mi->hOnlineTalkIcon = ImageList_GetIcon(hIconsList, mi->OnlineIconIndex, ILD_TRANSPARENT|INDEXTOOVERLAYMASK(1));
-		ImageList_AddIcon(hIconsList, mi->hOnlineTalkIcon); 
-
-		mi->OfflineIconIndex = ImageList_AddIcon(hIconsList, LoadSkinnedProtoIcon(gcr->pszModule, ID_STATUS_OFFLINE)); 
-		mi->hOfflineIcon = ImageList_GetIcon(hIconsList, mi->OfflineIconIndex, ILD_TRANSPARENT);
-
-		mi->hOfflineTalkIcon = ImageList_GetIcon(hIconsList, mi->OfflineIconIndex, ILD_TRANSPARENT|INDEXTOOVERLAYMASK(1));
-		ImageList_AddIcon(hIconsList, mi->hOfflineTalkIcon); 
-
 		mi->pszHeader = Log_CreateRtfHeader(mi);
 
 		CheckColorsInModule((char*)gcr->pszModule);

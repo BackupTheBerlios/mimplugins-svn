@@ -23,7 +23,7 @@ extern char*	pszActiveWndID ;
 extern char*	pszActiveWndModule ;
 extern SESSION_INFO	g_TabSession;
 extern HICON	hIcons[30];
-extern HIMAGELIST hIconsList;
+//extern HIMAGELIST hIconsList;
 extern struct MM_INTERFACE		mmi ;
 
 #define WINDOWS_COMMANDS_MAX 30
@@ -602,7 +602,7 @@ BOOL SM_BroadcastMessage(char * pszModule, UINT msg, WPARAM wParam, LPARAM lPara
 		{
 			if(pTemp->hWnd)
 			{
-				if (bAsync) 
+                if (bAsync) 
 					PostMessage(pTemp->hWnd, msg, wParam, lParam);
 				else 
 					SendMessage(pTemp->hWnd, msg, wParam, lParam);
@@ -639,13 +639,6 @@ BOOL SM_SetStatus(char *pszID, char * pszModule, int wStatus)
 				DBWriteContactSettingWord(pTemp->hContact, pTemp->pszModule, "Status", (WORD)wStatus);
 				
 			}
-
-			if(g_TabSession.hWnd)
-			{
-				//PostMessage(g_TabSession.hWnd, GC_FIXTABICONS, 0, (LPARAM) pTemp);
-			}
-
-
 			if(pszID)
 				return TRUE;
 		}
@@ -963,6 +956,31 @@ int	SM_GetCount(char * pszModule)
 	}
 	return count;
 }
+
+SESSION_INFO *	SM_FindSessionByHWND(HWND hWnd)
+{
+    SESSION_INFO *pTemp = m_WndList;
+
+    while(pTemp) {
+        if(pTemp->hWnd == hWnd)
+            return pTemp;
+        pTemp = pTemp->next;
+    }
+    return NULL;
+}
+
+SESSION_INFO *	SM_FindSessionByHCONTACT(HANDLE h)
+{
+    SESSION_INFO *pTemp = m_WndList;
+
+    while(pTemp) {
+        if(pTemp->hContact == h)
+            return pTemp;
+        pTemp = pTemp->next;
+    }
+    return NULL;
+}
+
 SESSION_INFO *	SM_FindSessionByIndex(char * pszModule, int iItem)
 {
 	SESSION_INFO *pTemp = m_WndList;
@@ -1065,13 +1083,8 @@ MODULEINFO * MM_AddModule(char * pszModule)
 void MM_IconsChanged(void)
 {
 	MODULEINFO *pTemp = m_ModList, *pLast = NULL;
-	ImageList_ReplaceIcon(hIconsList, 0, LoadSkinnedIcon(SKINICON_EVENT_MESSAGE)); 
-	ImageList_ReplaceIcon(hIconsList, 1, LoadIconEx(IDI_OVERLAY, "overlay", 0, 0)); 
 	while (pTemp != NULL)
 	{
-		pTemp->OnlineIconIndex = ImageList_ReplaceIcon(hIconsList, pTemp->OnlineIconIndex, LoadSkinnedProtoIcon(pTemp->pszModule, ID_STATUS_ONLINE)); 
-		pTemp->OfflineIconIndex = ImageList_ReplaceIcon(hIconsList, pTemp->OfflineIconIndex, LoadSkinnedProtoIcon(pTemp->pszModule, ID_STATUS_OFFLINE)); 
-
 		if(pTemp->hOfflineIcon)
 			DestroyIcon(pTemp->hOfflineIcon);
 		if(pTemp->hOnlineIcon)
@@ -1080,7 +1093,9 @@ void MM_IconsChanged(void)
 			DestroyIcon(pTemp->hOnlineTalkIcon);
 		if(pTemp->hOfflineTalkIcon)
 			DestroyIcon(pTemp->hOfflineTalkIcon);
-		pTemp->hOfflineIcon = ImageList_GetIcon(hIconsList, pTemp->OfflineIconIndex, ILD_TRANSPARENT);
+
+        /*
+        pTemp->hOfflineIcon = ImageList_GetIcon(hIconsList, pTemp->OfflineIconIndex, ILD_TRANSPARENT);
 		pTemp->hOnlineIcon = ImageList_GetIcon(hIconsList, pTemp->OnlineIconIndex, ILD_TRANSPARENT);
 
 		pTemp->hOnlineTalkIcon = ImageList_GetIcon(hIconsList, pTemp->OnlineIconIndex, ILD_TRANSPARENT|INDEXTOOVERLAYMASK(1));
@@ -1088,7 +1103,7 @@ void MM_IconsChanged(void)
 
 		pTemp->hOfflineTalkIcon = ImageList_GetIcon(hIconsList, pTemp->OfflineIconIndex, ILD_TRANSPARENT|INDEXTOOVERLAYMASK(1));
 		ImageList_ReplaceIcon(hIconsList, pTemp->OfflineIconIndex+1, pTemp->hOfflineTalkIcon); 
-
+        */
 		pLast = pTemp;
 		pTemp = pTemp->next;
 	}
