@@ -60,6 +60,7 @@ HRESULT  (WINAPI *MyDrawThemeParentBackground)(HWND,HDC,RECT *) = 0;
 HRESULT  (WINAPI *MyDrawThemeBackground)(HANDLE,HDC,int,int,const RECT *,const RECT *) = 0;
 HRESULT  (WINAPI *MyDrawThemeText)(HANDLE,HDC,int,int,LPCWSTR,int,DWORD,DWORD,const RECT *) = 0;
 HRESULT  (WINAPI *MyGetThemeBackgroundContentRect)(HANDLE, HDC, int, int, const RECT *, const RECT *) = 0;
+BOOL     (WINAPI *MyEnableThemeDialogTexture)(HANDLE, DWORD) = 0;
 
 static CRITICAL_SECTION csTips;
 static HWND hwndToolTips = NULL;

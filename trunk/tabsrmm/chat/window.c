@@ -1705,13 +1705,6 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 				SetDlgItemText(hwndDlg, IDC_CHAT_LOG, _T(""));
 				return TRUE;
 			case SESSION_TERMINATE:
-				if (DBGetContactSettingByte(NULL, "Chat", "SavePosition", 0))
-				{
-					DBWriteContactSettingDword(si->hContact, "Chat", "roomx", si->iX);
-					DBWriteContactSettingDword(si->hContact, "Chat", "roomy", si->iY);
-					DBWriteContactSettingDword(si->hContact, "Chat", "roomwidth" , si->iWidth);
-					DBWriteContactSettingDword(si->hContact, "Chat", "roomheight", si->iHeight);
-				}
 				if(CallService(MS_CLIST_GETEVENT, (WPARAM)si->hContact, (LPARAM)0))
 					CallService(MS_CLIST_REMOVEEVENT, (WPARAM)si->hContact, (LPARAM)"chaticon");
 				si->wState &= ~STATE_TALK;
@@ -1818,10 +1811,6 @@ LABEL_SHOWWINDOW:
 			si->iLogFilterFlags = lParam;
 		}	break;
 
-
-
-
-
 		case GC_SHOWFILTERMENU:
 			{
 			RECT rc;
@@ -1829,10 +1818,6 @@ LABEL_SHOWWINDOW:
 			GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTER), &rc);
 			SetWindowPos(hwnd, HWND_TOP, rc.left-85, (IsWindowVisible(GetDlgItem(hwndDlg, IDC_FILTER))||IsWindowVisible(GetDlgItem(hwndDlg, IDC_CHAT_BOLD)))?rc.top-206:rc.top-186, 0, 0, SWP_NOSIZE|SWP_SHOWWINDOW);
 			}break;
-
-
-
-
 
 		case GC_SHOWCOLORCHOOSER:
 		{
@@ -2333,9 +2318,10 @@ LABEL_SHOWWINDOW:
 					if(!IsWindowEnabled(GetDlgItem(hwndDlg,IDC_CHAT_HISTORY))) 
 						break;
 
-					if (pInfo)
-					{
-
+					if (ServiceExists("MSP/HTMLlog/ViewLog")) {
+						CallService ("MSP/HTMLlog/ViewLog",(WPARAM)si->pszModule,(LPARAM)si->pszName);
+					}
+					else if (pInfo) {
 						mir_snprintf(szName, MAX_PATH,"%s",pInfo->pszModDispName?pInfo->pszModDispName:si->pszModule);
 						ValidateFilename(szName);
 						mir_snprintf(szFolder, MAX_PATH,"%s\\%s", g_Settings.pszLogDir, szName );
@@ -2778,6 +2764,9 @@ LABEL_SHOWWINDOW:
 			SetWindowLong(GetDlgItem(hwndDlg,IDC_COLOR),GWL_WNDPROC,(LONG)OldFilterButtonProc);
 			SetWindowLong(GetDlgItem(hwndDlg,IDC_BKGCOLOR),GWL_WNDPROC,(LONG)OldFilterButtonProc);
 
+            DBWriteContactSettingWord(NULL, "Chat", "SplitterX", (WORD)g_Settings.iSplitterX);
+            DBWriteContactSettingWord(NULL, "Chat", "SplitterY", (WORD)g_Settings.iSplitterY);
+            
             i = GetTabIndexFromHWND(hwndTab, hwndDlg);
             if (i >= 0) {
                 TabCtrl_DeleteItem(hwndTab, i);

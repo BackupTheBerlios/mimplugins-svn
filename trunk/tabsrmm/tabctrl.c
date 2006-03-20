@@ -38,6 +38,7 @@ extern PSLWA pSetLayeredWindowAttributes;
 extern StatusItems_t StatusItems[];
 extern BOOL g_framelessSkinmode;
 
+extern BOOL (WINAPI *MyEnableThemeDialogTexture)(HANDLE, DWORD);
 static LRESULT CALLBACK TabControlSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 HMODULE hUxTheme = 0;
@@ -72,6 +73,7 @@ int InitVSApi()
     pfnOpenThemeData = (POTD)GetProcAddress(hUxTheme, "OpenThemeData");
     pfnDrawThemeBackground = (PDTB)GetProcAddress(hUxTheme, "DrawThemeBackground");
     pfnCloseThemeData = (PCTD)GetProcAddress(hUxTheme, "CloseThemeData");
+    MyEnableThemeDialogTexture = (BOOL (WINAPI *)(HANDLE, DWORD))GetProcAddress(hUxTheme, "EnableThemeDialogTexture");
     if(pfnIsThemeActive != 0 && pfnOpenThemeData != 0 && pfnDrawThemeBackground != 0 && pfnCloseThemeData != 0) {
         return 1;
     }
