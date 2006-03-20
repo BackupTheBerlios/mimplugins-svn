@@ -118,7 +118,6 @@ int Chat_ModulesLoaded(WPARAM wParam,LPARAM lParam)
 		CallService("DBEditorpp/RegisterModule",(WPARAM)mods,(LPARAM)2);
 	}
 
-	AddIcons();
 	LoadIcons();
 
 	if (ServiceExists(MS_IEVIEW_WINDOW))

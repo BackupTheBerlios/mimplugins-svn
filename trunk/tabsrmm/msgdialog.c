@@ -33,11 +33,10 @@ $Id: msgdialog.c,v 1.243 2006/01/26 04:40:00 nightwish2004 Exp $
 #include "m_popup.h"
 #include "nen.h"
 #include "m_metacontacts.h"
-#include "m_smileyadd.h"
 #include "sendqueue.h"
 #include "msgdlgutils.h"
 #include "functions.h"
-#include "chat/chat_resource.h"
+#include "chat/chat.h"
 
 #define TOOLBAR_PROTO_HIDDEN 1
 #define TOOLBAR_SEND_HIDDEN 2
@@ -57,6 +56,7 @@ extern struct RTFColorTable rtf_ctable[];
 extern PSLWA pSetLayeredWindowAttributes;
 extern COLORREF g_ContainerColorKey;
 extern StatusItems_t StatusItems[];
+extern struct GlobalLogSettings_t g_Settings;
 
 extern HMODULE  themeAPIHandle;
 extern HANDLE   (WINAPI *MyOpenThemeData)(HWND,LPCWSTR);
@@ -368,7 +368,7 @@ UINT DrawRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, 
 {
 	StatusItems_t *item = &StatusItems[skinID];
 	LRESULT result = CallWindowProc(OldWndProc, hwnd, msg, wParam, lParam);			// do default processing (otherwise, NO scrollbar as it is painted in NC_PAINT)
-
+    
 	if((mwdat && mwdat->hTheme) || (mwdat && mwdat->pContainer->bSkinned && !item->IGNORED && !mwdat->bFlatMsgLog)) {
 		HDC hdc = GetWindowDC(hwnd);
 		RECT rcWindow;
@@ -376,11 +376,15 @@ UINT DrawRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, 
 		LONG left_off, top_off, right_off, bottom_off;
 		HDC dcMem;
 		HBITMAP hbm, hbmOld;
-
+        LONG dwStyle = GetWindowLong(hwnd, GWL_STYLE);
+        LONG dwExStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        
 		GetWindowRect(hwnd, &rcWindow);
 		pt.x = pt.y = 0;
 		ClientToScreen(hwnd, &pt);
 		left_off = pt.x - rcWindow.left;
+        if(dwStyle & WS_VSCROLL && dwExStyle & WS_EX_RTLREADING)
+            left_off -= myGlobals.ncm.iScrollWidth;
 		top_off = pt.y - rcWindow.top;
 		
 		if(mwdat->pContainer->bSkinned && !item->IGNORED) {

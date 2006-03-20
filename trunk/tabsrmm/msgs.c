@@ -92,6 +92,7 @@ void IMG_FreeDecoder();
 void RegisterContainer();
 
 int Chat_IconsChanged(WPARAM wp, LPARAM lp), Chat_ModulesLoaded(WPARAM wp, LPARAM lp);
+void Chat_AddIcons(void);
 
 /*
  * installed as a WH_GETMESSAGE hook in order to process unicode messages.
@@ -1824,13 +1825,19 @@ int GetIconPackVersion(HMODULE hDLL)
     int version = 0;
     
     if(LoadStringA(hDLL, IDS_IDENTIFY, szIDString, sizeof(szIDString)) == 0)
-        return 0;
+        version = 0;
     else {
         if(!strcmp(szIDString, "__tabSRMM_ICONPACK 1.0__"))
             version = 1;
         else if(!strcmp(szIDString, "__tabSRMM_ICONPACK 2.0__"))
             version = 2;
+        else if(!strcmp(szIDString, "__tabSRMM_ICONPACK 3.0__"))
+            version = 3;
     }
+    if(version == 0)
+        MessageBox(0, _T("The icon pack is either missing or too old."), _T("tabSRMM warning"), MB_OK | MB_ICONWARNING);
+    else if(version > 0 && version < 3)
+        MessageBox(0, _T("You are using an old icon pack (tabsrmm_icons.dll version < 3). This can cause missing icons, so please update the icon pack"), _T("tabSRMM warning"), MB_OK | MB_ICONWARNING);
     return version;
 }
 /*
@@ -1854,6 +1861,8 @@ int SetupIconLibConfig()
         }
     }
     GetModuleFileNameA(g_hIconDLL, szFilename, MAX_PATH);
+    if(g_chat_integration_enabled)
+        Chat_AddIcons();
     version = GetIconPackVersion(g_hIconDLL);
     myGlobals.g_hbmUnknown = LoadImage(g_hIconDLL, MAKEINTRESOURCE(IDB_UNKNOWNAVATAR), IMAGE_BITMAP, 0, 0, 0);
     LoadMsgAreaBackground();
@@ -1861,7 +1870,7 @@ int SetupIconLibConfig()
     g_hIconDLL = 0;
     
     sid.cbSize = sizeof(SKINICONDESC);
-    sid.pszSection = "TabSRMM";
+    sid.pszSection = "TabSRMM/Default";
     sid.pszDefaultFile = szFilename;
 
     i = 0;
@@ -1962,13 +1971,7 @@ void LoadIconTheme()
     if(g_hIconDLL == NULL)
         MessageBoxA(0, "Critical: cannot load resource DLL (no icons will be shown)", "tabSRMM", MB_OK);
     else {
-        if(DBGetContactSettingByte(NULL, SRMSGMOD_T, "v_check", 1)) {
-            version = GetIconPackVersion(g_hIconDLL);
-            if(version == 0) {
-                if(MessageBoxA(0, "ICONPACK: unknown version, load anyway?", "tabSRMM", MB_YESNO) == IDNO)
-                    goto failure;
-            }
-        }
+        version = GetIconPackVersion(g_hIconDLL);
         myGlobals.g_hbmUnknown = LoadImage(g_hIconDLL, MAKEINTRESOURCE(IDB_UNKNOWNAVATAR), IMAGE_BITMAP, 0, 0, 0);
         LoadMsgAreaBackground();
         i = 0;

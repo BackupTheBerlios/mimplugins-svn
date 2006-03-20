@@ -138,6 +138,7 @@ typedef struct {
 
 #define MSGDLGFONTCOUNT 22
 #define IPFONTCOUNT 6
+#define CHATFONTCOUNT 19
 
 /*
  * info panel field edges
@@ -504,6 +505,7 @@ typedef struct _globals {
 	char g_SkinnedFrame_left, g_SkinnedFrame_right, g_SkinnedFrame_bottom, g_SkinnedFrame_caption;
 	char g_realSkinnedFrame_left, g_realSkinnedFrame_right, g_realSkinnedFrame_bottom, g_realSkinnedFrame_caption;
     HPEN g_SkinLightShadowPen, g_SkinDarkShadowPen;
+    NONCLIENTMETRICS ncm;
 } MYGLOBALS;
 
 typedef struct _tag_ICONDESC {

@@ -458,6 +458,39 @@ struct MsgLogIcon {
 #define IDI_CONFIGSIDEBAR               34
 #define IDI_USERPREFS                   35
 
+// chat stuff
+
+#define IDI_TOPICBUT                    200
+#define IDI_BKGCOLOR                    201
+#define IDI_CHANMGR                     202
+#define IDI_FILTER                      203
+#define IDI_JOIN                        204
+#define IDI_PART                        205
+#define IDI_QUIT                        206
+#define IDI_KICK                        207
+#define IDI_NICK                        208
+#define IDI_NOTICE                      209
+#define IDI_MESSAGE                     210
+#define IDI_MESSAGEOUT                  211
+#define IDI_TOPIC                       212
+#define IDI_INFO                        213
+#define IDI_ADDSTATUS                   214
+#define IDI_REMSTATUS                   215
+#define IDI_ACTION                      216
+#define IDI_HIGHLIGHT                   217
+#define IDI_BLANK                       218
+#define IDI_TAG1                        219
+#define IDI_TAG2                        220
+
+#define IDI_STATUS3                     221
+#define IDI_STATUS2                     222
+#define IDI_STATUS4                     223
+#define IDI_STATUS1                     224
+#define IDI_STATUS0                     225
+#define IDI_STATUS5                     226
+#define IDI_OVERLAY                     227
+#define IDI_FILTER2                     228
+
 #define IDB_UNKNOWNAVATAR 100   /* fallback image for non-existing avatars (BITMAP) */
 #define IDS_IDENTIFY 101        /* string resource to identify icon pack */
 

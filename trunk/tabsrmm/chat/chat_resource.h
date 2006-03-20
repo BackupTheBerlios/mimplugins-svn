@@ -2,36 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by chat.rc
 //
-#define IDI_TOPICBUT                    124
-#define IDI_BKGCOLOR                    125
-#define IDI_CHANMGR                     126
-#define IDI_FILTER                      128
-#define IDI_JOIN                        131
-#define IDI_PART                        132
-#define IDI_QUIT                        133
-#define IDI_KICK                        134
-#define IDI_NICK                        135
-#define IDI_NOTICE                      136
-#define IDI_MESSAGE                     137
-#define IDI_MESSAGEOUT                  138
-#define IDI_TOPIC                       139
-#define IDI_INFO                        140
-#define IDI_ADDSTATUS                   141
-#define IDI_REMSTATUS                   142
-#define IDI_ACTION                      143
-#define IDI_HIGHLIGHT                   144
-#define IDI_BLANK                       146
-#define IDI_TAG1                        149
-#define IDI_TAG2                        150
 #define IDR_MENU                        151
-#define IDI_STATUS3                     153
-#define IDI_STATUS2                     154
-#define IDI_STATUS4                     155
-#define IDI_STATUS1                     156
-#define IDI_STATUS0                     157
-#define IDI_STATUS5                     158
-#define IDI_OVERLAY                     160
-#define IDI_FILTER2                     162
 #define IDD_CHANNEL                     401
 #define IDD_OPTIONS1                    402
 #define IDD_OPTIONS2                    403

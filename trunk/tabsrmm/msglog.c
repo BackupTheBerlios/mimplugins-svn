@@ -1518,9 +1518,7 @@ void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG startAt, int
             CallService(MS_SMILEYADD_REPLACESMILEYS, TABSRMM_SMILEYADD_BKGCOLORMODE, (LPARAM)&smadd);
     }
     
-// do formula-replacing    
 #ifdef __MATHMOD_SUPPORT    
-	// mathMod begin
 	if (myGlobals.m_MathModAvail)
 	{
 			 TMathRicheditInfo mathReplaceInfo;
@@ -1532,7 +1530,6 @@ void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG startAt, int
 			 mathReplaceInfo.disableredraw = TRUE;
 			 CallService(MATH_RTF_REPLACE_FORMULAE,0, (LPARAM)&mathReplaceInfo);
 	}
-	// mathMod end
 #endif    
 
 	if(dat->hHistoryEvents && dat->curHistory == dat->maxHistory) {
@@ -1540,13 +1537,11 @@ void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG startAt, int
 		FINDTEXTEXA fi;
 
 		_snprintf(szPattern, 40, "~-+%d+-~", dat->hHistoryEvents[0]);
-		//_DebugPopup(dat->hContact, "search for: %s", szPattern);
 		fi.lpstrText = szPattern;
 		fi.chrg.cpMin = 0;
 		fi.chrg.cpMax = -1;
 		if(SendMessageA(hwndrtf, EM_FINDTEXTEX, FR_DOWN, (LPARAM)&fi) != 0) {
 			CHARRANGE sel;
-			//_DebugPopup(dat->hContact, "found first event at %d", fi.chrgText.cpMin);
 			sel.cpMin = 0;
 			sel.cpMax = 20;
 	        SendMessage(hwndrtf, EM_SETSEL, 0, fi.chrgText.cpMax + 1);

@@ -600,6 +600,8 @@ BOOL CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
         {
             struct ContainerWindowData *pContainer = pFirstContainer;
             
+            myGlobals.ncm.cbSize = sizeof(NONCLIENTMETRICS);
+            SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &myGlobals.ncm, 0);
             FreeTabConfig();
             ReloadTabConfig();
             while(pContainer) {

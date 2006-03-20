@@ -30,6 +30,7 @@ extern SESSION_INFO		g_TabSession;
 extern int              g_chat_integration_enabled;
 extern HANDLE			hMessageWindowList;
 extern MYGLOBALS		myGlobals;
+extern HMODULE          g_hIconDLL;
 
 HANDLE			g_hOptions = NULL;
 
@@ -410,7 +411,7 @@ static struct _tag1icons { char *szDesc; char *szName; int id; UINT size;} _logi
 	NULL, NULL, 0, 0
 };
 // add icons to the skinning module
-void AddIcons(void)
+void Chat_AddIcons(void)
 {
 	if(ServiceExists(MS_SKIN2_ADDICON))
 	{
@@ -420,8 +421,8 @@ void AddIcons(void)
 
 		// 16x16 icons
 		sid.cbSize = sizeof(SKINICONDESC3);
-		sid.pszSection = Translate("Chat windows");
-		GetModuleFileNameA(g_hInst, szFile, MAX_PATH);
+		sid.pszSection = Translate("TabSRMM/Group chat windows");
+		GetModuleFileNameA(g_hIconDLL, szFile, MAX_PATH);
 		sid.pszDefaultFile = szFile;
 
 		while(_icons[i].szDesc != NULL) {
@@ -433,7 +434,7 @@ void AddIcons(void)
 			i++;
 		}
 		i = 0;
-		sid.pszSection = Translate("Chat log");
+		sid.pszSection = Translate("TabSRMM/Group chat log");
 		while(_logicons[i].szDesc != NULL) {
 			sid.cx = sid.cy = _logicons[i].size;
 			sid.pszDescription = _logicons[i].szDesc;
@@ -456,7 +457,7 @@ HICON LoadIconEx(int iIndex, char * pszIcoLibName, int iX, int iY)
 		return (HICON) CallService(MS_SKIN2_GETICON, 0, (LPARAM)szTemp);
 	}
 	else
-		return (HICON)LoadImage(g_hInst,MAKEINTRESOURCE(iIndex),IMAGE_ICON,iX,iY,LR_SHARED);
+		return (HICON)LoadImage(g_hIconDLL, MAKEINTRESOURCE(iIndex),IMAGE_ICON,iX,iY,LR_SHARED);
 	return 0;
 }
 

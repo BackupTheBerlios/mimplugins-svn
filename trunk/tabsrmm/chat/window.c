@@ -2741,9 +2741,6 @@ LABEL_SHOWWINDOW:
 
         case WM_NCDESTROY:
             if(dat) {
-#ifdef _DEBUG
-                _DebugTraceA("free msg window data (%d)", hwndDlg);
-#endif                
                 free(dat);
                 SetWindowLong(hwndDlg, GWL_USERDATA, 0);
             }

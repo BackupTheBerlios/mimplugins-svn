@@ -1624,6 +1624,8 @@ void ReloadGlobals()
          else
              myGlobals.bUnicodeBuild = FALSE;
      }
+     myGlobals.ncm.cbSize = sizeof(NONCLIENTMETRICS);
+     SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &myGlobals.ncm, 0);
 }
 
 /*
