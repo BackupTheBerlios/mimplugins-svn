@@ -1314,7 +1314,12 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
     dwExtraLf = myGlobals.m_ExtraMicroLF;
 
 	strcpy(szSep0, fAppend ? "\\par%s\\sl-1" : "%s\\sl-1");
-	mir_snprintf(szSep1, 151, "\\highlight%s \\par\\sl0%s", "%d", GetRTFFont(H_MSGFONTID_YOURTIME));
+
+    if(dat->dwFlags & MWF_LOG_INDIVIDUALBKG || dat->dwFlags & MWF_LOG_GRID)
+        mir_snprintf(szSep1, 151, "\\highlight%s \\par\\sl0%s", "%d", GetRTFFont(H_MSGFONTID_YOURTIME));
+    else
+        mir_snprintf(szSep1, 151, "\\par\\sl0%s", GetRTFFont(H_MSGFONTID_YOURTIME));
+    
 	strcpy(szSep2, fAppend ? "\\par\\sl0" : "\\sl1000");
 	if(dat->hHistoryEvents)
 		mir_snprintf(szMicroLf, sizeof(szMicroLf), "%s%s\\par\\sl-1%s", GetRTFFont(MSGDLGFONTCOUNT), "\\v\\cf%d \\ ~-+%d+-~\\v0 ", GetRTFFont(MSGDLGFONTCOUNT));

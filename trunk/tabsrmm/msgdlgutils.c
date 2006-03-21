@@ -242,7 +242,27 @@ void WriteStatsOnClose(HWND hwndDlg, struct MessageWindowData *dat)
 
 int MsgWindowUpdateMenu(HWND hwndDlg, struct MessageWindowData *dat, HMENU submenu, int menuID)
 {
-    if(menuID == MENU_LOGMENU) {
+    if(menuID == MENU_TABCONTEXT) {
+        int iLeave = MF_GRAYED;
+        
+        if(dat && dat->bType == SESSIONTYPE_CHAT) {
+            SESSION_INFO *si = (SESSION_INFO *)dat->si;
+
+            if(si) {
+                char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)si->hContact, 0);
+                char szSvc[128];
+
+                mir_snprintf(szSvc, 128, "%s/Menu2ChannelMenu", szProto);
+                if(ServiceExists(szSvc))
+                    iLeave = MF_ENABLED;
+            }
+        }
+        EnableMenuItem(submenu, ID_TABMENU_SWITCHTONEXTTAB, dat->pContainer->iChilds > 1 ? MF_ENABLED : MF_GRAYED);
+        EnableMenuItem(submenu, ID_TABMENU_SWITCHTOPREVIOUSTAB, dat->pContainer->iChilds > 1 ? MF_ENABLED : MF_GRAYED);
+        EnableMenuItem(submenu, ID_TABMENU_ATTACHTOCONTAINER, DBGetContactSettingByte(NULL, SRMSGMOD_T, "useclistgroups", 0) || DBGetContactSettingByte(NULL, SRMSGMOD_T, "singlewinmode", 0) ? MF_GRAYED : MF_ENABLED);
+        EnableMenuItem(submenu, ID_TABMENU_LEAVECHATROOM, iLeave);
+    }
+    else if(menuID == MENU_LOGMENU) {
         int iLocalTime = dat->dwEventIsShown & MWF_SHOW_USELOCALTIME ? 1 : 0; // DBGetContactSettingByte(dat->hContact, SRMSGMOD_T, "uselocaltime", 0);
         int iRtl = (myGlobals.m_RTLDefault == 0 ? DBGetContactSettingByte(dat->hContact, SRMSGMOD_T, "RTL", 0) : DBGetContactSettingByte(dat->hContact, SRMSGMOD_T, "RTL", 1));
         int iLogStatus = (myGlobals.m_LogStatusChanges != 0) && (DBGetContactSettingByte(dat->hContact, SRMSGMOD_T, "logstatus", -1) != 0);
@@ -320,6 +340,22 @@ int MsgWindowMenuHandler(HWND hwndDlg, struct MessageWindowData *dat, int select
             case ID_TABMENU_CLOSETAB:
                 SendMessage(hwndDlg, WM_CLOSE, 1, 0);
                 return 1;
+            case ID_TABMENU_LEAVECHATROOM:
+            {
+                if(dat && dat->bType == SESSIONTYPE_CHAT) {
+                    SESSION_INFO *si = (SESSION_INFO *)dat->si;
+
+                    if(si) {
+                        char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)si->hContact, 0);
+                        char szSvc[128];
+
+                        mir_snprintf(szSvc, 128, "%s/Menu2ChannelMenu", szProto);
+                        if(ServiceExists(szSvc))
+                            CallProtoService(szProto, "/Menu2ChannelMenu", si->hContact, 0);
+                    }
+                }
+                return 1;
+            }
             case ID_TABMENU_CONFIGURETABAPPEARANCE:
                 CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_TABCONFIG), hwndDlg, DlgProcTabConfig, 0);
                 return 1;
@@ -538,18 +574,26 @@ void UpdateReadChars(HWND hwndDlg, struct MessageWindowData *dat)
 
 void UpdateStatusBar(HWND hwndDlg, struct MessageWindowData *dat)
 {
-    if(dat->pContainer->hwndStatus && dat->pContainer->hwndActive == hwndDlg) {
+    if(dat && dat->pContainer->hwndStatus && dat->pContainer->hwndActive == hwndDlg) {
         int iSecIMStatus = 0;
         
-        SetSelftypingIcon(hwndDlg, dat, DBGetContactSettingByte(dat->hContact, SRMSGMOD, SRMSGSET_TYPING, DBGetContactSettingByte(NULL, SRMSGMOD, SRMSGSET_TYPINGNEW, SRMSGDEFSET_TYPINGNEW)));
-        SendMessage(hwndDlg, DM_UPDATELASTMESSAGE, 0, 0);
-        if(myGlobals.g_SecureIMAvail) {
-			SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, 2 | SBT_NOBORDERS, (LPARAM)"");
-            if((iSecIMStatus = CallService("SecureIM/IsContactSecured", (WPARAM)dat->hContact, 0)) != 0)
-                SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 2, (LPARAM)myGlobals.g_buttonBarIcons[14]);
-            else
-                SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 2, (LPARAM)myGlobals.g_buttonBarIcons[15]);
+        if(dat->bType == SESSIONTYPE_IM) {
+            SetSelftypingIcon(hwndDlg, dat, DBGetContactSettingByte(dat->hContact, SRMSGMOD, SRMSGSET_TYPING, DBGetContactSettingByte(NULL, SRMSGMOD, SRMSGSET_TYPINGNEW, SRMSGDEFSET_TYPINGNEW)));
+            SendMessage(hwndDlg, DM_UPDATELASTMESSAGE, 0, 0);
+            if(myGlobals.g_SecureIMAvail) {
+                SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, 2 | SBT_NOBORDERS, (LPARAM)"");
+                if((iSecIMStatus = CallService("SecureIM/IsContactSecured", (WPARAM)dat->hContact, 0)) != 0)
+                    SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 2, (LPARAM)myGlobals.g_buttonBarIcons[14]);
+                else
+                    SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 2, (LPARAM)myGlobals.g_buttonBarIcons[15]);
+            }
         }
+        else {
+            if(myGlobals.g_SecureIMAvail)
+                SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 2, (LPARAM)myGlobals.g_buttonBarIcons[14]);
+            SetSelftypingIcon(hwndDlg, dat, 0);
+        }
+        
 		SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, (myGlobals.g_SecureIMAvail ? 3 : 2) | SBT_NOBORDERS, (LPARAM)"");
         SendMessage(dat->pContainer->hwndStatus, SB_SETICON, (myGlobals.g_SecureIMAvail ? 3 : 2), (LPARAM)(dat->pContainer->dwFlags & CNT_NOSOUND ? myGlobals.g_buttonBarIcons[23] : myGlobals.g_buttonBarIcons[22]));
         UpdateReadChars(hwndDlg, dat);

@@ -1890,10 +1890,14 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     dat->hbmMsgArea = myGlobals.m_hbmMsgArea;
                 }
                 
-                if(dat->hbmMsgArea) // || (dat->pContainer->bSkinned && StatusItems[ID_EXTBKINPUTBOX].IGNORED == 0))
+                if(dat->hbmMsgArea) { // || (dat->pContainer->bSkinned && StatusItems[ID_EXTBKINPUTBOX].IGNORED == 0)) 
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_EXSTYLE) | WS_EX_TRANSPARENT);
-                else
+                    //SetWindowLong(GetDlgItem(hwndDlg, IDC_LOG), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_EXSTYLE) | WS_EX_TRANSPARENT);
+                }
+                else {
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_EXSTYLE) & ~WS_EX_TRANSPARENT);
+                    //SetWindowLong(GetDlgItem(hwndDlg, IDC_LOG), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_EXSTYLE) & ~WS_EX_TRANSPARENT);
+                }
             }
             return 0;
         case DM_LOADBUTTONBARICONS:
@@ -2676,8 +2680,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     }
                     else {
                         HWND hwnd = GetDlgItem(hwndDlg, IDC_LOG);
-                        if ((GetWindowLong(hwnd, GWL_STYLE) & WS_VSCROLL) == 0)
-                            break;
+                        //if ((GetWindowLong(hwnd, GWL_STYLE) & WS_VSCROLL) == 0)
+                        //    break;
                         if(lParam)
                             SendMessage(hwnd, WM_SIZE, 0, 0);
                         si.cbSize = sizeof(si);
@@ -3313,9 +3317,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 break;
             }
             subMenu = GetSubMenu(dat->pContainer->hMenuContext, 0);
-            EnableMenuItem(subMenu, ID_TABMENU_SWITCHTONEXTTAB, dat->pContainer->iChilds > 1 ? MF_ENABLED : MF_GRAYED);
-            EnableMenuItem(subMenu, ID_TABMENU_SWITCHTOPREVIOUSTAB, dat->pContainer->iChilds > 1 ? MF_ENABLED : MF_GRAYED);
-            EnableMenuItem(subMenu, ID_TABMENU_ATTACHTOCONTAINER, DBGetContactSettingByte(NULL, SRMSGMOD_T, "useclistgroups", 0) || DBGetContactSettingByte(NULL, SRMSGMOD_T, "singlewinmode", 0) ? MF_GRAYED : MF_ENABLED);
+
+            MsgWindowUpdateMenu(hwndDlg, dat, subMenu, MENU_TABCONTEXT);
             
             iSelection = TrackPopupMenu(subMenu, TPM_RETURNCMD, pt.x, pt.y, 0, hwndDlg, NULL);
             if(iSelection >= IDM_CONTAINERMENU) {
@@ -5489,7 +5492,8 @@ verify:
                 DestroyWindow(dat->hwndTip);
             
             UpdateTrayMenuState(dat, FALSE);               // remove me from the tray menu (if still there)
-            DeleteMenu(myGlobals.g_hMenuTrayUnread, (UINT_PTR)dat->hContact, MF_BYCOMMAND);
+            if(myGlobals.g_hMenuTrayUnread)
+                DeleteMenu(myGlobals.g_hMenuTrayUnread, (UINT_PTR)dat->hContact, MF_BYCOMMAND);
             WindowList_Remove(hMessageWindowList, hwndDlg);
             SendMessage(hwndDlg, DM_SAVEPERCONTACT, 0, 0);
             if(myGlobals.m_SplitterSaveOnClose)

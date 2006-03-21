@@ -1512,9 +1512,9 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
             else
                 mir_snprintf(szFinalStatusBarText, 512, "%s", pszDispName);
             
-			SendMessageA(dat->pContainer->hwndStatus, SB_SETTEXTA, 0, (LPARAM)szFinalStatusBarText);
-			SendMessageA(dat->pContainer->hwndStatus, SB_SETTIPTEXTA, 0, (LPARAM)szFinalStatusBarText);
-            UpdateReadChars(hwndDlg, dat);
+			SendMessageA(dat->pContainer->hwndStatus, SB_SETTEXTA, 0 | SBT_NOBORDERS, (LPARAM)szFinalStatusBarText);
+			SendMessageA(dat->pContainer->hwndStatus, SB_SETTIPTEXTA, 0 | SBT_NOBORDERS, (LPARAM)szFinalStatusBarText);
+            UpdateStatusBar(hwndDlg, dat);
 			return TRUE;
 		} break;
 
@@ -2504,9 +2504,8 @@ LABEL_SHOWWINDOW:
 
             GetCursorPos(&pt);
             subMenu = GetSubMenu(dat->pContainer->hMenuContext, 0);
-            EnableMenuItem(subMenu, ID_TABMENU_SWITCHTONEXTTAB, dat->pContainer->iChilds > 1 ? MF_ENABLED : MF_GRAYED);
-            EnableMenuItem(subMenu, ID_TABMENU_SWITCHTOPREVIOUSTAB, dat->pContainer->iChilds > 1 ? MF_ENABLED : MF_GRAYED);
-            EnableMenuItem(subMenu, ID_TABMENU_ATTACHTOCONTAINER, DBGetContactSettingByte(NULL, SRMSGMOD_T, "useclistgroups", 0) || DBGetContactSettingByte(NULL, SRMSGMOD_T, "singlewinmode", 0) ? MF_GRAYED : MF_ENABLED);
+
+            MsgWindowUpdateMenu(hwndDlg, dat, subMenu, MENU_TABCONTEXT);
 
             iSelection = TrackPopupMenu(subMenu, TPM_RETURNCMD, pt.x, pt.y, 0, hwndDlg, NULL);
             if(iSelection >= IDM_CONTAINERMENU) {
@@ -2739,6 +2738,10 @@ LABEL_SHOWWINDOW:
                 _DebugPopup(si->hContact, "WARNING: new tabindex: %d", dat->iTabID);
             return 0;
 
+        case DM_STATUSBARCHANGED:
+            UpdateStatusBar(hwndDlg, dat);
+            break;
+
         case WM_NCDESTROY:
             if(dat) {
                 free(dat);
@@ -2764,6 +2767,10 @@ LABEL_SHOWWINDOW:
             DBWriteContactSettingWord(NULL, "Chat", "SplitterX", (WORD)g_Settings.iSplitterX);
             DBWriteContactSettingWord(NULL, "Chat", "SplitterY", (WORD)g_Settings.iSplitterY);
             
+            UpdateTrayMenuState(dat, FALSE);               // remove me from the tray menu (if still there)
+            if(myGlobals.g_hMenuTrayUnread)
+                DeleteMenu(myGlobals.g_hMenuTrayUnread, (UINT_PTR)dat->hContact, MF_BYCOMMAND);
+
             i = GetTabIndexFromHWND(hwndTab, hwndDlg);
             if (i >= 0) {
                 TabCtrl_DeleteItem(hwndTab, i);

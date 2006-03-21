@@ -296,6 +296,7 @@ typedef struct  {
 
 
 struct GlobalLogSettings_t {
+    HICON       hIconOverlay;
 	BOOL		ShowTime;
     BOOL		ShowTimeIfChanged;
 	BOOL		LoggingEnabled;

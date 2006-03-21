@@ -169,7 +169,7 @@ void LoadIcons(void)
 		hIcons[i] = NULL;
 
 	LoadLogIcons();
-	
+	g_Settings.hIconOverlay = LoadIconEx(IDI_OVERLAY, "overlay", 16, 16);
 	LoadMsgLogBitmaps();
 
     /*

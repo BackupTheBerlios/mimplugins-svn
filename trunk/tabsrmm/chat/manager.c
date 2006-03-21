@@ -110,7 +110,7 @@ int SM_RemoveSession(char * pszID, char * pszModule)
 	if(!pszModule)
 		return FALSE;
 
-	while (pTemp != NULL)
+    while (pTemp != NULL)
 	{
 		if ((!pszID && pTemp->iType != GCW_SERVER || !lstrcmpiA(pTemp->pszID,pszID)) && !lstrcmpiA(pTemp->pszModule,pszModule)) // match
 		{

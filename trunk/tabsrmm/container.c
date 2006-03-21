@@ -1563,28 +1563,35 @@ panel_found:
                         }
                     case NM_RCLICK: {
                             HMENU subMenu;
-                            POINT pt;
+                            POINT pt, pt1;
                             int iSelection, iItem;
-
+                            TCITEM item = {0};
+                            struct MessageWindowData *dat = 0;
+                            
                             GetCursorPos(&pt);
+                            pt1 = pt;
                             subMenu = GetSubMenu(pContainer->hMenuContext, 0);
 
-                            EnableMenuItem(subMenu, ID_TABMENU_ATTACHTOCONTAINER, DBGetContactSettingByte(NULL, SRMSGMOD_T, "useclistgroups", 0) || DBGetContactSettingByte(NULL, SRMSGMOD_T, "singlewinmode", 0) ? MF_GRAYED : MF_ENABLED);
+                            if ((iItem = GetTabItemFromMouse(hwndTab, &pt)) == -1)
+                                break;
 
-                            iSelection = TrackPopupMenu(subMenu, TPM_RETURNCMD, pt.x, pt.y, 0, hwndDlg, NULL);
+                            item.mask = TCIF_PARAM;
+                            TabCtrl_GetItem(hwndTab, iItem, &item);
+                            if(item.lParam && IsWindow((HWND)item.lParam))
+                                dat = (struct MessageWindowData *)GetWindowLong((HWND)item.lParam, GWL_USERDATA);
+
+                            if(dat)
+                                MsgWindowUpdateMenu((HWND)item.lParam, dat, subMenu, MENU_TABCONTEXT);
+
+                            iSelection = TrackPopupMenu(subMenu, TPM_RETURNCMD, pt1.x, pt1.y, 0, hwndDlg, NULL);
                             if(iSelection >= IDM_CONTAINERMENU) {
                                 DBVARIANT dbv = {0};
-                                TCITEM item = {0};
                                 char szIndex[10];
 #if defined (_UNICODE)
                                 char *szKey = "TAB_ContainersW";
 #else
                                 char *szKey = "TAB_Containers";
 #endif
-                                if ((iItem = GetTabItemFromMouse(hwndTab, &pt)) == -1)
-                                    break;
-                                item.mask = TCIF_PARAM;
-                                TabCtrl_GetItem(hwndTab, iItem, &item);
                                 mir_snprintf(szIndex, 8, "%d", iSelection - IDM_CONTAINERMENU);
                                 if(iSelection - IDM_CONTAINERMENU >= 0) {
                                     if(!DBGetContactSettingTString(NULL, szKey, szIndex, &dbv)) {
@@ -1598,6 +1605,22 @@ panel_found:
                                 case ID_TABMENU_CLOSETAB:
                                     SendMessage(hwndDlg, DM_CLOSETABATMOUSE, 0, (LPARAM)&pt);
                                     break;
+                                case ID_TABMENU_LEAVECHATROOM:
+                                {
+                                    if(dat && dat->bType == SESSIONTYPE_CHAT) {
+                                        SESSION_INFO *si = (SESSION_INFO *)dat->si;
+
+                                        if(si) {
+                                            char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)si->hContact, 0);
+                                            char szSvc[128];
+
+                                            mir_snprintf(szSvc, 128, "%s/Menu2ChannelMenu", szProto);
+                                            if(ServiceExists(szSvc))
+                                                CallProtoService(szProto, "/Menu2ChannelMenu", si->hContact, 0);
+                                        }
+                                    }
+                                    break;
+                                }
                                 case ID_TABMENU_SWITCHTONEXTTAB:
                                     SendMessage(hwndDlg, DM_SELECTTAB, (WPARAM) DM_SELECT_NEXT, 0);
                                     break;
@@ -2167,7 +2190,7 @@ panel_found:
             }
         case DM_SETICON:
             {
-                HICON hIconMsg = LoadSkinnedIcon(SKINICON_EVENT_MESSAGE);
+                HICON hIconMsg = myGlobals.g_IconMsgEvent;
                 if((HICON)lParam == myGlobals.g_buttonBarIcons[5]) {               // always set typing icon, but don't save it...
                     SendMessage(hwndDlg, WM_SETICON, wParam, lParam);
                     break;

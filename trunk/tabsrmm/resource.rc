@@ -639,6 +639,7 @@ BEGIN
     POPUP "Tabmenu"
     BEGIN
         MENUITEM "Close Tab",                   ID_TABMENU_CLOSETAB
+        MENUITEM "Leave Chat Room",             ID_TABMENU_LEAVECHATROOM
         MENUITEM SEPARATOR
         MENUITEM "Switch to next Tab",          ID_TABMENU_SWITCHTONEXTTAB
         MENUITEM "Switch to previous Tab",      ID_TABMENU_SWITCHTOPREVIOUSTAB

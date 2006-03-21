@@ -1370,6 +1370,9 @@ void UpdateTrayMenuState(struct MessageWindowData *dat, BOOL bForced)
 #if defined(_UNICODE)
     const wchar_t *szMenuEntryW;
 #endif    
+    if(myGlobals.g_hMenuTrayUnread == 0)
+        return;
+    
     mii.cbSize = sizeof(mii);
     mii.fMask = MIIM_DATA | MIIM_BITMAP;
     

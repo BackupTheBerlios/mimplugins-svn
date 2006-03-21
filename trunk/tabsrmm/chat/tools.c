@@ -332,7 +332,7 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
             HWND hwndTab = GetParent(si->hWnd);
             
             if((IsIconic(dat->pContainer->hwnd) || TabCtrl_GetCurSel(hwndTab) != dat->iTabID)) {
-                dat->iFlashIcon = myGlobals.g_IconMsgEvent;
+                dat->iFlashIcon = g_Settings.hIconOverlay;
                 SetTimer(si->hWnd, TIMERID_FLASHWND, TIMEOUT_FLASHWND, NULL);
                 dat->mayFlashTab = TRUE;
             }
@@ -354,7 +354,7 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
             if ((GetActiveWindow() != dat->pContainer->hwnd || GetForegroundWindow() != dat->pContainer->hwnd)) {
                 if (!(dat->pContainer->dwFlags & CNT_NOFLASH))
                     FlashContainer(dat->pContainer, 1, 0);
-                SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)LoadSkinnedIcon(SKINICON_EVENT_MESSAGE));
+                SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)g_Settings.hIconOverlay);
                 dat->pContainer->dwFlags |= CNT_NEED_UPDATETITLE;
             }
         }
