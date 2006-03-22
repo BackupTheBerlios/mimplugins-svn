@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#include "chat.h"
+#include "../commonheaders.h"
 #include <shlwapi.h>
 
 extern HICON		hIcons[30];
@@ -446,7 +446,7 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 
 	return TRUE;
 }
-int GetColorIndex(char * pszModule, COLORREF cr)
+int Chat_GetColorIndex(char * pszModule, COLORREF cr)
 {
 	MODULEINFO * pMod = MM_FindModule(pszModule);
 	int i = 0;

@@ -34,7 +34,7 @@ extern      NEN_OPTIONS nen_options;
 
 char *GetThemeFileName(int iMode);
 
-void ReloadGlobalContainerSettings()
+static void ReloadGlobalContainerSettings()
 {
     struct ContainerWindowData *pC = pFirstContainer;
     while(pC) {

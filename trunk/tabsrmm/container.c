@@ -46,7 +46,6 @@ $Id: container.c,v 1.132 2006/01/13 22:39:32 ghazan Exp $
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "chat/chat.h"
 
 #ifdef __MATHMOD_SUPPORT
     #include "m_MathModule.h"
@@ -80,7 +79,6 @@ struct ContainerWindowData *pFirstContainer = 0;        // the linked list of st
 struct ContainerWindowData *pLastActiveContainer = NULL;
 
 TCHAR *MY_DBGetContactSettingString(HANDLE hContact, char *szModule, char *szSetting);
-HMENU BuildContainerMenu();
 
 static WNDPROC OldStatusBarproc, OldContainerWndProc;
 
@@ -315,7 +313,7 @@ static LRESULT CALLBACK StatusBarSubclassProc(HWND hWnd, UINT msg, WPARAM wParam
  * also, updates the scroll buttons on top and bottom of the sidebar
  */
 
-void DrawSideBar(HWND hwndDlg, struct ContainerWindowData *pContainer, RECT *rc, int menuSep)
+static void DrawSideBar(HWND hwndDlg, struct ContainerWindowData *pContainer, RECT *rc, int menuSep)
 {
     int i, topCount = 0, bottomCount = 0, j = 0;
     int iSpaceAvail = (rc->bottom - rc->top) - menuSep - pContainer->statusBarHeight - 24;
@@ -2437,31 +2435,6 @@ panel_found:
 }
 
 /*
- * write a log entry to the log file.
- */
-
-int _log(const char *fmt, ...)
-{
-#ifdef _LOGGING
-    va_list va;
-    FILE    *f;
-    char    debug[1024];
-    int     ibsize = 1023;
-
-    va_start(va, fmt);
-
-    f = fopen("srmm_mod.log", "a+");
-    if (f) {
-        _vsnprintf(debug, ibsize, fmt, va);
-        strncat(debug, "\n", ibsize);
-        fwrite((const void *) debug, strlen(debug), 1, f);
-        fclose(f);
-    }
-#endif
-    return 0;
-}
-
-/*
  * search the list of tabs and return the tab (by index) which "belongs" to the given
  * hwnd. The hwnd is the handle of a message dialog childwindow. At creation,
  * the dialog handle is stored in the TCITEM.lParam field, because we need
@@ -2520,7 +2493,7 @@ int ActivateTabFromHWND(HWND hwndTab, HWND hwnd)
  * pt: mouse coordinates, obtained from GetCursorPos()
  */
 
-int GetTabItemFromMouse(HWND hwndTab, POINT *pt)
+static int GetTabItemFromMouse(HWND hwndTab, POINT *pt)
 {
     TCHITTESTINFO tch;
 
@@ -2555,7 +2528,7 @@ int CutContactName(TCHAR *oldname, TCHAR *newname, unsigned int size)
  * functions for handling the linked list of struct ContainerWindowData *foo
  */
 
-struct ContainerWindowData *AppendToContainerList(struct ContainerWindowData *pContainer) {
+static struct ContainerWindowData *AppendToContainerList(struct ContainerWindowData *pContainer) {
     struct ContainerWindowData *pCurrent = 0;
 
     if (!pFirstContainer) {
@@ -2591,7 +2564,7 @@ struct ContainerWindowData *FindContainerByName(const TCHAR *name) {
     return NULL;
 }
 
-struct ContainerWindowData *RemoveContainerFromList(struct ContainerWindowData *pContainer) {
+static struct ContainerWindowData *RemoveContainerFromList(struct ContainerWindowData *pContainer) {
     struct ContainerWindowData *pCurrent = pFirstContainer;
 
     if (pContainer == pFirstContainer) {

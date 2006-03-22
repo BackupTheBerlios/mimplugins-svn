@@ -65,17 +65,10 @@ char *xStatusDescr[] = { "Angry", "Duck", "Tired", "Party", "Beer", "Thinking", 
 						 "Crashing", "Going to toilet", "<undef>", "<undef>", "<undef>"};
                          
 static DWORD CALLBACK StreamOut(DWORD_PTR dwCookie, LPBYTE pbBuff, LONG cb, LONG * pcb);
-HMENU BuildMCProtocolMenu(HWND hwndDlg);
-int tabSRMM_ShowPopup(WPARAM wParam, LPARAM lParam, WORD eventType, int windowOpen, struct ContainerWindowData *pContainer, HWND hwndChild, char *szProto, struct MessageWindowData *dat);
 
 char *pszIDCSAVE_close = 0, *pszIDCSAVE_save = 0;
 
 static void FlashTab(struct MessageWindowData *dat, HWND hwndTab, int iTabindex, BOOL *bState, BOOL mode, HICON origImage);
-
-void FlashContainer(struct ContainerWindowData *pContainer, int iMode, int iCount);
-void ReflashContainer(struct ContainerWindowData *pContainer);
-void UpdateContainerMenu(HWND hwndDlg, struct MessageWindowData *dat);
-void TABSRMM_FireEvent(HANDLE hContact, HWND hwndDlg, unsigned int type, unsigned int subType);
 
 static WNDPROC OldMessageEditProc, OldAvatarWndProc, OldMessageLogProc;
 WNDPROC OldSplitterProc = 0;

@@ -30,23 +30,15 @@ $Id: msglog.c,v 1.116 2006/01/24 07:22:01 nightwish2004 Exp $
 #include <mbstring.h>
 #include <time.h>
 #include <locale.h>
-#include "msgs.h"
-#include "m_smileyadd.h"
-#include "m_ieview.h"
-#include "m_popup.h"
-#include "m_fontservice.h"
-#include "nen.h"
-#include "functions.h"
 
 #ifdef __MATHMOD_SUPPORT
 #include "m_MathModule.h"
 #endif
 
-#include "msgdlgutils.h"
-
-extern void ReleaseRichEditOle(IRichEditOle *ole);
-extern MYGLOBALS myGlobals;
-extern struct RTFColorTable rtf_ctable[];
+extern      void ReleaseRichEditOle(IRichEditOle *ole);
+extern      MYGLOBALS myGlobals;
+extern      struct RTFColorTable rtf_ctable[];
+extern      void ImageDataInsertBitmap(IRichEditOle *ole, HBITMAP hBm);
 
 struct CPTABLE cpTable[] = {
     {	874,	"Thai" },
@@ -72,6 +64,7 @@ static void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG start
 
 static char *weekDays[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 static char *months[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+
 static char weekDays_translated[7][30];
 static char months_translated[12][30];
 
@@ -87,8 +80,6 @@ static TCHAR *szYourName = NULL;
 
 static char *szDivider = "\\strike-----------------------------------------------------------------------------------------------------------------------------------\\strike0";
 static char *szGroupedSeparator = "> ";
-
-extern void ImageDataInsertBitmap(IRichEditOle *ole, HBITMAP hBm);
 
 extern TCHAR *FormatRaw(DWORD dwFlags, const TCHAR *msg, int flags);
 

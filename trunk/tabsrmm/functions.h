@@ -69,6 +69,7 @@ void FirstTimeConfig();
 void IMG_FreeDecoder();
 int  RegisterContainer();
 HMENU BuildContainerMenu();
+void BuildCodePageList();
 
 // the cached message log icons
 void CacheMsgLogIcons();
@@ -111,6 +112,7 @@ int Chat_OptionsInitialize(WPARAM wParam, LPARAM lParam);
 void BroadCastContainer(struct ContainerWindowData *pContainer, UINT message, WPARAM wParam, LPARAM lParam);
 void UpdateContainerMenu(HWND hwndDlg, struct MessageWindowData *dat);
 int MessageWindowOpened(WPARAM wParam, LPARAM lParam);
+void TABSRMM_FireEvent(HANDLE hContact, HWND hwnd, unsigned int type, unsigned int subType);
 
 // buttons
 

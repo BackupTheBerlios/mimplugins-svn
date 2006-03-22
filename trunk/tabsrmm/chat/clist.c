@@ -18,7 +18,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "chat.h"
+#include "../commonheaders.h"
 
 HANDLE CList_AddRoom(char * pszModule, char * pszRoom, char * pszDisplayName, int iType)
 {

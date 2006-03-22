@@ -71,9 +71,6 @@ static struct MsgLogIcon ttb_Slist = {0}, ttb_Traymenu = {0};
 
 HMODULE g_hIconDLL = 0;
 
-void BuildCodePageList();
-int tabSRMM_ShowPopup(WPARAM wParam, LPARAM lParam, WORD eventType, int windowOpen, struct ContainerWindowData *pContainer, HWND hwndChild, char *szProto, struct MessageWindowData *dat);
-
 int Chat_IconsChanged(WPARAM wp, LPARAM lp), Chat_ModulesLoaded(WPARAM wp, LPARAM lp);
 void Chat_AddIcons(void);
 
@@ -1600,7 +1597,8 @@ static void InitAPI()
     g_hEvent_MsgWin = CreateHookableEvent(ME_MSG_WINDOWEVENT);
 }
 
-void TABSRMM_FireEvent(HANDLE hContact, HWND hwnd, unsigned int type, unsigned int subType) {
+void TABSRMM_FireEvent(HANDLE hContact, HWND hwnd, unsigned int type, unsigned int subType)
+{
     MessageWindowEventData mwe = { 0 };
     struct TABSRMM_SessionInfo se = { 0 };
     
@@ -1794,10 +1792,6 @@ static int LoadFromIconLib()
     while(ICONBLOCKS[n].szSection) {
         i = 0;
         while(ICONBLOCKS[n].idesc[i].szDesc) {
-            if(*(ICONBLOCKS[n].idesc[i].phIcon) != 0) {
-                DestroyIcon(*(ICONBLOCKS[n].idesc[i].phIcon));
-                *(ICONBLOCKS[n].idesc[i].phIcon) = 0;
-            }
             *(ICONBLOCKS[n].idesc[i].phIcon) = (HICON)CallService(MS_SKIN2_GETICON, 0, (LPARAM)ICONBLOCKS[n].idesc[i].szName);
             i++;
         }

@@ -25,7 +25,6 @@ $Id: msgoptions.c,v 1.133 2006/01/26 04:40:01 nightwish2004 Exp $
 */
 #include "commonheaders.h"
 #pragma hdrstop
-#include "chat/chat_resource.h"
 #include "uxtheme.h"
 
 #ifdef __MATHMOD_SUPPORT

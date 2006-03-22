@@ -7,16 +7,12 @@
 
 #include "commonheaders.h"
 #pragma hdrstop
-
-#include "m_smileyadd.h"
 #include "sendqueue.h"
 
-extern MYGLOBALS myGlobals;
-
-extern char *pszIDCSAVE_save, *pszIDCSAVE_close;
-extern const UINT errorControls[5], infoPanelControls[10];
-
-extern struct SendJob sendJobs[NR_SENDJOBS];
+extern      MYGLOBALS myGlobals;
+extern      char *pszIDCSAVE_save, *pszIDCSAVE_close;
+extern      const UINT errorControls[5], infoPanelControls[10];
+extern      struct SendJob sendJobs[NR_SENDJOBS];
 
 char *MsgServiceName(HANDLE hContact, struct MessageWindowData *dat, int isUnicode)
 {
@@ -142,7 +138,7 @@ int AddToSendQueue(HWND hwndDlg, struct MessageWindowData *dat, int iLen, int is
     return 0;
 }
 
-int SendQueuedMessage(HWND hwndDlg, struct MessageWindowData *dat, int iEntry)
+static int SendQueuedMessage(HWND hwndDlg, struct MessageWindowData *dat, int iEntry)
 {
     DWORD dwThreadId;
     

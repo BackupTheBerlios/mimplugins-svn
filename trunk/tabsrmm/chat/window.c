@@ -18,7 +18,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "chat.h"
+#include "../commonheaders.h"
 #include "../resource.h"
 
 extern PSLWA pSetLayeredWindowAttributes;
@@ -728,7 +728,7 @@ default_process:
 
 			if(MM_FindModule(Parentsi->pszModule) && MM_FindModule(Parentsi->pszModule)->bColor)
 			{
-				int index = GetColorIndex(Parentsi->pszModule, cf.crTextColor);
+				int index = Chat_GetColorIndex(Parentsi->pszModule, cf.crTextColor);
 				u = IsDlgButtonChecked(hwndParent, IDC_COLOR);
 
 				if(index >= 0)
@@ -744,7 +744,7 @@ default_process:
 			}
 			if(MM_FindModule(Parentsi->pszModule) && MM_FindModule(Parentsi->pszModule)->bBkgColor)
 			{
-				int index = GetColorIndex(Parentsi->pszModule, cf.crBackColor);
+				int index = Chat_GetColorIndex(Parentsi->pszModule, cf.crBackColor);
 				COLORREF crB = (COLORREF)DBGetContactSettingDword(NULL, FONTMODULE, "inputbg", GetSysColor(COLOR_WINDOW));
 				u = IsDlgButtonChecked(hwndParent, IDC_BKGCOLOR);
 				

@@ -29,22 +29,19 @@ $Id: msgdlgutils.c,v 1.115 2005/10/27 08:27:23 nightwish2004 Exp $
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "chat/chat.h"
 
-extern MYGLOBALS myGlobals;
-extern NEN_OPTIONS nen_options;
-extern LOGFONTA logfonts[MSGDLGFONTCOUNT + 2];
-extern COLORREF fontcolors[MSGDLGFONTCOUNT + 2];
-extern TemplateSet LTR_Active, RTL_Active;
-extern PAB MyAlphaBlend;
-extern BOOL CALLBACK DlgProcTabConfig(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-extern HMODULE g_hInst;
-extern HANDLE hMessageWindowList;
-extern void DrawWithGDIp(HDC hDC, DWORD x, DWORD y, DWORD width, DWORD height, DWORD srcWidth, DWORD srcHeight, struct avatarCacheEntry *ace, HBITMAP hbm);
+extern      MYGLOBALS myGlobals;
+extern      NEN_OPTIONS nen_options;
+extern      LOGFONTA logfonts[MSGDLGFONTCOUNT + 2];
+extern      COLORREF fontcolors[MSGDLGFONTCOUNT + 2];
+extern      TemplateSet LTR_Active, RTL_Active;
+extern      PAB MyAlphaBlend;
+extern      HMODULE g_hInst;
+extern      HANDLE hMessageWindowList;
+extern      BOOL CALLBACK DlgProcTabConfig(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+extern      StatusItems_t StatusItems[];
 
 void ShowMultipleControls(HWND hwndDlg, const UINT * controls, int cControls, int state);
-
-extern StatusItems_t StatusItems[];
 
 
 struct RTFColorTable rtf_ctable[] = {
@@ -64,7 +61,7 @@ struct RTFColorTable rtf_ctable[] = {
  * AlphaBlend() API.
  */
 
-void MY_AlphaBlend(HDC hdcDraw, DWORD left, DWORD top,  int width, int height, int bmWidth, int bmHeight, HDC hdcMem)
+static void MY_AlphaBlend(HDC hdcDraw, DWORD left, DWORD top,  int width, int height, int bmWidth, int bmHeight, HDC hdcMem)
 {
     HDC hdcTemp = CreateCompatibleDC(hdcDraw);
     HBITMAP hbmTemp = CreateCompatibleBitmap(hdcMem, bmWidth, bmHeight);

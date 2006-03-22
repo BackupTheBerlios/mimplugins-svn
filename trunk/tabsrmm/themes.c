@@ -211,7 +211,7 @@ static void LoadLogfontFromINI(int i, char *szKey, LOGFONTA *lf, COLORREF *colou
     }
 }
 
-struct _tagFontBlocks { char *szModule; int iFirst; int iCount; char *szIniTemp; char *szBLockname; } fontBlocks[] = {
+static struct _tagFontBlocks { char *szModule; int iFirst; int iCount; char *szIniTemp; char *szBLockname; } fontBlocks[] = {
     FONTMODULE, 0, MSGDLGFONTCOUNT, "Font%d", "StdFonts",
     FONTMODULE, 100, IPFONTCOUNT, "IPFont%d", "MiscFonts",
     "ChatFonts", 0, CHATFONTCOUNT, "ChatFont%d", "ChatFonts",
@@ -808,7 +808,7 @@ static void __forceinline gradientVertical(UCHAR *ubRedFinal, UCHAR *ubGreenFina
 
 // XXX add support for more stretching options (stretch/tile divided image parts etc.
 
-void __fastcall IMG_RenderImageItem(HDC hdc, ImageItem *item, RECT *rc)
+static void __fastcall IMG_RenderImageItem(HDC hdc, ImageItem *item, RECT *rc)
 {
     BYTE l = item->bLeft, r = item->bRight, t = item->bTop, b = item->bBottom;
     LONG width = rc->right - rc->left;
@@ -1104,7 +1104,7 @@ static void ReadItem(StatusItems_t *this_item, char *szItem, char *file)
 	this_item->IGNORED = 0;
 }
 
-void IMG_ReadItem(const char *itemname, const char *szFileName)
+static void IMG_ReadItem(const char *itemname, const char *szFileName)
 {
     ImageItem tmpItem = {0}, *newItem = NULL;
     char buffer[512], szItemNr[30];
@@ -1317,7 +1317,7 @@ void IMG_DeleteItems()
 	g_ContainerColorKeyBrush = 0;
 }
 
-void IMG_LoadItems(char *szFileName)
+static void IMG_LoadItems(char *szFileName)
 {
     char *szSections = NULL;
     char *p;
@@ -1400,7 +1400,7 @@ static void SkinCalcFrameWidth()
 }
 
 
-struct {char *szIniKey, *szIniName; char *szSetting; unsigned int size; int defaultval;} _tagSettings[] = {
+static struct {char *szIniKey, *szIniName; char *szSetting; unsigned int size; int defaultval;} _tagSettings[] = {
     "Global", "SbarHeight", "sbarheight", 1, 22,
     "ClientArea", "Left", "tborder_outer_left", 1, 0,
     "ClientArea", "Right", "tborder_outer_right", 1, 0,
@@ -1414,7 +1414,7 @@ struct {char *szIniKey, *szIniName; char *szSetting; unsigned int size; int defa
     NULL, NULL, NULL, 0, 0
 };
 
-void LoadSkinItems(char *file)
+static void LoadSkinItems(char *file)
 {
     char *p;
     char *szSections = malloc(3002);

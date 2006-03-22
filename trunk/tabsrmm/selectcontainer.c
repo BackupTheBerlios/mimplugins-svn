@@ -29,12 +29,8 @@ $Id: selectcontainer.c,v 1.8 2005/05/03 20:24:01 nightwish2004 Exp $
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "msgs.h"
 
-int _log(const char *fmt, ...); // XXX debuglog
-extern struct ContainerWindowData *pFirstContainer;
-void DeleteContainer(int iIndex), RenameContainer(int IIndex, const TCHAR *szNew);
-HMENU BuildContainerMenu();
+extern      struct ContainerWindowData *pFirstContainer;
 
 BOOL CALLBACK SelectContainerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {

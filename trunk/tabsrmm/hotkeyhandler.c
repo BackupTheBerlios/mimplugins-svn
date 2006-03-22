@@ -39,7 +39,6 @@ The hotkeyhandler is a small, invisible window which cares about a few things:
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "chat/chat.h"
 
 extern struct ContainerWindowData *pFirstContainer;
 extern HANDLE hMessageWindowList;
@@ -49,7 +48,6 @@ extern NEN_OPTIONS nen_options;
 extern PSLWA pSetLayeredWindowAttributes;
 extern struct ContainerWindowData *pLastActiveContainer;
 
-int ActivateTabFromHWND(HWND hwndTab, HWND hwnd);
 int g_hotkeysEnabled = 0;
 HWND g_hotkeyHwnd = 0;
 static UINT WM_TASKBARCREATED;
@@ -92,7 +90,7 @@ nothing_open:
         CallService(MS_MSG_SENDMESSAGE, (WPARAM)iSelection, 0);
 }
 
-void DrawMenuItem(DRAWITEMSTRUCT *dis, HICON hIcon, DWORD dwIdle)
+static void DrawMenuItem(DRAWITEMSTRUCT *dis, HICON hIcon, DWORD dwIdle)
 {
     int cx = myGlobals.m_smcxicon;
     int cy = myGlobals.m_smcyicon;

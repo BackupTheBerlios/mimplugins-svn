@@ -85,7 +85,7 @@ BOOL CALLBACK DlgProcTemplateHelp(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM 
  * templates
  */
 
-void LoadTemplatesFrom(TemplateSet *tSet, HANDLE hContact, int rtl)
+static void LoadTemplatesFrom(TemplateSet *tSet, HANDLE hContact, int rtl)
 {
     DBVARIANT dbv = {0};
     int i;

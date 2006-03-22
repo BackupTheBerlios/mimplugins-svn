@@ -129,7 +129,7 @@ int					WCCmp(char* wild, char *string);
 //tools.c
 char *				RemoveFormatting(char * pszText);
 BOOL				DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlight, int bManyFix);
-int					GetColorIndex(char * pszModule, COLORREF cr);
+int					Chat_GetColorIndex(char * pszModule, COLORREF cr);
 void				CheckColorsInModule(char * pszModule);
 char*				my_strstri(char *s1, char *s2) ;
 int					GetRichTextLength(HWND hwnd);

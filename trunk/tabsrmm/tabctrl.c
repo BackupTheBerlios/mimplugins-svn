@@ -54,8 +54,6 @@ POTD pfnOpenThemeData = 0;
 PDTB pfnDrawThemeBackground = 0;
 PCTD pfnCloseThemeData = 0;
 
-void FreeTabConfig(), ReloadTabConfig();
-
 #define FIXED_TAB_SIZE 100                  // default value for fixed width tabs
 
 /*
@@ -110,7 +108,7 @@ int RegisterTabCtrlClass(void)
 	return 0;
 }
 
-void RectScreenToClient(HWND hwnd, RECT *rc)
+static void RectScreenToClient(HWND hwnd, RECT *rc)
 {
     POINT p1, p2;
 
@@ -131,7 +129,7 @@ void RectScreenToClient(HWND hwnd, RECT *rc)
 	 * Finds leftmost down item.
      */
 
-UINT FindLeftDownItem(HWND hwnd)
+static UINT FindLeftDownItem(HWND hwnd)
 {
 	RECT rctLeft = {100000,0,0,0}, rctCur;
 	int nCount = TabCtrl_GetItemCount(hwnd) - 1;
@@ -185,7 +183,7 @@ static struct colOptions {UINT id; UINT defclr; char *szKey; } tabcolors[] = {
  * icon handle in dat->hTabIcon
  */
  
-void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nHint, int nItem)
+static void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nHint, int nItem)
 {
     TCITEM item = {0};
     struct MessageWindowData *dat = 0;
@@ -277,7 +275,7 @@ void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nHint, in
  * draws the item rect (the "tab") in *classic* style (no visual themes
  */
 
-void DrawItemRect(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nHint)
+static void DrawItemRect(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nHint)
 {
     POINT pt;
     DWORD dwStyle = tabdat->dwStyle;
@@ -399,7 +397,7 @@ b_nonskinned:
 	}
 }
 
-int DWordAlign(int n)
+static int DWordAlign(int n)
 { 
     int rem = n % 4; 
     if(rem) 
@@ -411,7 +409,7 @@ int DWordAlign(int n)
  * draws a theme part (identifier in uiPartNameID) using the given clipping rectangle
  */
 
-HRESULT DrawThemesPart(struct TabControlData *tabdat, HDC hDC, int iPartId, int iStateId, LPRECT prcBox)
+static HRESULT DrawThemesPart(struct TabControlData *tabdat, HDC hDC, int iPartId, int iStateId, LPRECT prcBox)
 {
     HRESULT hResult = 0;
     
@@ -428,7 +426,7 @@ HRESULT DrawThemesPart(struct TabControlData *tabdat, HDC hDC, int iPartId, int 
  * handles image mirroring for tabs at the bottom
  */
 
-void DrawThemesXpTabItem(HDC pDC, int ixItem, RECT *rcItem, UINT uiFlag, struct TabControlData *tabdat) 
+static void DrawThemesXpTabItem(HDC pDC, int ixItem, RECT *rcItem, UINT uiFlag, struct TabControlData *tabdat) 
 {
 	BOOL bBody  = (uiFlag & 1) ? TRUE : FALSE;
 	BOOL bSel   = (uiFlag & 2) ? TRUE : FALSE;
