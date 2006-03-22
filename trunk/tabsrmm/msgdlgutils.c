@@ -29,13 +29,6 @@ $Id: msgdlgutils.c,v 1.115 2005/10/27 08:27:23 nightwish2004 Exp $
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "msgs.h"
-#include "m_popup.h"
-#include "nen.h"
-#include "m_metacontacts.h"
-#include "msgdlgutils.h"
-#include "m_ieview.h"
-#include "functions.h"
 #include "chat/chat.h"
 
 extern MYGLOBALS myGlobals;
@@ -44,20 +37,15 @@ extern LOGFONTA logfonts[MSGDLGFONTCOUNT + 2];
 extern COLORREF fontcolors[MSGDLGFONTCOUNT + 2];
 extern TemplateSet LTR_Active, RTL_Active;
 extern PAB MyAlphaBlend;
-
+extern BOOL CALLBACK DlgProcTabConfig(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern HMODULE g_hInst;
 extern HANDLE hMessageWindowList;
+extern void DrawWithGDIp(HDC hDC, DWORD x, DWORD y, DWORD width, DWORD height, DWORD srcWidth, DWORD srcHeight, struct avatarCacheEntry *ace, HBITMAP hbm);
+
 void ShowMultipleControls(HWND hwndDlg, const UINT * controls, int cControls, int state);
 
-void WriteThemeToINI(const char *szIniFilename, struct MessageWindowData *dat), ReadThemeFromINI(const char *szIniFilename, struct MessageWindowData *dat, int noAdvanced);
-int CheckThemeVersion(const char *szIniFilename);
-
-char *GetThemeFileName(int iMode);
-void CacheMsgLogIcons(), CacheLogFonts();
-extern BOOL CALLBACK DlgProcTabConfig(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern StatusItems_t StatusItems[];
 
-extern void DrawWithGDIp(HDC hDC, DWORD x, DWORD y, DWORD width, DWORD height, DWORD srcWidth, DWORD srcHeight, struct avatarCacheEntry *ace, HBITMAP hbm);
 
 struct RTFColorTable rtf_ctable[] = {
     _T("red"), RGB(255, 0, 0), 0, ID_FONT_RED,
@@ -351,7 +339,7 @@ int MsgWindowMenuHandler(HWND hwndDlg, struct MessageWindowData *dat, int select
 
                         mir_snprintf(szSvc, 128, "%s/Menu2ChannelMenu", szProto);
                         if(ServiceExists(szSvc))
-                            CallProtoService(szProto, "/Menu2ChannelMenu", si->hContact, 0);
+                            CallProtoService(szProto, "/Menu2ChannelMenu", (WPARAM)si->hContact, 0);
                     }
                 }
                 return 1;

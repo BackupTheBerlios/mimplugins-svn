@@ -29,9 +29,6 @@ Themes and skinning for tabSRMM
 #include "commonheaders.h"
 #pragma hdrstop
 
-#include "msgs.h"
-#include "msgdlgutils.h"
-
 /*
  * writes the current "theme" to .ini file
  * a theme contains all the fonts, colors and message log formatting

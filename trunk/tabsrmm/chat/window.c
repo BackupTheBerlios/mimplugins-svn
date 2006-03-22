@@ -34,7 +34,7 @@ extern HBRUSH		hEditBkgBrush;
 extern HBRUSH		hListBkgBrush;
 extern HANDLE		hSendEvent;
 extern HICON		hIcons[30];
-//extern struct		CREOleCallback reOleCallback;
+extern struct		CREOleCallback reOleCallback;
 extern HMENU		g_hMenu;
 extern TABLIST *	g_TabList;
 
@@ -1295,6 +1295,8 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
             SendDlgItemMessage(hwndDlg, IDC_CHAT_MESSAGE, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(3,3));
             SendDlgItemMessage(hwndDlg, IDC_CHAT_LOG, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELONG(3,3));
 
+            SendDlgItemMessage(hwndDlg, IDC_CHAT_LOG, EM_SETOLECALLBACK, 0, (LPARAM) & reOleCallback);
+            
 			EnableWindow(GetDlgItem(hwndDlg, IDC_SMILEY), TRUE);
 
             if(myGlobals.g_hMenuTrayUnread != 0 && dat->hContact != 0 && dat->szProto != NULL)

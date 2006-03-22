@@ -25,10 +25,6 @@ $Id: msgoptions.c,v 1.133 2006/01/26 04:40:01 nightwish2004 Exp $
 */
 #include "commonheaders.h"
 #pragma hdrstop
-#include "msgs.h"
-#include "m_ieview.h"
-#include "m_fontservice.h"
-#include "msgdlgutils.h"
 #include "chat/chat_resource.h"
 #include "uxtheme.h"
 
@@ -43,19 +39,13 @@ extern		HANDLE hMessageWindowList;
 extern		HINSTANCE g_hInst;
 extern		struct ContainerWindowData *pFirstContainer;
 extern		int g_chat_integration_enabled;
+extern      BOOL CALLBACK DlgProcPopupOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+extern      BOOL CALLBACK DlgProcTemplateEditor(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+extern      BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
+extern      BOOL (WINAPI *MyEnableThemeDialogTexture)(HANDLE, DWORD);
 
-extern BOOL CALLBACK DlgProcPopupOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-extern BOOL CALLBACK DlgProcTemplateEditor(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-extern BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
-extern BOOL (WINAPI *MyEnableThemeDialogTexture)(HANDLE, DWORD);
-
-HMENU BuildContainerMenu();
-
-void CacheMsgLogIcons(), CacheLogFonts(), ReloadGlobals(), LoadIconTheme(), UnloadIconTheme();
-void CreateImageList(BOOL bInitial);
 BOOL CALLBACK DlgProcSetupStatusModes(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 static BOOL CALLBACK OptionsDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-void GetDefaultContainerTitleFormat(), Chat_OptionsInitialize(WPARAM wParam, LPARAM lParam);
 
 struct FontOptionsList
 {
@@ -73,14 +63,18 @@ static fontOptionsList[] = {
     {RGB(0, 0, 0), "Tahoma", DEFAULT_CHARSET, 0, -10}};
     
 
+static HIMAGELIST g_himlStates = 0;
+
 HIMAGELIST CreateStateImageList()
 {
-    HIMAGELIST himl = ImageList_Create(16, 16, IsWinVerXPPlus() ? ILC_COLOR32 | ILC_MASK : ILC_COLOR8 | ILC_MASK, 4, 0);
-    ImageList_AddIcon(himl, myGlobals.g_IconFolder);
-    ImageList_AddIcon(himl, myGlobals.g_IconFolder);
-    ImageList_AddIcon(himl, myGlobals.g_IconUnchecked);
-    ImageList_AddIcon(himl, myGlobals.g_IconChecked);
-    return himl;
+    if(g_himlStates == 0) {
+        g_himlStates = ImageList_Create(16, 16, IsWinVerXPPlus() ? ILC_COLOR32 | ILC_MASK : ILC_COLOR8 | ILC_MASK, 4, 0);
+        ImageList_AddIcon(g_himlStates, myGlobals.g_IconFolder);
+        ImageList_AddIcon(g_himlStates, myGlobals.g_IconFolder);
+        ImageList_AddIcon(g_himlStates, myGlobals.g_IconUnchecked);
+        ImageList_AddIcon(g_himlStates, myGlobals.g_IconChecked);
+    }
+    return g_himlStates;
 }
 
 void LoadLogfont(int i, LOGFONTA * lf, COLORREF * colour, char *szModule)
@@ -143,44 +137,12 @@ void LoadLogfont(int i, LOGFONTA * lf, COLORREF * colour, char *szModule)
     }
 }
 
+
+ /*
+  * Font Service support
+  */
+
 /*
-static const char *szFontIdDescr[MSGDLGFONTCOUNT] = {
-        ">> Outgoing messages", 
-        ">> Outgoing misc events",
-        "<< Incoming messages",
-        "<< Incoming misc events",
-        ">> Outgoing name",
-        ">> Outgoing timestamp",
-        "<< Incoming name",
-        "<< Incoming timestamp",
-        ">> Outgoing messages (old)",
-        ">> Outgoing misc events (old)",
-        "<< Incoming messages (old)",
-        "<< Incoming misc events (old)",
-        ">> Outgoing name (old)",
-        ">> Outgoing time (old)",
-        "<< Incoming name (old)",
-        "<< Incoming time (old)",
-        "* Message Input Area",
-        "* Status changes",
-        "* Dividers",
-        "* Error and warning Messages",
-        "* Symbols (incoming)",
-        "* Symbols (outgoing)"};
-
-static const char *szIPFontDescr[IPFONTCOUNT] = {
-        "Infopanel / Nickname", 
-        "Infopanel / UIN",
-        "Infopanel / Status",
-        "Infopanel / Protocol",
-        "Infopanel / Contacts local time",
-		"Window caption (skinned mode"};
-*/        
-
-        /*
- * Font Service support
- */
-
 static struct _colornames { char *szName; char *szModule; char *szSetting; DWORD defclr; } colornames[] = {
     "Background", FONTMODULE, SRMSGSET_BKGCOLOUR, 0,
     "Incoming events", FONTMODULE, "inbg", 0,
@@ -188,7 +150,7 @@ static struct _colornames { char *szName; char *szModule; char *szSetting; DWORD
     "Input area background", FONTMODULE, "inputbg", 0,
     "Horizontal grid lines", FONTMODULE, "hgrid", 0,
     NULL, NULL, NULL
-};
+};*/
 
 
 /*
@@ -525,9 +487,7 @@ static BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 		break;
 	case WM_DESTROY:
 		{
-			HIMAGELIST himl = (HIMAGELIST)SendDlgItemMessage(hwndDlg, IDC_WINDOWOPTIONS, TVM_GETIMAGELIST, TVSIL_STATE, 0);
-			if(himl)
-				ImageList_Destroy(himl);
+			SendDlgItemMessage(hwndDlg, IDC_WINDOWOPTIONS, TVM_GETIMAGELIST, TVSIL_STATE, 0);
 			break;
 		}
 	}
@@ -789,9 +749,7 @@ static BOOL CALLBACK DlgProcLogOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 		break;
 	case WM_DESTROY:
 		{
-			HIMAGELIST himl = (HIMAGELIST)SendDlgItemMessage(hwndDlg, IDC_LOGOPTIONS, TVM_GETIMAGELIST, TVSIL_STATE, 0);
-			if(himl)
-				ImageList_Destroy(himl);
+			SendDlgItemMessage(hwndDlg, IDC_LOGOPTIONS, TVM_GETIMAGELIST, TVSIL_STATE, 0);
 			break;
 		}
 	}
@@ -1141,9 +1099,7 @@ static BOOL CALLBACK DlgProcTabbedOptions(HWND hwndDlg, UINT msg, WPARAM wParam,
 		break;
 	case WM_DESTROY:
 		{
-			HIMAGELIST himl = (HIMAGELIST)SendDlgItemMessage(hwndDlg, IDC_TABMSGOPTIONS, TVM_GETIMAGELIST, TVSIL_STATE, 0);
-			if(himl)
-				ImageList_Destroy(himl);
+			SendDlgItemMessage(hwndDlg, IDC_TABMSGOPTIONS, TVM_GETIMAGELIST, TVSIL_STATE, 0);
 			break;
 		}
 	}
@@ -1626,76 +1582,6 @@ void ReloadGlobals()
      }
      myGlobals.ncm.cbSize = sizeof(NONCLIENTMETRICS);
      SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &myGlobals.ncm, 0);
-}
-
-/*
- * called at startup. checks for old font path and moves it to 
- * the new settings group to make them usable with font service
- */
-
-void MoveFonts()
-{
-    char szTemp[128];
-    int i = 0;
-    DBVARIANT dbv;
-    HDC hdc;
-    char bSize = 0;
-    int charset;
-    
-    if(DBGetContactSettingByte(NULL, SRMSGMOD_T, "fontsmoved", -1) != -1)
-        return;         // already done
-
-    DBWriteContactSettingByte(NULL, SRMSGMOD_T, "fontsmoved", 1);
-    
-    hdc = GetDC(NULL);
-    
-    for(i = 0; i < MSGDLGFONTCOUNT; i++) {
-        _snprintf(szTemp, sizeof(szTemp), "Font%d", i);
-        if(!DBGetContactSetting(NULL, SRMSGMOD_T, szTemp, &dbv)) {
-            if(i == MSGFONTID_SYMBOLS_IN || i == MSGFONTID_SYMBOLS_OUT)
-                DBWriteContactSettingString(NULL, FONTMODULE, szTemp, "Arial");
-            else
-                DBWriteContactSettingString(NULL, FONTMODULE, szTemp, dbv.pszVal);
-            DBDeleteContactSetting(NULL, SRMSGMOD_T, szTemp);
-            DBFreeVariant(&dbv);
-        }
-        else
-            DBWriteContactSettingString(NULL, FONTMODULE, szTemp, "Arial");
-            
-        _snprintf(szTemp, sizeof(szTemp), "Font%dCol", i);
-        DBWriteContactSettingDword(NULL, FONTMODULE, szTemp, DBGetContactSettingDword(NULL, SRMSGMOD_T, szTemp, GetSysColor(COLOR_BTNTEXT)));
-        DBDeleteContactSetting(NULL, SRMSGMOD_T, szTemp);
-        
-        _snprintf(szTemp, sizeof(szTemp), "Font%dSize", i);
-        bSize = (char)DBGetContactSettingByte(NULL, SRMSGMOD_T, szTemp, 10);
-        if(bSize > 0)
-            bSize = -MulDiv(bSize, GetDeviceCaps(hdc, LOGPIXELSY), 72);
-        DBWriteContactSettingByte(NULL, FONTMODULE, szTemp, bSize);
-        DBDeleteContactSetting(NULL, SRMSGMOD_T, szTemp);
-
-        _snprintf(szTemp, sizeof(szTemp), "Font%dSty", i);
-        DBWriteContactSettingByte(NULL, FONTMODULE, szTemp, DBGetContactSettingByte(NULL, SRMSGMOD_T, szTemp, 0));
-        DBDeleteContactSetting(NULL, SRMSGMOD_T, szTemp);
-
-        _snprintf(szTemp, sizeof(szTemp), "Font%dSet", i);
-        charset = DBGetContactSettingByte(NULL, SRMSGMOD_T, szTemp, 0);
-        if(i == MSGFONTID_SYMBOLS_IN || i == MSGFONTID_SYMBOLS_OUT)
-            charset = 0;
-        DBWriteContactSettingByte(NULL, FONTMODULE, szTemp, charset);
-        DBDeleteContactSetting(NULL, SRMSGMOD_T, szTemp);
-
-        _snprintf(szTemp, sizeof(szTemp), "Font%dAs", i);
-        DBWriteContactSettingWord(NULL, FONTMODULE, szTemp, DBGetContactSettingWord(NULL, SRMSGMOD_T, szTemp, 0));
-        DBDeleteContactSetting(NULL, SRMSGMOD_T, szTemp);
-    }
-    ReleaseDC(NULL, hdc);
-    i = 0;
-
-    while(colornames[i].szName!= NULL) {
-        DBWriteContactSettingDword(NULL, FONTMODULE, colornames[i].szSetting, DBGetContactSettingDword(NULL, SRMSGMOD_T, colornames[i].szSetting, RGB(224, 224, 224)));
-        DBDeleteContactSetting(NULL, SRMSGMOD_T, colornames[i].szSetting);
-        i++;
-    }
 }
 
 void GetDefaultContainerTitleFormat()

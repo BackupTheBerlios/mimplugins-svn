@@ -22,14 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "commonheaders.h"
-#include "m_popup.h"
-#include "msgs.h"
-#include "m_ieview.h"
 
 int LoadSendRecvMessageModule(void);
 int SplitmsgShutdown(void);
 int LogErrorMessage(HWND hwndDlg, struct MessageWindowData *dat, int i, char *szMsg);
-int ReadThemeFromINI(const char *szIniFilename, struct MessageWindowData *dat, int noAdvanced);
 void Chat_Load(PLUGINLINK *link);
 void Chat_Unload();
 

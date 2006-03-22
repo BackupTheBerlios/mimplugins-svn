@@ -301,6 +301,7 @@ struct GlobalLogSettings_t {
     BOOL		ShowTimeIfChanged;
 	BOOL		LoggingEnabled;
 	BOOL		FlashWindow;
+    BOOL        OpenInDefault;
 	BOOL		HighlightEnabled;
 	BOOL		LogIndentEnabled;
 	BOOL		StripFormat;

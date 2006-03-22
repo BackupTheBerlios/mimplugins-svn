@@ -290,12 +290,14 @@ struct ProtocolData {
 #define DM_QUERY_NEXT 1
 #define DM_QUERY_MOSTRECENT 2
 
+#ifndef CPLUSPLUS
 struct CREOleCallback {
 	IRichEditOleCallbackVtbl *lpVtbl;
 	unsigned refCount;
 	IStorage *pictStg;
 	int nextStgId;
 };
+#endif
 
 #define MSGFONTID_MYMSG		  0
 #define MSGFONTID_MYMISC	  1
@@ -419,80 +421,7 @@ struct MsgLogIcon {
     HBRUSH hBkgBrush;
 };
 
-#define IDI_HISTORY 1           /* history button */
-#define IDI_TIMESTAMP 2         /* message log options */
-#define IDI_ADDCONTACT 3        /* add contact symbol (not a button anymore) */
-#define IDI_MULTISEND 4         /* multisend (not a button anymore, symbol still needed) */
-#define IDI_TYPING 5            /* typing notify icon in the statusbar */
-#define IDI_QUOTE 6             /* quote button */
-#define IDI_SAVE 7              /* close tab (with non-empty message area) */
-#define IDI_CHECK 8             /* send button */
-#define IDI_CONTACTPIC 9        /* avatar button */
-#define IDI_CLOSEMSGDLG 10      /* close tab (when message area is empty) */
-#define IDI_USERMENU 11         /* user menu pulldown */
-#define IDI_MSGERROR 12         /* error (for the message log and tab image) */
-#define IDI_ICONIN 13           /* incoming msg icon (log) */
-#define IDI_ICONOUT 14          /* outgoing msg icon (log) */
-#define IDI_SMILEYICON 15       /* smiley button fallback */
-#define IDI_SELFTYPING_ON 16    /* sending typing notify is on */
-#define IDI_SELFTYPING_OFF 17   /* sending typing notify is off */
-#define IDI_CONTAINER 18        /* static container icon */
-#define IDI_SECUREIM_ENABLED 20 /* connection is secured via secureim */
-#define IDI_SECUREIM_DISABLED 19    /* connection is not secured */
-#define IDI_STATUSCHANGE 21     /* status change events (message log) */
-#define IDI_FONTBOLD 22         /* bold */
-#define IDI_FONTITALIC 23       /* italic */
-#define IDI_FONTUNDERLINE 24    /* underline */
-#define IDI_FONTFACE 25         /* font face (currently not in use) */
-#define IDI_FONTCOLOR 26        /* font color (not in use yet) */
-#define IDI_SOUNDSON  27        /* msg window sounds are enabled */
-#define IDI_SOUNDSOFF 28        /* msg window sounds are disabled */
-#define IDI_EMPTY 29
-#define IDI_RESERVED10 30
-
-// v2 stuff
-
-#define IDI_SESSIONLIST                 31
-#define IDI_FAVLIST                     32
-#define IDI_RECENTLIST                  33
-#define IDI_CONFIGSIDEBAR               34
-#define IDI_USERPREFS                   35
-
-// chat stuff
-
-#define IDI_TOPICBUT                    200
-#define IDI_BKGCOLOR                    201
-#define IDI_CHANMGR                     202
-#define IDI_FILTER                      203
-#define IDI_JOIN                        204
-#define IDI_PART                        205
-#define IDI_QUIT                        206
-#define IDI_KICK                        207
-#define IDI_NICK                        208
-#define IDI_NOTICE                      209
-#define IDI_MESSAGE                     210
-#define IDI_MESSAGEOUT                  211
-#define IDI_TOPIC                       212
-#define IDI_INFO                        213
-#define IDI_ADDSTATUS                   214
-#define IDI_REMSTATUS                   215
-#define IDI_ACTION                      216
-#define IDI_HIGHLIGHT                   217
-#define IDI_BLANK                       218
-#define IDI_TAG1                        219
-#define IDI_TAG2                        220
-
-#define IDI_STATUS3                     221
-#define IDI_STATUS2                     222
-#define IDI_STATUS4                     223
-#define IDI_STATUS1                     224
-#define IDI_STATUS0                     225
-#define IDI_STATUS5                     226
-#define IDI_OVERLAY                     227
-#define IDI_FILTER2                     228
-
-#define IDB_UNKNOWNAVATAR 100   /* fallback image for non-existing avatars (BITMAP) */
-#define IDS_IDENTIFY 101        /* string resource to identify icon pack */
+#include "icons/default/resource.h"         // icon pack values
 
 WCHAR *Utf8_Decode(const char *str);
 char *Utf8_Encode(const WCHAR *str);

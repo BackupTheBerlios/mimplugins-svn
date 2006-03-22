@@ -8,19 +8,8 @@
 #include "commonheaders.h"
 #pragma hdrstop
 
-#include "../../include/m_clc.h"
-#include "../../include/m_clui.h"
-#include "../../include/m_userinfo.h"
-#include "../../include/m_history.h"
-#include "../../include/m_addcontact.h"
-
-#include "msgs.h"
-#include "m_popup.h"
 #include "m_smileyadd.h"
 #include "sendqueue.h"
-#include "msgdlgutils.h"
-#include "nen.h"
-#include "functions.h"
 
 extern MYGLOBALS myGlobals;
 

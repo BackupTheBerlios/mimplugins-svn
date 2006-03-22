@@ -39,10 +39,6 @@
 #define IDR_MENUBAR                     308
 #define IDD_CHOOSESTATUSMODES           310
 #define IDD_OPTIONSDIALOG               311
-#define IDI_PULLDOWNARROW               313
-#define IDI_LEFTARROW                   314
-#define IDI_PULLUPARROW                 315
-#define IDI_RIGHTARROW                  316
 #define IDI_TREEVIEWEXPAND              320
 #define IDI_TREEVIEWCHECKED             321
 #define IDI_TREEVIEWUNCHECKED           322

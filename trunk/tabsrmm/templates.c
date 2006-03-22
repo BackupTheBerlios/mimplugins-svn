@@ -28,12 +28,7 @@ $Id: templates.c,v 1.26 2006/01/13 23:21:58 ghazan Exp $
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "msgs.h"
-#include "m_popup.h"
 #include "../../include/m_database.h"
-#include "nen.h"
-#include "functions.h"
-#include "msgdlgutils.h"
 
 /*
  * hardcoded default set of templates for both LTR and RTL.

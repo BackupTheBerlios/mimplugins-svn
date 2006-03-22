@@ -27,15 +27,8 @@ $Id: msgdialog.c,v 1.243 2006/01/26 04:40:00 nightwish2004 Exp $
 #include "commonheaders.h"
 #pragma hdrstop
 // IEVIew MOD Begin
-#include "m_ieview.h"
 // IEVIew MOD End
-#include "msgs.h"
-#include "m_popup.h"
-#include "nen.h"
-#include "m_metacontacts.h"
 #include "sendqueue.h"
-#include "msgdlgutils.h"
-#include "functions.h"
 #include "chat/chat.h"
 
 #define TOOLBAR_PROTO_HIDDEN 1
@@ -49,7 +42,6 @@ extern MYGLOBALS myGlobals;
 extern NEN_OPTIONS nen_options;
 extern TemplateSet RTL_Active, LTR_Active;
 extern HANDLE hMessageWindowList;
-//extern struct CREOleCallback reOleCallback;
 extern HINSTANCE g_hInst;
 extern char *szWarnClose;
 extern struct RTFColorTable rtf_ctable[];
@@ -79,6 +71,7 @@ int tabSRMM_ShowPopup(WPARAM wParam, LPARAM lParam, WORD eventType, int windowOp
 char *pszIDCSAVE_close = 0, *pszIDCSAVE_save = 0;
 
 static void FlashTab(struct MessageWindowData *dat, HWND hwndTab, int iTabindex, BOOL *bState, BOOL mode, HICON origImage);
+
 void FlashContainer(struct ContainerWindowData *pContainer, int iMode, int iCount);
 void ReflashContainer(struct ContainerWindowData *pContainer);
 void UpdateContainerMenu(HWND hwndDlg, struct MessageWindowData *dat);

@@ -65,11 +65,15 @@ int GetContainerNameForContact(HANDLE hContact, TCHAR *szName, int iNameLen);
 UINT DrawRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC OldWndProc);
 UINT NcCalcRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC OldWndProc);
 
+void FirstTimeConfig();
+void IMG_FreeDecoder();
+int  RegisterContainer();
+HMENU BuildContainerMenu();
+
 // the cached message log icons
 void CacheMsgLogIcons();
 void UncacheMsgLogIcons();
 void CacheLogFonts();
-void ConvertAllToUTF8();
 void InitAPI();
 void ReloadGlobals();
 void LoadIconTheme();
@@ -98,6 +102,12 @@ int RegisterTabCtrlClass(void);
 void FreeTabConfig();
 void ReloadTabConfig();
 
+void CacheMsgLogIcons(), CacheLogFonts(), ReloadGlobals(), LoadIconTheme(), UnloadIconTheme();
+void CreateImageList(BOOL bInitial);
+void GetDefaultContainerTitleFormat();
+
+int Chat_OptionsInitialize(WPARAM wParam, LPARAM lParam);
+
 void BroadCastContainer(struct ContainerWindowData *pContainer, UINT message, WPARAM wParam, LPARAM lParam);
 void UpdateContainerMenu(HWND hwndDlg, struct MessageWindowData *dat);
 int MessageWindowOpened(WPARAM wParam, LPARAM lParam);
@@ -111,13 +121,6 @@ void ApplyContainerSetting(struct ContainerWindowData *pContainer, DWORD flags, 
 void ReloadGlobalContainerSettings();
 void BroadCastContainer(struct ContainerWindowData *pContainer, UINT message, WPARAM wParam, LPARAM lParam);
 
-/*
- * font service support
- */
-
-void FS_RegisterFonts();
-void MoveFonts();
-
 extern const WCHAR *EncodeWithNickname(const char *string, const WCHAR *szNick, UINT codePage);
 void BroadCastContainer(struct ContainerWindowData *pContainer, UINT message, WPARAM wParam, LPARAM lParam);
 void GetDefaultContainerTitleFormat();
@@ -128,3 +131,15 @@ void GetDefaultContainerTitleFormat();
 
 int _DebugTraceW(const wchar_t *fmt, ...);
 int _DebugTraceA(const char *fmt, ...);
+
+// themes
+
+char *GetThemeFileName(int iMode);
+static void LoadLogfontFromINI(int i, char *szKey, LOGFONTA *lf, COLORREF *colour, const char *szIniFilename);
+int CheckThemeVersion(const char *szIniFilename);
+void WriteThemeToINI(const char *szIniFilename, struct MessageWindowData *dat);
+void ReadThemeFromINI(const char *szIniFilename, struct MessageWindowData *dat, int noAdvanced);
+
+
+
+

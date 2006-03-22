@@ -39,11 +39,6 @@ The hotkeyhandler is a small, invisible window which cares about a few things:
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "msgs.h"
-#include "m_popup.h"
-#include "nen.h"
-#include "functions.h"
-#include "m_Snapping_windows.h"
 #include "chat/chat.h"
 
 extern struct ContainerWindowData *pFirstContainer;

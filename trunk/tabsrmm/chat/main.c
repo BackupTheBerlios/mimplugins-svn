@@ -54,8 +54,6 @@ int Chat_Load(PLUGINLINK *link)
     
     g_chat_integration_enabled = 1;
     
-    UpgradeCheck();
-
 	CallService(MS_SYSTEM_GET_MMI, 0, (LPARAM) &mmi);
 	g_hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_MENU));
     //OleInitialize(NULL);
@@ -98,47 +96,10 @@ int Chat_Unload(void)
 	return 0;
 }
 
-void UpgradeCheck(void)
-{
-	/*
-	DWORD dwVersion = DBGetContactSettingDword(NULL, "Chat", "OldVersion", PLUGIN_MAKE_VERSION(0,2,9,9));
-	if(	pluginInfo.version > dwVersion)
-	{
-		if(dwVersion < PLUGIN_MAKE_VERSION(0,3,0,0))
-		{
-			DBDeleteContactSetting(NULL, "ChatFonts",	"Font18");
-			DBDeleteContactSetting(NULL, "ChatFonts",	"Font18Col");
-			DBDeleteContactSetting(NULL, "ChatFonts",	"Font18Set");
-			DBDeleteContactSetting(NULL, "ChatFonts",	"Font18Size");
-			DBDeleteContactSetting(NULL, "ChatFonts",	"Font18Sty");
-			DBDeleteContactSetting(NULL, "ChatFonts",	"Font19");
-			DBDeleteContactSetting(NULL, "ChatFonts",	"Font19Col");
-			DBDeleteContactSetting(NULL, "ChatFonts",	"Font19Set");
-			DBDeleteContactSetting(NULL, "ChatFonts",	"Font19Size");
-			DBDeleteContactSetting(NULL, "ChatFonts",	"Font19Sty");
-			DBDeleteContactSetting(NULL, "Chat",		"ColorNicklistLines");
-			DBDeleteContactSetting(NULL, "Chat",		"NicklistIndent");
-			DBDeleteContactSetting(NULL, "Chat",		"NicklistRowDist");
-			DBDeleteContactSetting(NULL, "Chat",		"ShowFormatButtons");
-			DBDeleteContactSetting(NULL, "Chat",		"ShowLines");
-			DBDeleteContactSetting(NULL, "Chat",		"ShowName");
-			DBDeleteContactSetting(NULL, "Chat",		"ShowTopButtons");
-			DBDeleteContactSetting(NULL, "Chat",		"SplitterX");
-			DBDeleteContactSetting(NULL, "Chat",		"SplitterY");
-			DBDeleteContactSetting(NULL, "Chat",		"IconFlags");
-			DBDeleteContactSetting(NULL, "Chat",		"LogIndentEnabled");
-			
-		}
-		
-	}
-	DBWriteContactSettingDword(NULL, "Chat", "OldVersion", pluginInfo.version);
-	*/
-	return;
-}
-
 void LoadLogIcons(void)
 {
-	hIcons[ICON_ACTION] = LoadIconEx(IDI_ACTION, "log_action", 10, 10); //LoadImage(g_hInst,MAKEINTRESOURCE(IDI_ACTION),IMAGE_ICON,0,0,0);
+    ZeroMemory(hIcons, sizeof(HICON) * (ICON_STATUS5 - ICON_ACTION));
+    hIcons[ICON_ACTION] = LoadIconEx(IDI_ACTION, "log_action", 10, 10); //LoadImage(g_hInst,MAKEINTRESOURCE(IDI_ACTION),IMAGE_ICON,0,0,0);
 	hIcons[ICON_ADDSTATUS] = LoadIconEx(IDI_ADDSTATUS, "log_addstatus", 10, 10); //LoadImage(g_hInst,MAKEINTRESOURCE(IDI_ADDSTATUS),IMAGE_ICON,0,0,0);
 	hIcons[ICON_HIGHLIGHT] = LoadIconEx(IDI_HIGHLIGHT, "log_highlight", 10, 10); //LoadImage(g_hInst,MAKEINTRESOURCE(IDI_HIGHLIGHT),IMAGE_ICON,0,0,0);
 	hIcons[ICON_INFO] = LoadIconEx(IDI_INFO, "log_info", 10, 10); //LoadImage(g_hInst,MAKEINTRESOURCE(IDI_INFO),IMAGE_ICON,0,0,0);
@@ -171,16 +132,6 @@ void LoadIcons(void)
 	LoadLogIcons();
 	g_Settings.hIconOverlay = LoadIconEx(IDI_OVERLAY, "overlay", 16, 16);
 	LoadMsgLogBitmaps();
-
-    /*
-    hImageList = ImageList_Create(GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON),IsWinVerXPPlus()? ILC_COLOR32 | ILC_MASK : ILC_COLOR16 | ILC_MASK,0,3);
-	hIconsList = ImageList_Create(GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON),IsWinVerXPPlus()? ILC_COLOR32 | ILC_MASK : ILC_COLOR16 | ILC_MASK,0,100);
-	ImageList_AddIcon(hIconsList,LoadSkinnedIcon( SKINICON_EVENT_MESSAGE));
-	ImageList_AddIcon(hIconsList,LoadIconEx(IDI_OVERLAY, "overlay", 0, 0));
-	ImageList_SetOverlayImage(hIconsList, 1, 1);
-	ImageList_AddIcon(hImageList,LoadImage(g_hInst,MAKEINTRESOURCE(IDI_BLANK),IMAGE_ICON,0,0,0));
-	ImageList_AddIcon(hImageList,LoadImage(g_hInst,MAKEINTRESOURCE(IDI_BLANK),IMAGE_ICON,0,0,0));
-    */
 	return ;
 }
 

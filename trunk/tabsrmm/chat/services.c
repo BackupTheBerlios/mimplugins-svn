@@ -700,10 +700,10 @@ void ShowRoom(SESSION_INFO * si, WPARAM wp, BOOL bSetForeground)
 	if (si->hWnd == NULL) {
         struct ContainerWindowData *pContainer = si->pContainer;
         if(pContainer == NULL)
-            pContainer = FindContainerByName(_T("default"));
+            pContainer = FindContainerByName(g_Settings.OpenInDefault ? _T("default") : _T("Chat Rooms"));
         if(pContainer == NULL)
-            pContainer = CreateContainer(_T("default"), FALSE, si->hContact);
-		si->hWnd = CreateNewRoom(pContainer, si, TRUE, FALSE, FALSE);
+            pContainer = CreateContainer(g_Settings.OpenInDefault ? _T("default") : _T("Chat Rooms"), FALSE, si->hContact);
+		si->hWnd = CreateNewRoom(pContainer, si, TRUE, TRUE, FALSE);
 	}
     else
         ActivateExistingTab(si->pContainer, si->hWnd);

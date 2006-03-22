@@ -25,24 +25,12 @@ $Id: msgs.c,v 1.160 2006/01/06 12:10:46 ghazan Exp $
 */
 #include "commonheaders.h"
 #pragma hdrstop
-#include "msgs.h"
-#include "msgdlgutils.h"
-#include "m_popup.h"
-#include "nen.h"
-#include "m_ieview.h"
-#include "m_metacontacts.h"
-#include "functions.h"
 #include "m_toptoolbar.h"
-#include "m_fontservice.h"
 #include "m_updater.h"
 #include "m_avatars.h"
 #include "chat/chat.h"
 
 #ifdef __MATHMOD_SUPPORT
-    #define QUESTIONMathExists "req_Is_MathModule_Installed"
-    #define ANSWERMathExists "automaticAnswer:MathModule_Is_Installed"
-    #define REPORTMathModuleInstalled_SERVICENAME "MATHMODULE_SEND_INSTALLED"
-    #define MTH_GETBITMAP "Math/GetBitmap"
     #include "m_MathModule.h"
 #endif
 
@@ -50,14 +38,14 @@ MYGLOBALS myGlobals;
 NEN_OPTIONS nen_options;
 extern PLUGININFO pluginInfo;
 
-//TCHAR *MY_DBGetContactSettingString(HANDLE hContact, char *szModule, char *szSetting);
 static void InitREOleCallback(void);
+static void UnloadIcons();
 static int IcoLibIconsChanged(WPARAM wParam, LPARAM lParam);
 static int AvatarChanged(WPARAM wParam, LPARAM lParam);
 static int MyAvatarChanged(WPARAM wParam, LPARAM lParam);
 
 HANDLE hMessageWindowList, hUserPrefsWindowList;
-static HANDLE hEventDbEventAdded, hEventDbSettingChange, hEventContactDeleted, hEventDispatch, hEvent_ttbInit, hTTB_Slist, hTTB_Tray, hEvent_FontService;
+static HANDLE hEventDbEventAdded, hEventDbSettingChange, hEventContactDeleted, hEventDispatch, hEvent_ttbInit, hTTB_Slist, hTTB_Tray;
 static HANDLE hEventSmileyAdd = 0;
 HANDLE *hMsgMenuItem = NULL;
 int hMsgMenuItemCount = 0;
@@ -75,21 +63,16 @@ extern      int g_chat_integration_enabled;
 extern      struct SendJob sendJobs[NR_SENDJOBS];
 extern      struct MsgLogIcon msgLogIcons[NR_LOGICONS * 3];
 extern      HINSTANCE g_hInst;
+extern      BOOL CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 HANDLE g_hEvent_MsgWin;
 
-HMENU BuildContainerMenu();
-BOOL CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 static struct MsgLogIcon ttb_Slist = {0}, ttb_Traymenu = {0};
 
 HMODULE g_hIconDLL = 0;
 
 void BuildCodePageList();
 int tabSRMM_ShowPopup(WPARAM wParam, LPARAM lParam, WORD eventType, int windowOpen, struct ContainerWindowData *pContainer, HWND hwndChild, char *szProto, struct MessageWindowData *dat);
-int FS_ReloadFonts(WPARAM wParam, LPARAM lParam);
-void FirstTimeConfig();
-void IMG_FreeDecoder();
-void RegisterContainer();
 
 int Chat_IconsChanged(WPARAM wp, LPARAM lp), Chat_ModulesLoaded(WPARAM wp, LPARAM lp);
 void Chat_AddIcons(void);
@@ -852,10 +835,6 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
     LoadIconTheme();
     CreateImageList(TRUE);
 
-#if defined(_UNICODE)
-    ConvertAllToUTF8();
-#endif    
-
     mii.cbSize = sizeof(mii);
     mii.fMask = MIIM_BITMAP;
     mii.hbmpItem = HBMMENU_CALLBACK;
@@ -981,7 +960,6 @@ int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
     UnhookEvent(hEventDispatch);
     UnhookEvent(hEventDbSettingChange);
     UnhookEvent(hEventContactDeleted);
-    UnhookEvent(hEvent_FontService);
 
     DestroyServiceFunction(MS_MSG_SENDMESSAGE);
 #if defined(_UNICODE)
@@ -1018,41 +996,6 @@ int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-static void UnloadIcons()
-{
-    int i;
-    
-    DestroyIcon(myGlobals.g_iconIn);
-    DestroyIcon(myGlobals.g_iconOut);
-    DestroyIcon(myGlobals.g_iconErr);
-    DestroyIcon(myGlobals.g_iconContainer);
-    DestroyIcon(myGlobals.g_iconStatus);
-    DestroyIcon(myGlobals.g_IconChecked);
-    DestroyIcon(myGlobals.g_IconUnchecked);
-    DestroyIcon(myGlobals.g_IconFolder);
-    //DestroyIcon(myGlobals.g_IconVisible);
-    //DestroyIcon(myGlobals.g_IconDependStatus);
-    //DestroyIcon(myGlobals.g_IconBlocked);
-    /*
-     * free the button bar icons
-     */
-    
-    for (i = 0; i < NR_BUTTONBARICONS; i++)
-        DestroyIcon(myGlobals.g_buttonBarIcons[i]);
-    
-    /*
-     * free the sidebar icons
-     */
-    
-    for (i = 0; i < NR_SIDEBARICONS; i++) {
-        if(myGlobals.g_sideBarIcons[i] != 0)
-            DestroyIcon(myGlobals.g_sideBarIcons[i]);
-    }
-    if(myGlobals.g_hbmUnknown)
-        DeleteObject(myGlobals.g_hbmUnknown);
-}
-
-
 int SplitmsgShutdown(void)
 {
     int i;
@@ -1067,7 +1010,7 @@ int SplitmsgShutdown(void)
     if(g_hIconDLL)
         FreeLibrary(g_hIconDLL);
     
-    //OleUninitialize();
+    OleUninitialize();
     if (hMsgMenuItem) {
         free(hMsgMenuItem);
         hMsgMenuItem = NULL;
@@ -1099,6 +1042,10 @@ int SplitmsgShutdown(void)
 
 	IMG_DeleteItems();
 	IMG_FreeDecoder();
+	if(g_hIconDLL) {
+		FreeLibrary(g_hIconDLL);
+		g_hIconDLL = 0;
+	}
 	//tQHTM_Free();
     return 0;
 }
@@ -1220,8 +1167,8 @@ int LoadSendRecvMessageModule(void)
         return 0;
     }
 
-    //OleInitialize(NULL);
-    //InitREOleCallback();
+    OleInitialize(NULL);
+    InitREOleCallback();
     ZeroMemory((void *)&myGlobals, sizeof(myGlobals));
     ZeroMemory((void *)&nen_options, sizeof(nen_options));
     
@@ -1264,7 +1211,6 @@ int LoadSendRecvMessageModule(void)
     
     LoadDefaultTemplates();
 
-    MoveFonts();
     BuildCodePageList();
     myGlobals.m_VSApiEnabled = InitVSApi();
 	GetDefaultContainerTitleFormat();
@@ -1285,8 +1231,6 @@ int LoadSendRecvMessageModule(void)
     ReloadContainerSkin();
     return 0;
 }
-
-/*
 
 static IRichEditOleCallbackVtbl reOleCallbackVtbl;
 struct CREOleCallback reOleCallback;
@@ -1397,7 +1341,7 @@ static void InitREOleCallback(void)
     reOleCallback.refCount = 0;
 }
 
-*/
+
 
 /*
  * tabbed mode support functions...
@@ -1591,7 +1535,7 @@ struct ContainerWindowData *FindMatchingContainer(const TCHAR *szName, HANDLE hC
  *           FALSE if we only need to clear and repopulate it (icons changed event)
  */
 
-void CreateImageList(BOOL bInitial)
+static void CreateImageList(BOOL bInitial)
 {
     HICON hIcon;
     int cxIcon = GetSystemMetrics(SM_CXSMICON);
@@ -1618,64 +1562,12 @@ void CreateImageList(BOOL bInitial)
     myGlobals.g_IconTypingEvent = myGlobals.g_buttonBarIcons[5];
 }
 
-#if defined(_UNICODE)
-
-void ConvertAllToUTF8()
-{
-    DBVARIANT dbv;
-    char szCounter[10];
-    int counter = 0;
-    char *utf8string;
-    HANDLE hContact;
-    
-    if(DBGetContactSettingByte(NULL, SRMSGMOD_T, "utf8converted", 0))
-        return;
-
-    do {
-        _snprintf(szCounter, 8, "%d", counter);
-        if(DBGetContactSetting(NULL, "TAB_ContainersW", szCounter, &dbv))
-            break;
-        if(dbv.type == DBVT_BLOB && dbv.cpbVal > 0) {
-            utf8string = Utf8_Encode((WCHAR *)dbv.pbVal);
-            DBWriteContactSettingString(NULL, "TAB_ContainersW", szCounter, utf8string);
-            free(utf8string);
-        }
-        DBFreeVariant(&dbv);
-        counter++;
-    } while ( TRUE );
-
-    hContact = (HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, 0, 0);
-
-    while(hContact) {
-        if(!DBGetContactSetting(hContact, SRMSGMOD_T, "containerW", &dbv)) {
-            if(dbv.type == DBVT_BLOB && dbv.cpbVal > 0) {
-                utf8string = Utf8_Encode((WCHAR *)dbv.pbVal);
-                DBDeleteContactSetting(hContact, SRMSGMOD_T, "containerW");
-                DBWriteContactSettingString(hContact, SRMSGMOD_T, "containerW", utf8string);
-                free(utf8string);
-            }
-            DBFreeVariant(&dbv);
-        }
-        hContact = (HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, 0);
-    }
-    if(!DBGetContactSetting(NULL, SRMSGMOD_T, "defaultcontainernameW", &dbv)) {
-        if(dbv.type == DBVT_BLOB) {
-            char *utf8string = Utf8_Encode((WCHAR *)dbv.pbVal);
-            DBDeleteContactSetting(NULL, SRMSGMOD_T, "defaultcontainernameW");
-            DBWriteContactSettingString(NULL, SRMSGMOD_T, "defaultcontainernameW", utf8string);
-            free(utf8string);
-        }
-        DBFreeVariant(&dbv);
-    }
-    DBWriteContactSettingByte(NULL, SRMSGMOD_T, "utf8converted", 1);
-}
-#endif
 
 /*
  * initialises the internal API, services, events etc...
  */
 
-void InitAPI()
+static void InitAPI()
 {
     /*
      * common services (SRMM style)
@@ -1762,64 +1654,69 @@ void LoadMsgAreaBackground()
     }
         
 }
-static ICONDESC myIcons[] = {
+static ICONDESC _toolbaricons[] = {
     "tabSRMM_history", "Show History", &myGlobals.g_buttonBarIcons[1], -IDI_HISTORY, 1,
-    "tabSRMM_mlog", "Message Log Options", &myGlobals.g_buttonBarIcons[2], -IDI_TIMESTAMP, 1,
+    "tabSRMM_mlog", "Message Log Options", &myGlobals.g_buttonBarIcons[2], -IDI_MSGLOGOPT, 1,
     "tabSRMM_add", "Add contact", &myGlobals.g_buttonBarIcons[0], -IDI_ADDCONTACT, 1,
     "tabSRMM_multi", "Multisend indicator", &myGlobals.g_buttonBarIcons[3], -IDI_MULTISEND, 1,
     "tabSRMM_typing", "Contact is typing", &myGlobals.g_buttonBarIcons[5], -IDI_TYPING, 1,
     "tabSRMM_quote", "Quote text", &myGlobals.g_buttonBarIcons[8], -IDI_QUOTE, 1,
     "tabSRMM_save", "Save and close", &myGlobals.g_buttonBarIcons[7], -IDI_SAVE, 1,
-    "tabSRMM_send", "Send message", &myGlobals.g_buttonBarIcons[9], -IDI_CHECK, 1,
+    "tabSRMM_send", "Send message", &myGlobals.g_buttonBarIcons[9], -IDI_SEND, 1,
     "tabSRMM_avatar", "Avatar menu", &myGlobals.g_buttonBarIcons[10], -IDI_CONTACTPIC, 1,
     "tabSRMM_close", "Close", &myGlobals.g_buttonBarIcons[6], -IDI_CLOSEMSGDLG, 1,
     "tabSRMM_usermenu", "User menu", &myGlobals.g_buttonBarIcons[4], -IDI_USERMENU, 1,
-    "tabSRMM_error", "Message delivery error", &myGlobals.g_iconErr, -IDI_MSGERROR, 1,
-    "tabSRMM_in", "Incoming message", &myGlobals.g_iconIn, -IDI_ICONIN, 0,
-    "tabSRMM_out", "Outgoing message", &myGlobals.g_iconOut, -IDI_ICONOUT, 0,
+    NULL, NULL, NULL, 0, 0
+};
+
+static ICONDESC _exttoolbaricons[] = {
     "tabSRMM_emoticon", "Smiley button", &myGlobals.g_buttonBarIcons[11], -IDI_SMILEYICON, 1,
-    "tabSRMM_mtn_on", "Sending typing notify is on", &myGlobals.g_buttonBarIcons[12], -IDI_SELFTYPING_ON, 1,
-    "tabSRMM_mtn_off", "Sending typing notify is off", &myGlobals.g_buttonBarIcons[13], -IDI_SELFTYPING_OFF, 1,
-    "tabSRMM_container", "Static container icon", &myGlobals.g_iconContainer, -IDI_CONTAINER, 1,
-    "tabSRMM_secureim_on", "SecureIM is on", &myGlobals.g_buttonBarIcons[14], -IDI_SECUREIM_ENABLED, 1,
-    "tabSRMM_secureim_off", "SecureIM is off", &myGlobals.g_buttonBarIcons[15], -IDI_SECUREIM_DISABLED, 1,
-    "tabSRMM_status", "Statuschange", &myGlobals.g_iconStatus, -IDI_STATUSCHANGE, 0,
     "tabSRMM_bold", "Format bold", &myGlobals.g_buttonBarIcons[17], -IDI_FONTBOLD, 1,
     "tabSRMM_italic", "Format italic", &myGlobals.g_buttonBarIcons[18], -IDI_FONTITALIC, 1,
     "tabSRMM_underline", "Format underline", &myGlobals.g_buttonBarIcons[19], -IDI_FONTUNDERLINE, 1,
     "tabSRMM_face", "Font face", &myGlobals.g_buttonBarIcons[20], -IDI_FONTFACE, 1,
     "tabSRMM_color", "Font color", &myGlobals.g_buttonBarIcons[21], -IDI_FONTCOLOR, 1,
+    NULL, NULL, NULL, 0, 0
+};
+
+static ICONDESC _logicons[] = {
+    "tabSRMM_error", "Message delivery error", &myGlobals.g_iconErr, -IDI_MSGERROR, 1,
+    "tabSRMM_in", "Incoming message", &myGlobals.g_iconIn, -IDI_ICONIN, 0,
+    "tabSRMM_out", "Outgoing message", &myGlobals.g_iconOut, -IDI_ICONOUT, 0,
+    "tabSRMM_status", "Statuschange", &myGlobals.g_iconStatus, -IDI_STATUSCHANGE, 0,
+    NULL, NULL, NULL, 0, 0
+};
+static ICONDESC _deficons[] = {
+    "tabSRMM_container", "Static container icon", &myGlobals.g_iconContainer, -IDI_CONTAINER, 1,
+    "tabSRMM_mtn_on", "Sending typing notify is on", &myGlobals.g_buttonBarIcons[12], -IDI_SELFTYPING_ON, 1,
+    "tabSRMM_mtn_off", "Sending typing notify is off", &myGlobals.g_buttonBarIcons[13], -IDI_SELFTYPING_OFF, 1,
+    "tabSRMM_secureim_on", "SecureIM is on", &myGlobals.g_buttonBarIcons[14], -IDI_SECUREIM_ENABLED, 1,
+    "tabSRMM_secureim_off", "SecureIM is off", &myGlobals.g_buttonBarIcons[15], -IDI_SECUREIM_DISABLED, 1,
     "tabSRMM_sounds_on", "Sounds are On", &myGlobals.g_buttonBarIcons[22], -IDI_SOUNDSON, 1,
     "tabSRMM_sounds_off", "Sounds are off", &myGlobals.g_buttonBarIcons[23], -IDI_SOUNDSOFF, 1,
     "tabSRMM_log_frozen", "Message Log frozen", &myGlobals.g_buttonBarIcons[24], -IDI_MSGERROR, 1,
     "tabSRMM_undefined", "Default", &myGlobals.g_buttonBarIcons[27], -IDI_EMPTY, 1,
-    NULL, NULL, NULL, 0
-};
-
-static ICONDESC myIconsV2[] = {
+    "tabSRMM_pulldown", "Pulldown Arrow", &myGlobals.g_buttonBarIcons[16], -IDI_PULLDOWNARROW, 1,
+    "tabSRMM_Leftarrow", "Left Arrow", &myGlobals.g_buttonBarIcons[25], -IDI_LEFTARROW, 1,
+    "tabSRMM_Rightarrow", "Right Arrow", &myGlobals.g_buttonBarIcons[28], -IDI_RIGHTARROW, 1,
+    "tabSRMM_Pulluparrow", "Up Arrow", &myGlobals.g_buttonBarIcons[26], -IDI_PULLUPARROW, 1,
     "tabSRMM_sb_slist", "Session List", &myGlobals.g_sideBarIcons[0], -IDI_SESSIONLIST, 1,
     "tabSRMM_sb_Favorites", "Favorite Contacts", &myGlobals.g_sideBarIcons[1], -IDI_FAVLIST, 1,
     "tabSRMM_sb_Recent", "Recent Sessions", &myGlobals.g_sideBarIcons[2], -IDI_RECENTLIST, 1,
     "tabSRMM_sb_Setup", "Setup Sidebar", &myGlobals.g_sideBarIcons[3], -IDI_CONFIGSIDEBAR, 1,
     "tabSRMM_sb_Userprefs", "Contact Preferences", &myGlobals.g_sideBarIcons[4], -IDI_USERPREFS, 1,
-    NULL, NULL, NULL, 0
+    NULL, NULL, NULL, 0, 0
 };
 
-static ICONDESC mainDLLIcons[] = {
-    "tabSRMM_pulldown", "Pulldown Arrow", &myGlobals.g_buttonBarIcons[16], -IDI_PULLDOWNARROW, 1,
-    "tabSRMM_Leftarrow", "Left Arrow", &myGlobals.g_buttonBarIcons[25], -IDI_LEFTARROW, 1,
-    "tabSRMM_Rightarrow", "Right Arrow", &myGlobals.g_buttonBarIcons[28], -IDI_RIGHTARROW, 1,
-    "tabSRMM_Pulluparrow", "Up Arrow", &myGlobals.g_buttonBarIcons[26], -IDI_PULLUPARROW, 1,
-    //"tabSRMM_Visible", "Contact on visible list", &myGlobals.g_IconVisible, -IDI_VISIBLE, 1,
-    //"tabSRMM_Blocked", "Contact blocked/invisible list", &myGlobals.g_IconBlocked, -IDI_BLOCKED, 1,
-    //"tabSRMM_Statudepends", "Normal visibilty", &myGlobals.g_IconDependStatus, -IDI_STATUSDEPEND, 1,
-    NULL, NULL, NULL, 0
+static struct _iconblocks { char *szSection; ICONDESC *idesc; } ICONBLOCKS[] = {
+    "TabSRMM/Default", _deficons,
+    "TabSRMM/Toolbar", _toolbaricons,
+    "TabSRMM/Toolbar", _exttoolbaricons,
+    "TabSRMM/Message Log", _logicons,
+    NULL, 0
 };
-/*
- * build icons for extra status support
- */
 
-int GetIconPackVersion(HMODULE hDLL)
+static int GetIconPackVersion(HMODULE hDLL)
 {
     char szIDString[256];
     int version = 0;
@@ -1845,11 +1742,12 @@ int GetIconPackVersion(HMODULE hDLL)
  * default icons are taken from the icon pack in either \icons or \plugins
  */
 
-int SetupIconLibConfig()
+static int SetupIconLibConfig()
 {
     SKINICONDESC sid;
     char szFilename[MAX_PATH];
-    int i = 0, version = 0;
+    int i = 0, version = 0, n = 0;
+    
     strncpy(szFilename, "plugins\\tabsrmm_icons.dll", MAX_PATH);
     g_hIconDLL = LoadLibraryA(szFilename);
     if(g_hIconDLL == 0) {
@@ -1870,68 +1768,42 @@ int SetupIconLibConfig()
     g_hIconDLL = 0;
     
     sid.cbSize = sizeof(SKINICONDESC);
-    sid.pszSection = "TabSRMM/Default";
     sid.pszDefaultFile = szFilename;
 
-    i = 0;
-    do {
-        if(myIcons[i].szName == NULL)
-            break;
-        sid.pszName = myIcons[i].szName;
-        sid.pszDescription = Translate(myIcons[i].szDesc);
-        sid.iDefaultIndex = myIcons[i].uId == -IDI_HISTORY ? 0 : myIcons[i].uId;        // workaround problem /w icoLib and a resource id of 1 (actually, a Windows problem)
-        CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-    } while(++i);
-
-    i = 0;
-    do {
-        if(myIconsV2[i].szName == NULL)
-            break;
-        sid.pszName = myIconsV2[i].szName;
-        sid.pszDescription = Translate(myIconsV2[i].szDesc);
-        sid.iDefaultIndex = version == 2 ? myIconsV2[i].uId : IDI_EMPTY;
-        CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-    } while(++i);
-    
-    GetModuleFileNameA(g_hInst, szFilename, MAX_PATH);
-    i = 0;
-    do {
-        if(mainDLLIcons[i].szName == NULL)
-            break;
-        sid.pszName = mainDLLIcons[i].szName;
-        sid.pszDescription = Translate(mainDLLIcons[i].szDesc);
-        sid.iDefaultIndex = mainDLLIcons[i].uId;
-        CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
-    } while(++i);
-    
+    while(ICONBLOCKS[n].szSection) {
+        i = 0;
+        sid.pszSection = ICONBLOCKS[n].szSection;
+        while(ICONBLOCKS[n].idesc[i].szDesc) {
+            sid.pszName = ICONBLOCKS[n].idesc[i].szName;
+            sid.pszDescription = Translate(ICONBLOCKS[n].idesc[i].szDesc);
+            sid.iDefaultIndex = ICONBLOCKS[n].idesc[i].uId == -IDI_HISTORY ? 0 : ICONBLOCKS[n].idesc[i].uId;        // workaround problem /w icoLib and a resource id of 1 (actually, a Windows problem)
+            CallService(MS_SKIN2_ADDICON, 0, (LPARAM)&sid);
+            i++;
+        }
+        n++;
+    }
     return 1;
 }
 
 // load the icon theme from IconLib - check if it exists...
 
-int LoadFromIconLib()
+static int LoadFromIconLib()
 {
-    int i = 0;
+    int i = 0, n = 0;
 
-    do {
-        if(myIcons[i].szName == NULL)
-            break;
-        *(myIcons[i].phIcon) = (HICON) CallService(MS_SKIN2_GETICON, 0, (LPARAM) myIcons[i].szName);
-    } while(++i);
-
-    i = 0;
-    do {
-        if(myIconsV2[i].szName == NULL)
-            break;
-        *(myIconsV2[i].phIcon) = (HICON) CallService(MS_SKIN2_GETICON, 0, (LPARAM) myIconsV2[i].szName);
-    } while(++i);
-
-    i = 0;
-    do {
-        if(mainDLLIcons[i].szName == NULL)
-            break;
-        *(mainDLLIcons[i].phIcon) = (HICON) CallService(MS_SKIN2_GETICON, 0, (LPARAM)mainDLLIcons[i].szName);
-    } while(++i);
+    while(ICONBLOCKS[n].szSection) {
+        i = 0;
+        while(ICONBLOCKS[n].idesc[i].szDesc) {
+            if(*(ICONBLOCKS[n].idesc[i].phIcon) != 0) {
+                DestroyIcon(*(ICONBLOCKS[n].idesc[i].phIcon));
+                *(ICONBLOCKS[n].idesc[i].phIcon) = 0;
+            }
+            *(ICONBLOCKS[n].idesc[i].phIcon) = (HICON)CallService(MS_SKIN2_GETICON, 0, (LPARAM)ICONBLOCKS[n].idesc[i].szName);
+            i++;
+        }
+        n++;
+    }
+    
     CacheMsgLogIcons();
     WindowList_Broadcast(hMessageWindowList, DM_LOADBUTTONBARICONS, 0, 0);
     return 0;
@@ -1941,12 +1813,12 @@ int LoadFromIconLib()
  * load icon theme from either icon pack or IcoLib
  */
 
-void LoadIconTheme()
+static void LoadIconTheme()
 {
     char szFilename[MAX_PATH];
     int cxIcon = GetSystemMetrics(SM_CXSMICON);
     int cyIcon = GetSystemMetrics(SM_CYSMICON);
-    int i = 0, version = 0;
+    int i = 0, version = 0, n = 0;
     //char szDebug[80];
     
     if(ServiceExists(MS_SKIN2_ADDICON)) {               // ico lib present...
@@ -1974,35 +1846,38 @@ void LoadIconTheme()
         version = GetIconPackVersion(g_hIconDLL);
         myGlobals.g_hbmUnknown = LoadImage(g_hIconDLL, MAKEINTRESOURCE(IDB_UNKNOWNAVATAR), IMAGE_BITMAP, 0, 0, 0);
         LoadMsgAreaBackground();
-        i = 0;
-        do {
-            if(myIcons[i].szName == NULL)
-                break;
-            *(myIcons[i].phIcon) = (HICON) LoadImage(g_hIconDLL, MAKEINTRESOURCE(abs(myIcons[i].uId)), IMAGE_ICON, myIcons[i].bForceSmall ? cxIcon : 0, myIcons[i].bForceSmall ? cyIcon : 0, 0);
-        } while(++i);
-
-        i = 0;
-        do {
-            if(myIconsV2[i].szName == NULL)
-                break;
-            *(myIconsV2[i].phIcon) = (HICON) LoadImage(g_hIconDLL, MAKEINTRESOURCE(version == 2 ? abs(myIconsV2[i].uId) : IDI_EMPTY), IMAGE_ICON, myIconsV2[i].bForceSmall ? cxIcon : 0, myIconsV2[i].bForceSmall ? cyIcon : 0, 0);
-        } while(++i);
-
-        i = 0;
-        do {
-            if(mainDLLIcons[i].szName == NULL)
-                break;
-            *(mainDLLIcons[i].phIcon) = (HICON) LoadImage(g_hInst, MAKEINTRESOURCE(abs(mainDLLIcons[i].uId)), IMAGE_ICON, mainDLLIcons[i].bForceSmall ? cxIcon : 0, mainDLLIcons[i].bForceSmall ? cyIcon : 0, 0);
-        } while(++i);
+        
+        while(ICONBLOCKS[n].szSection) {
+            i = 0;
+            while(ICONBLOCKS[n].idesc[i].szDesc) {
+                *(ICONBLOCKS[n].idesc[i].phIcon) = (HICON)LoadImage(g_hIconDLL, MAKEINTRESOURCE(abs(ICONBLOCKS[n].idesc[i].uId)),
+                                                                    IMAGE_ICON, ICONBLOCKS[n].idesc[i].bForceSmall ? cxIcon : 0, ICONBLOCKS[n].idesc[i].bForceSmall ? cyIcon : 0, 0);
+                i++;
+            }
+            n++;
+        }
         CacheMsgLogIcons();
-
         WindowList_Broadcast(hMessageWindowList, DM_LOADBUTTONBARICONS, 0, 0);
         return;
     }
-failure:
-    if(g_hIconDLL) {
-        FreeLibrary(g_hIconDLL);
-        g_hIconDLL = 0;    
+}
+
+static void UnloadIcons()
+{
+    int i = 0, n = 0;
+
+    while(ICONBLOCKS[n].szSection) {
+        i = 0;
+        while(ICONBLOCKS[n].idesc[i].szDesc) {
+            if(*(ICONBLOCKS[n].idesc[i].phIcon) != 0) {
+                DestroyIcon(*(ICONBLOCKS[n].idesc[i].phIcon));
+                *(ICONBLOCKS[n].idesc[i].phIcon) = 0;
+            }
+            i++;
+        }
+        n++;
     }
+    if(myGlobals.g_hbmUnknown)
+        DeleteObject(myGlobals.g_hbmUnknown);
 }
 

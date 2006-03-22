@@ -29,13 +29,13 @@ LANGUAGE LANG_GERMAN, SUBLANG_GERMAN
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_HISTORY             ICON                    "..\\..\\res\\proxal\\history.ico"
-IDI_TIMESTAMP           ICON                    "..\\..\\res\\proxal\\options.ico"
+IDI_MSGLOGOPT           ICON                    "..\\..\\res\\proxal\\options.ico"
 IDI_ADDCONTACT          ICON                    "..\\..\\res\\proxal\\plus.ico"
 IDI_MULTISEND           ICON                    "..\\..\\res\\proxal\\multisend.ico"
 IDI_TYPING              ICON                    "..\\..\\res\\proxal\\pencil.ico"
 IDI_QUOTE               ICON                    "..\\..\\res\\proxal\\quote.ico"
 IDI_SAVE                ICON                    "..\\..\\res\\proxal\\file.ico"
-IDI_CHECK               ICON                    "..\\..\\res\\proxal\\check.ico"
+IDI_SEND                ICON                    "..\\..\\res\\proxal\\check.ico"
 IDI_CONTACTPIC          ICON                    "..\\..\\res\\proxal\\avatar.ico"
 IDI_USERMENU            ICON                    "..\\..\\res\\proxal\\info.ico"
 IDI_MSGERROR            ICON                    "..\\..\\res\\proxal\\block.ico"
@@ -94,6 +94,11 @@ IDI_STATUS0             ICON                    "..\\..\\chat\\Icons\\1.ico"
 IDI_STATUS5             ICON                    "..\\..\\chat\\Icons\\6.ico"
 IDI_OVERLAY             ICON                    "..\\..\\chat\\Icons\\overlay.ico"
 IDI_FILTER2             ICON                    "..\\..\\chat\\Icons\\filter2.ico"
+
+IDI_PULLDOWNARROW       ICON                    "..\\..\\res/pulldown.ico"
+IDI_LEFTARROW           ICON                    "..\\..\\res/leftarrow.ico"
+IDI_PULLUPARROW         ICON                    "..\\..\\res/pullup.ico"
+IDI_RIGHTARROW          ICON                    "..\\..\\res/rightarrow.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////

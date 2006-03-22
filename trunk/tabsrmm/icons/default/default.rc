@@ -29,13 +29,13 @@ LANGUAGE LANG_GERMAN, SUBLANG_GERMAN
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_HISTORY             ICON                    "..\\..\\res\\angeli-icons\\History.ico"
-IDI_TIMESTAMP           ICON                    "..\\..\\res\\angeli-icons\\opt.ico"
+IDI_MSGLOGOPT           ICON                    "..\\..\\res\\angeli-icons\\opt.ico"
 IDI_ADDCONTACT          ICON                    "..\\..\\res\\angeli-icons\\Add.ico"
 IDI_MULTISEND           ICON                    "..\\..\\res\\angeli-icons\\Multi.ico"
 IDI_TYPING              ICON                    "..\\..\\res\\angeli-icons\\Pencil.ico"
 IDI_QUOTE               ICON                    "..\\..\\res\\angeli-icons\\quote02.ico"
 IDI_SAVE                ICON                    "..\\..\\res\\angeli-icons\\save.ico"
-IDI_CHECK               ICON                    "..\\..\\res\\angeli-icons\\Send.ico"
+IDI_SEND                ICON                    "..\\..\\res\\angeli-icons\\Send.ico"
 IDI_CONTACTPIC          ICON                    "..\\..\\res\\angeli-icons\\Pic.ico"
 IDI_USERMENU            ICON                    "..\\..\\res\\angeli-icons\\Info.ico"
 IDI_MSGERROR            ICON                    "..\\..\\res\\error.ico"
@@ -94,6 +94,11 @@ IDI_STATUS0             ICON                    "..\\..\\chat\\Icons\\1.ico"
 IDI_STATUS5             ICON                    "..\\..\\chat\\Icons\\6.ico"
 IDI_OVERLAY             ICON                    "..\\..\\chat\\Icons\\overlay.ico"
 IDI_FILTER2             ICON                    "..\\..\\chat\\Icons\\filter2.ico"
+
+IDI_PULLDOWNARROW       ICON                    "..\\..\\res/pulldown.ico"
+IDI_LEFTARROW           ICON                    "..\\..\\res/leftarrow.ico"
+IDI_PULLUPARROW         ICON                    "..\\..\\res/pullup.ico"
+IDI_RIGHTARROW          ICON                    "..\\..\\res/rightarrow.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //

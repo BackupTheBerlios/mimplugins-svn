@@ -32,7 +32,6 @@ $Id: selectcontainer.c,v 1.8 2005/05/03 20:24:01 nightwish2004 Exp $
 #include "msgs.h"
 
 int _log(const char *fmt, ...); // XXX debuglog
-int EnumContainers(HANDLE hContact, DWORD dwAction, const char *szTarget, const char *szNew, DWORD dwExtinfo, DWORD dwExtinfoEx);
 extern struct ContainerWindowData *pFirstContainer;
 void DeleteContainer(int iIndex), RenameContainer(int IIndex, const TCHAR *szNew);
 HMENU BuildContainerMenu();

@@ -121,6 +121,7 @@ struct branch_t
 	HTREEITEM hItem;
 };
 static struct branch_t branch1[] = {
+    {_T("Open new chat rooms in the default container"), "DefaultContainer", 0,0, NULL},
 	{_T("Flash window when someone speaks"), "FlashWindow", 0,0, NULL},
 	{_T("Flash window when a word is highlighted"), "FlashWindowHighlight", 0,1, NULL},
 	{_T("Show list of users in the chat room"), "ShowNicklist", 0,1, NULL},
@@ -1268,6 +1269,7 @@ void LoadGlobalSettings(void)
 	g_Settings.dwPopupFlags = DBGetContactSettingDword(NULL, "Chat", "PopupFlags", 0x0000);
 	g_Settings.LoggingLimit = DBGetContactSettingWord(NULL, "Chat", "LoggingLimit", 100);
 	g_Settings.LoggingEnabled = (BOOL)DBGetContactSettingByte(NULL, "Chat", "LoggingEnabled", 0);
+    g_Settings.OpenInDefault = (BOOL)DBGetContactSettingByte(NULL, "Chat", "DefaultContainer", 0);
 	g_Settings.FlashWindow = (BOOL)DBGetContactSettingByte(NULL, "Chat", "FlashWindow", 0);
 	g_Settings.HighlightEnabled = (BOOL)DBGetContactSettingByte(NULL, "Chat", "HighlightEnabled", 1);
 	g_Settings.crUserListColor = (BOOL)DBGetContactSettingDword(NULL, "ChatFonts", "Font18Col", RGB(0,0,0));

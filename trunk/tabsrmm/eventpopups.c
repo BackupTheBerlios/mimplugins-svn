@@ -33,9 +33,6 @@ Event popups for tabSRMM - most of the code taken from NewEventNotify (see copyr
 #include "commonheaders.h"
 #pragma hdrstop
 #include <malloc.h>
-#include "msgs.h"
-#include "nen.h"
-#include "functions.h"
 
 #include "../../include/m_icq.h"
 
@@ -475,11 +472,7 @@ BOOL CALLBACK DlgProcPopupOpts(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		break;
 	case WM_DESTROY:
 		{
-			HIMAGELIST himl = (HIMAGELIST)SendDlgItemMessage(hWnd, IDC_EVENTOPTIONS, TVM_GETIMAGELIST, TVSIL_STATE, 0);
-			if(himl) {
-				ImageList_RemoveAll(himl);
-				ImageList_Destroy(himl);
-			}
+			SendDlgItemMessage(hWnd, IDC_EVENTOPTIONS, TVM_GETIMAGELIST, TVSIL_STATE, 0);
 			bWmNotify = TRUE;
 			break;
 		}

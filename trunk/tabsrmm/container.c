@@ -46,13 +46,6 @@ $Id: container.c,v 1.132 2006/01/13 22:39:32 ghazan Exp $
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "msgs.h"
-#include "m_popup.h"
-#include "nen.h"
-#include "m_metacontacts.h"
-#include "msgdlgutils.h"
-#include "m_snapping_windows.h"
-#include "functions.h"
 #include "chat/chat.h"
 
 #ifdef __MATHMOD_SUPPORT
@@ -1616,7 +1609,7 @@ panel_found:
 
                                             mir_snprintf(szSvc, 128, "%s/Menu2ChannelMenu", szProto);
                                             if(ServiceExists(szSvc))
-                                                CallProtoService(szProto, "/Menu2ChannelMenu", si->hContact, 0);
+                                                CallProtoService(szProto, "/Menu2ChannelMenu", (WPARAM)si->hContact, 0);
                                         }
                                     }
                                     break;

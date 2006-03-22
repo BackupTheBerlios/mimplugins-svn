@@ -27,7 +27,6 @@ for different tab states (active,  unread etc..)
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "msgs.h"
 #include <uxtheme.h>
 
 extern MYGLOBALS myGlobals;

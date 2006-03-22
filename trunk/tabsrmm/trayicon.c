@@ -28,10 +28,6 @@ Functions, concerning tabSRMMs system tray support. There is more in eventpopups
 
 #include "commonheaders.h"
 #pragma hdrstop
-#include "msgs.h"
-#include "m_popup.h"
-#include "nen.h"
-#include "functions.h"
 #include "m_toptoolbar.h"
 
 extern MYGLOBALS myGlobals;
