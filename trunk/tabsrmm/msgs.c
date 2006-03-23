@@ -1121,6 +1121,13 @@ static int IconsChanged(WPARAM wParam, LPARAM lParam)
 int LoadSendRecvMessageModule(void)
 {
     int nOffset = 0;
+
+    INITCOMMONCONTROLSEX icex;
+    
+    icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+    icex.dwICC   = ICC_COOL_CLASSES|ICC_BAR_CLASSES;
+    InitCommonControlsEx(&icex);
+    
     {
         TIME_ZONE_INFORMATION tzinfo;
         DWORD dwResult;

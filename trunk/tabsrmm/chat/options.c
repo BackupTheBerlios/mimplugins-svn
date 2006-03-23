@@ -125,12 +125,7 @@ static struct branch_t branch1[] = {
 	{_T("Flash window when someone speaks"), "FlashWindow", 0,0, NULL},
 	{_T("Flash window when a word is highlighted"), "FlashWindowHighlight", 0,1, NULL},
 	{_T("Show list of users in the chat room"), "ShowNicklist", 0,1, NULL},
-	{_T("Show button for sending messages"), "ShowSend", 0, 0, NULL},
-	{_T("Show buttons for controlling the chat room"), "ShowTopButtons", 0,1, NULL},
-	{_T("Show buttons for formatting the text you are typing"), "ShowFormatButtons", 0,1, NULL},
 	{_T("Show button menus when right clicking the buttons"), "RightClickFilter", 0,0, NULL},
-	{_T("Show new windows cascaded"), "CascadeWindows", 0,1, NULL},
-	{_T("Save the size and position of chat rooms"), "SavePosition", 0,0, NULL},
 	{_T("Show the topic of the room on your contact list (if supported)"), "TopicOnClist", 0, 0, NULL},
 	{_T("Do not play sounds when the chat room is focused"), "SoundsFocus", 0, 0, NULL},
 	{_T("Do not pop up the window when joining a chat room"), "PopupOnJoin", 0,0, NULL},
@@ -1271,6 +1266,7 @@ void LoadGlobalSettings(void)
 	g_Settings.LoggingEnabled = (BOOL)DBGetContactSettingByte(NULL, "Chat", "LoggingEnabled", 0);
     g_Settings.OpenInDefault = (BOOL)DBGetContactSettingByte(NULL, "Chat", "DefaultContainer", 0);
 	g_Settings.FlashWindow = (BOOL)DBGetContactSettingByte(NULL, "Chat", "FlashWindow", 0);
+    g_Settings.FlashWindowHightlight = (BOOL)DBGetContactSettingByte(NULL, "Chat", "FlashWindowHighlight", 0);
 	g_Settings.HighlightEnabled = (BOOL)DBGetContactSettingByte(NULL, "Chat", "HighlightEnabled", 1);
 	g_Settings.crUserListColor = (BOOL)DBGetContactSettingDword(NULL, "ChatFonts", "Font18Col", RGB(0,0,0));
 	g_Settings.crUserListBGColor = (BOOL)DBGetContactSettingDword(NULL, "Chat", "ColorNicklistBG", GetSysColor(COLOR_WINDOW));

@@ -543,7 +543,6 @@ static BOOL CALLBACK ContainerWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 
 					ExcludeClipRect(dcFrame, clip_left, clip_top, clip_left + (pt1.x - pt.x), clip_top + (pt1.y - pt.y));
 					ExcludeClipRect(dcMem, clip_left, clip_top, clip_left + (pt1.x - pt.x), clip_top + (pt1.y - pt.y));
-
 					item = pContainer->ncActive ? &StatusItems[ID_EXTBKFRAME] : &StatusItems[ID_EXTBKFRAMEINACTIVE];
 
 					if(!item->IGNORED)
@@ -615,7 +614,7 @@ static BOOL CALLBACK ContainerWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 					DeleteObject(hbmMem);
 					DeleteDC(dcMem);
 					ReleaseDC(hwndDlg, dcFrame);
-				}
+                }
 				else
 					CallWindowProc(DefDlgProc, hwndDlg, msg, wParam, lParam);
 
@@ -758,6 +757,51 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                     pContainer->sb_NrTopButtons += (sbarItems[i].dwFlags & SBI_TOP) ? 1 : 0;
                     pContainer->sb_NrBottomButtons += (sbarItems[i].dwFlags & SBI_BOTTOM) ? 1 : 0;
                 }*/
+
+                /*
+                {
+                    REBARINFO rbi;
+                    REBARBANDINFO rbBand;
+                    
+                    HWND hwndRB = CreateWindowEx(WS_EX_TOOLWINDOW,
+                                               REBARCLASSNAME,
+                                               NULL,
+                                               WS_CHILD|WS_VISIBLE|WS_CLIPSIBLINGS|
+                                               WS_CLIPCHILDREN|RBS_VARHEIGHT|
+                                               CCS_NODIVIDER,
+                                               0,0,0,0,
+                                               hwndDlg,
+                                               NULL,
+                                               g_hInst,
+                                               NULL);
+                       rbi.cbSize = sizeof(REBARINFO);  // Required when using this
+                                                        // structure.
+                       rbi.fMask  = 0;
+                       rbi.himl   = (HIMAGELIST)NULL;
+                       if(!SendMessage(hwndRB, RB_SETBARINFO, 0, (LPARAM)&rbi))
+                          return NULL;
+
+                    rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
+                    rbBand.fMask  = RBBIM_COLORS | RBBIM_TEXT | RBBIM_BACKGROUND | 
+                                   RBBIM_STYLE | RBBIM_CHILD  | RBBIM_CHILDSIZE | 
+                                   RBBIM_SIZE;
+                    rbBand.fStyle = RBBS_CHILDEDGE | RBBS_FIXEDBMP;
+                    rbBand.hbmBack = 0;
+                    pContainer->hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_MENUBAR));
+                    //hwndCB = CreateComboBox(hwndRB);
+                    // Set values unique to the band with the combo box.
+                    //GetWindowRect(hwndCB, &rc);
+                    rbBand.lpText     = _T("Menu");
+                    rbBand.hwndChild  = pContainer->hMenu;
+
+                    rbBand.cxMinChild = 0;
+                    rbBand.cyMinChild = 20;
+                    rbBand.cx         = 200;
+                    
+                    // Add the band that has the combo box.
+                    SendMessage(hwndRB, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);
+                }
+                */
                 pContainer->sb_FirstButton = 0;
 				pContainer->bSkinned = g_skinnedContainers;
 				SetClassLong(hwndDlg, GCL_STYLE, GetClassLong(hwndDlg, GCL_STYLE) & ~(CS_VREDRAW | CS_HREDRAW));
@@ -1013,7 +1057,7 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                     ApplyContainerSetting(pContainer, CNT_STATICICON, pContainer->dwFlags & CNT_STATICICON ? 0 : 1);
                     break;
                 case ID_VIEW_SHOWMULTISENDCONTACTLIST:
-                    //SendMessage(pContainer->hwndActive, WM_COMMAND, MAKEWPARAM(IDC_SENDMENU, ID_SENDMENU_SENDTOMULTIPLEUSERS), 0);
+                    SendMessage(pContainer->hwndActive, WM_COMMAND, MAKEWPARAM(IDC_SENDMENU, ID_SENDMENU_SENDTOMULTIPLEUSERS), 0);
                     break;
                 case ID_VIEW_STAYONTOP:
                     SendMessage(hwndDlg, WM_SYSCOMMAND, IDM_STAYONTOP, 0);

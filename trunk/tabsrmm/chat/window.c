@@ -135,52 +135,50 @@ static void	InitButtons(HWND hwndDlg, SESSION_INFO* si)
 
 static int splitterEdges = FALSE;
 
+static UINT _toolbarCtrls[] = { IDC_SMILEY, IDC_CHAT_BOLD, IDC_CHAT_UNDERLINE, IDC_ITALICS, IDC_COLOR, IDC_BKGCOLOR,
+    IDC_CHAT_HISTORY, IDC_SHOWNICKLIST, IDC_FILTER, IDC_CHANMGR, IDOK, IDC_CHAT_CLOSE, 0 };
+
 static int RoomWndResize(HWND hwndDlg,LPARAM lParam,UTILRESIZECONTROL *urc)
 {
 	RECT rc, rcTabs;
 	SESSION_INFO * si = (SESSION_INFO*)lParam;
+    struct      MessageWindowData *dat = (struct MessageWindowData *)GetWindowLong(hwndDlg, GWL_USERDATA);
 	int			TabHeight;
-	BOOL		bControl = (BOOL)DBGetContactSettingByte(NULL, "Chat", "ShowTopButtons", 1);
-	BOOL		bFormat = (BOOL)DBGetContactSettingByte(NULL, "Chat", "ShowFormatButtons", 1);
-	BOOL		bToolbar = bFormat || bControl;
-	BOOL		bSend = (BOOL)DBGetContactSettingByte(NULL, "Chat", "ShowSend", 0);
+	BOOL		bToolbar = !(dat->pContainer->dwFlags & CNT_HIDETOOLBAR);
 	BOOL		bNick = si->iType!=GCW_SERVER && si->bNicklistEnabled;
 	BOOL		bTabs = 0;
 	BOOL		bTabBottom = 0;
-
+    int         i = 0;
+    
     rc.bottom = rc.top = rc.left = rc.right = 0;
     
 	GetClientRect(hwndDlg, &rcTabs);
 	TabHeight = rcTabs.bottom - rcTabs.top;
-	ShowWindow(GetDlgItem(hwndDlg, IDC_SMILEY), myGlobals.g_SmileyAddAvail && bFormat?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_CHAT_BOLD), bFormat?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_CHAT_UNDERLINE), bFormat?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_ITALICS), bFormat?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_COLOR), bFormat?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_BKGCOLOR), bFormat?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_CHAT_HISTORY), bControl?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_SHOWNICKLIST), bControl?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_FILTER), bControl?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_CHANMGR), bControl?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDOK), bSend?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_SPLITTERX), bNick?SW_SHOW:SW_HIDE);
-	ShowWindow(GetDlgItem(hwndDlg, IDC_CHAT_CLOSE), SW_SHOW);
-	if(si->iType != GCW_SERVER)
+
+    while(_toolbarCtrls[i])
+        ShowWindow(GetDlgItem(hwndDlg, _toolbarCtrls[i++]), bToolbar ? SW_SHOW : SW_HIDE);
+    
+    ShowWindow(GetDlgItem(hwndDlg, IDC_SMILEY), myGlobals.g_SmileyAddAvail && bToolbar ? SW_SHOW:SW_HIDE);
+
+    if(si->iType != GCW_SERVER) {
 		ShowWindow(GetDlgItem(hwndDlg, IDC_LIST), si->bNicklistEnabled?SW_SHOW:SW_HIDE);
-	else
-		ShowWindow(GetDlgItem(hwndDlg, IDC_LIST), SW_HIDE);
-	if(si->iType == GCW_SERVER)
+        ShowWindow(GetDlgItem(hwndDlg, IDC_SPLITTERX), si->bNicklistEnabled?SW_SHOW:SW_HIDE);
+
+        EnableWindow(GetDlgItem(hwndDlg, IDC_SHOWNICKLIST), TRUE);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_FILTER), TRUE);
+        if(si->iType == GCW_CHATROOM)
+            EnableWindow(GetDlgItem(hwndDlg, IDC_CHANMGR), MM_FindModule(si->pszModule)->bChanMgr);
+    }
+	else {
+        ShowWindow(GetDlgItem(hwndDlg, IDC_LIST), SW_HIDE);
+        ShowWindow(GetDlgItem(hwndDlg, IDC_SPLITTERX), SW_HIDE);
+    }
+
+    if(si->iType == GCW_SERVER)
 	{
 		EnableWindow(GetDlgItem(hwndDlg, IDC_SHOWNICKLIST), FALSE);
 		EnableWindow(GetDlgItem(hwndDlg, IDC_FILTER), FALSE);
 		EnableWindow(GetDlgItem(hwndDlg, IDC_CHANMGR), FALSE);
-	}
-	else
-	{
-		EnableWindow(GetDlgItem(hwndDlg, IDC_SHOWNICKLIST), TRUE);
-		EnableWindow(GetDlgItem(hwndDlg, IDC_FILTER), TRUE);
-		if(si->iType == GCW_CHATROOM)
-			EnableWindow(GetDlgItem(hwndDlg, IDC_CHANMGR), MM_FindModule(si->pszModule)->bChanMgr);
 	}
 
 	switch(urc->wId) {
@@ -207,8 +205,8 @@ static int RoomWndResize(HWND hwndDlg,LPARAM lParam,UTILRESIZECONTROL *urc)
 			urc->rcItem.top = bTabs ?rcTabs.top:1;
 			return RD_ANCHORX_CUSTOM|RD_ANCHORY_CUSTOM;
 		case IDC_SPLITTERY:
-			urc->rcItem.top = bToolbar?urc->dlgNewSize.cy - si->iSplitterY:urc->dlgNewSize.cy - si->iSplitterY+20;
-			urc->rcItem.bottom = bToolbar?(urc->dlgNewSize.cy - si->iSplitterY+2):(urc->dlgNewSize.cy - si->iSplitterY+22);
+			urc->rcItem.top = bToolbar ? urc->dlgNewSize.cy - si->iSplitterY : urc->dlgNewSize.cy - si->iSplitterY;
+			urc->rcItem.bottom = bToolbar?(urc->dlgNewSize.cy - si->iSplitterY+2):(urc->dlgNewSize.cy - si->iSplitterY+2);
 			return RD_ANCHORX_WIDTH|RD_ANCHORY_CUSTOM;
 		case IDC_CHAT_MESSAGE:
 			urc->rcItem.right = urc->dlgNewSize.cx ;
@@ -236,8 +234,6 @@ static int RoomWndResize(HWND hwndDlg,LPARAM lParam,UTILRESIZECONTROL *urc)
             urc->rcItem.bottom = urc->dlgNewSize.cy - si->iSplitterY - 1;
             if(!splitterEdges)
                 OffsetRect(&urc->rcItem, 0, 2);
-            if(!bSend && urc->wId != IDOK)
-                OffsetRect(&urc->rcItem, 34, 0);
 			return RD_ANCHORX_RIGHT|RD_ANCHORY_CUSTOM;
 	}
 	return RD_ANCHORX_LEFT|RD_ANCHORY_TOP;
@@ -312,6 +308,32 @@ default_process:
 		case EM_ACTIVATE:
 			SetActiveWindow(hwndParent);
 			break;
+        case WM_SYSCHAR:
+        {
+            HWND hwndDlg = hwndParent;
+
+            if((GetKeyState(VK_MENU) & 0x8000) && !(GetKeyState(VK_SHIFT) & 0x8000) && !(GetKeyState(VK_CONTROL) & 0x8000)) {
+                switch (LOBYTE(VkKeyScan((TCHAR)wParam))) {
+                    case 'S':
+                        if (!(GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_STYLE) & ES_READONLY)) {
+                            PostMessage(hwndDlg, WM_COMMAND, IDOK, 0);
+                            return 0;
+                        }
+                    case'E':
+                        SendMessage(hwndDlg, WM_COMMAND, IDC_SMILEY, 0);
+                        return 0;
+                    case 'H':
+                        SendMessage(hwndDlg, WM_COMMAND, IDC_CHAT_HISTORY, 0);
+                        return 0;
+                    case 'T':
+                        SendMessage(hwndDlg, WM_COMMAND, IDC_TOGGLETOOLBAR, 0);
+                        return 0;
+                    default:
+                        break;
+                }
+            }
+            break;
+        }
  		case WM_CHAR:
 			if (GetWindowLong(hwnd, GWL_STYLE) & ES_READONLY)
 				break;
@@ -644,7 +666,6 @@ default_process:
         case WM_LBUTTONDOWN:
         case WM_MBUTTONDOWN:
         case WM_KILLFOCUS:
-
 			dat->lastEnterTime = 0;
             break;
 		case WM_RBUTTONDOWN:
@@ -2744,6 +2765,10 @@ LABEL_SHOWWINDOW:
             UpdateStatusBar(hwndDlg, dat);
             break;
 
+        case DM_CONFIGURETOOLBAR:
+            SendMessage(hwndDlg, WM_SIZE, 0, 0);
+            break;
+            
         case WM_NCDESTROY:
             if(dat) {
                 free(dat);

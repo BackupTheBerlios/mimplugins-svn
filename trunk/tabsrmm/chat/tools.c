@@ -315,51 +315,25 @@ static BOOL DoPopup(SESSION_INFO * si, GCEVENT * gce)
 
 BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlight, int bManyFix)
 {
-	BOOL bInactive;
+	BOOL bInactive = TRUE;
 	int iEvent;
-
+    BOOL bMustFlash = FALSE, bMustAutoswitch = FALSE;
+    struct MessageWindowData *dat = 0;
+    HWND hwndContainer = 0;
+    HICON hNotifyIcon = 0;
+    
 	if(!gce || !si ||  gce->bIsMe || si->iType == GCW_SERVER)
 		return FALSE;
 
-	bInactive = si->hWnd == NULL || GetForegroundWindow() != si->hWnd;
-	// bInactive |=  GetActiveWindow() != si->hWnd; // Removed this, because it seemed to be FALSE, even when window was focused, causing incorrect notifications
-
-	iEvent = gce->pDest->iType;
-
     if(si->hWnd) {
-        struct MessageWindowData *dat = (struct MessageWindowData *)GetWindowLong(si->hWnd, GWL_USERDATA);
+        dat = (struct MessageWindowData *)GetWindowLong(si->hWnd, GWL_USERDATA);
         if(dat) {
-            HWND hwndTab = GetParent(si->hWnd);
-            
-            if((IsIconic(dat->pContainer->hwnd) || TabCtrl_GetCurSel(hwndTab) != dat->iTabID)) {
-                dat->iFlashIcon = g_Settings.hIconOverlay;
-                SetTimer(si->hWnd, TIMERID_FLASHWND, TIMEOUT_FLASHWND, NULL);
-                dat->mayFlashTab = TRUE;
-            }
-
-            // autoswitch tab..
-            if(IsIconic(dat->pContainer->hwnd) && !IsZoomed(dat->pContainer->hwnd) && myGlobals.m_AutoSwitchTabs && dat->pContainer->hwndActive != si->hWnd) {
-                int iItem = GetTabIndexFromHWND(hwndTab, si->hWnd);
-                if (iItem >= 0) {
-                    TabCtrl_SetCurSel(hwndTab, iItem);
-                    ShowWindow(dat->pContainer->hwndActive, SW_HIDE);
-                    dat->pContainer->hwndActive = si->hWnd;
-                    SendMessage(dat->pContainer->hwnd, DM_UPDATETITLE, (WPARAM)dat->hContact, 0);
-                    dat->pContainer->dwFlags |= CNT_DEFERREDTABSELECT;
-                }
-            }
-            /*
-             * flash window if it is not focused
-             */
-            if ((GetActiveWindow() != dat->pContainer->hwnd || GetForegroundWindow() != dat->pContainer->hwnd)) {
-                if (!(dat->pContainer->dwFlags & CNT_NOFLASH))
-                    FlashContainer(dat->pContainer, 1, 0);
-                SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)g_Settings.hIconOverlay);
-                dat->pContainer->dwFlags |= CNT_NEED_UPDATETITLE;
-            }
+            hwndContainer = dat->pContainer->hwnd;
+            bInactive = hwndContainer != GetForegroundWindow();
         }
     }
-    
+	iEvent = gce->pDest->iType;
+
     if(bHighlight)
 	{
 		gce->pDest->iType |= GC_EVENT_HIGHLIGHT;
@@ -373,7 +347,12 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 			DoPopup(si, gce);
 		if(bInactive && g_TabSession.hWnd)
 			SendMessage(g_TabSession.hWnd, GC_SETMESSAGEHIGHLIGHT, 0, (LPARAM) si);
-		return TRUE;
+        if(g_Settings.FlashWindowHightlight && bInactive) {
+            bMustFlash = TRUE;
+            bMustAutoswitch = TRUE;
+        }
+        hNotifyIcon = hIcons[ICON_HIGHLIGHT];
+        goto flash_and_switch;
 	}
 
 	// do blinking icons in tray
@@ -381,26 +360,27 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 		DoTrayIcon(si, gce);
 
 	// stupid thing to not create multiple popups for a QUIT event for instance
-	if(bManyFix == 0)
-	{
+	if(bManyFix == 0) {
 		// do popups
 		if(bInactive || !g_Settings.PopUpInactiveOnly)
 			DoPopup(si, gce);
 
 		// do sounds and flashing
-		switch (iEvent)
-		{
+		switch (iEvent) {
 		case GC_EVENT_JOIN:
 			if(bInactive || !g_Settings.SoundsFocus)
 				SkinPlaySound("ChatJoin");
+            hNotifyIcon = hIcons[ICON_JOIN];
 			break;
 		case GC_EVENT_PART:
 			if(bInactive || !g_Settings.SoundsFocus)
 				SkinPlaySound("ChatPart");
+            hNotifyIcon = hIcons[ICON_PART];
 			break;
 		case GC_EVENT_QUIT:
 			if(bInactive || !g_Settings.SoundsFocus)
 				SkinPlaySound("ChatQuit");
+            hNotifyIcon = hIcons[ICON_QUIT];
 			break;
 		case GC_EVENT_ADDSTATUS:
 		case GC_EVENT_REMOVESTATUS:
@@ -410,42 +390,118 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 		case GC_EVENT_KICK:
 			if(bInactive || !g_Settings.SoundsFocus)
 				SkinPlaySound("ChatKick");
+            hNotifyIcon = hIcons[ICON_KICK];
 			break;
 		case GC_EVENT_MESSAGE:
 			if(bInactive || !g_Settings.SoundsFocus)
 				SkinPlaySound("ChatMessage");
-			if(bInactive && g_Settings.FlashWindow && si->hWnd)
-				SetTimer(si->hWnd, TIMERID_FLASHWND, 900, NULL);
-			if(bInactive && !(si->wState&STATE_TALK))
-			{
+			if(bInactive && !(si->wState&STATE_TALK)) {
 				si->wState |= STATE_TALK;
 				DBWriteContactSettingWord(si->hContact, si->pszModule,"ApparentMode",(LPARAM)(WORD) 40071);
 			}
-			//if(bInactive && g_TabSession.hWnd)
-			//	SendMessage(g_TabSession.hWnd, GC_SETTABHIGHLIGHT, 0, (LPARAM) si);
 			break;
 		case GC_EVENT_ACTION:
 			if(bInactive || !g_Settings.SoundsFocus)
 				SkinPlaySound("ChatAction");
+            hNotifyIcon = hIcons[ICON_ACTION];
 			break;
 		case GC_EVENT_NICK:
 			if(bInactive || !g_Settings.SoundsFocus)
 				SkinPlaySound("ChatNick");
+            hNotifyIcon = hIcons[ICON_NICK];
 			break;
 		case GC_EVENT_NOTICE:
 			if(bInactive || !g_Settings.SoundsFocus)
 				SkinPlaySound("ChatNotice");
+            hNotifyIcon = hIcons[ICON_NOTICE];
 			break;
 		case GC_EVENT_TOPIC:
 			if(bInactive || !g_Settings.SoundsFocus)
 				SkinPlaySound("ChatTopic");
-			break;
+            hNotifyIcon = hIcons[ICON_TOPIC];
+            break;
 		default:break;
 		}
 	}
+    else {
+        switch(iEvent) {
+            case GC_EVENT_JOIN:
+                hNotifyIcon = hIcons[ICON_JOIN];
+                break;
+            case GC_EVENT_PART:
+                hNotifyIcon = hIcons[ICON_PART];
+                break;
+            case GC_EVENT_QUIT:
+                hNotifyIcon = hIcons[ICON_QUIT];
+                break;
+            case GC_EVENT_ADDSTATUS:
+            case GC_EVENT_REMOVESTATUS:
+                break;
+            case GC_EVENT_KICK:
+                hNotifyIcon = hIcons[ICON_KICK];
+                break;
+            case GC_EVENT_ACTION:
+                hNotifyIcon = hIcons[ICON_ACTION];
+                break;
+            case GC_EVENT_NICK:
+                hNotifyIcon = hIcons[ICON_NICK];
+                break;
+            case GC_EVENT_NOTICE:
+                hNotifyIcon = hIcons[ICON_NOTICE];
+                break;
+            case GC_EVENT_TOPIC:
+                hNotifyIcon = hIcons[ICON_TOPIC];
+                break;
+            default:
+                break;
+        }
+    }
+    if(iEvent == GC_EVENT_MESSAGE) {
+        bMustAutoswitch = TRUE;
+        bMustFlash = TRUE;
+        hNotifyIcon = hIcons[ICON_MESSAGE];
+    }
+    
+flash_and_switch:
+    if(si->hWnd) {
+        if(dat) {
+            HWND hwndTab = GetParent(si->hWnd);
 
+            if(IsIconic(dat->pContainer->hwnd) || dat->pContainer->hwndActive != si->hWnd) {
+                dat->iFlashIcon = hNotifyIcon;
+                SetTimer(si->hWnd, TIMERID_FLASHWND, TIMEOUT_FLASHWND, NULL);
+                dat->mayFlashTab = TRUE;
+            }
+
+            // autoswitch tab..
+            if(bMustAutoswitch) {
+                if(IsIconic(dat->pContainer->hwnd) && !IsZoomed(dat->pContainer->hwnd) && myGlobals.m_AutoSwitchTabs && dat->pContainer->hwndActive != si->hWnd) {
+                    int iItem = GetTabIndexFromHWND(hwndTab, si->hWnd);
+                    if (iItem >= 0) {
+                        TabCtrl_SetCurSel(hwndTab, iItem);
+                        ShowWindow(dat->pContainer->hwndActive, SW_HIDE);
+                        dat->pContainer->hwndActive = si->hWnd;
+                        SendMessage(dat->pContainer->hwnd, DM_UPDATETITLE, (WPARAM)dat->hContact, 0);
+                        dat->pContainer->dwFlags |= CNT_DEFERREDTABSELECT;
+                    }
+                }
+            }
+            /*
+             * flash window if it is not focused
+             */
+            if(bMustFlash && bInactive) {
+                if (!(dat->pContainer->dwFlags & CNT_NOFLASH))
+                    FlashContainer(dat->pContainer, 1, 0);
+            }
+            if(hNotifyIcon && bInactive) {
+                SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)hNotifyIcon);
+                dat->pContainer->dwFlags |= CNT_NEED_UPDATETITLE;
+            }
+        }
+    }
 	return TRUE;
 }
+
 int Chat_GetColorIndex(char * pszModule, COLORREF cr)
 {
 	MODULEINFO * pMod = MM_FindModule(pszModule);
