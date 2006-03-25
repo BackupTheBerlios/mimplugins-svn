@@ -1860,8 +1860,8 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 
         if(bPanelPic) {
             GetObject(dat->ace ? dat->ace->hbmPic : myGlobals.g_hbmUnknown, sizeof(bminfo), &bminfo);
-			if(dat->ace && dat->showInfoPic && !(dat->ace->dwFlags & AVS_HIDEONCLIST))
-                aceFlags = dat->ace->dwFlags;
+			if((dat->ace && dat->showInfoPic && !(dat->ace->dwFlags & AVS_HIDEONCLIST)) || dat->showInfoPic)
+                aceFlags = dat->ace ? dat->ace->dwFlags : 0;
 			else {
 				if(dat->panelWidth) {
 					dat->panelWidth = 0;

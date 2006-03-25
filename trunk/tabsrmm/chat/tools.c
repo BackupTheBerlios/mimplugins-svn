@@ -190,13 +190,12 @@ static BOOL DoTrayIcon(SESSION_INFO * si, GCEVENT * gce)
 {
 	int iEvent = gce->pDest->iType;
 
-	if (iEvent&g_Settings.dwTrayIconFlags)
-	{
+	if (iEvent&g_Settings.dwTrayIconFlags) {
 		switch (iEvent)
 		{
 		case GC_EVENT_MESSAGE|GC_EVENT_HIGHLIGHT :
 		case GC_EVENT_ACTION|GC_EVENT_HIGHLIGHT :
-			CList_AddEvent(si->hContact, LoadSkinnedIcon(SKINICON_EVENT_MESSAGE), "chaticon", 0, Translate("%s wants your attention in %s"), gce->pszNick, si->pszName); 
+			CList_AddEvent(si->hContact, myGlobals.g_IconMsgEvent, "chaticon", 0, Translate("%s wants your attention in %s"), gce->pszNick, si->pszName); 
 			break;
 		case GC_EVENT_MESSAGE :
 			CList_AddEvent(si->hContact, hIcons[ICON_MESSAGE], "chaticon", CLEF_ONLYAFEW, Translate("%s speaks in %s"), gce->pszNick, si->pszName); 
@@ -237,10 +236,9 @@ static BOOL DoTrayIcon(SESSION_INFO * si, GCEVENT * gce)
 
 		default:break;
 		}
-		
+		return TRUE;
 	}
-
-	return TRUE;
+	return FALSE;
 }
 static BOOL DoPopup(SESSION_INFO * si, GCEVENT * gce)
 {
@@ -386,6 +384,7 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 		case GC_EVENT_REMOVESTATUS:
 			if(bInactive || !g_Settings.SoundsFocus)
 				SkinPlaySound("ChatMode");
+            hNotifyIcon = hIcons[iEvent == GC_EVENT_ADDSTATUS ? ICON_ADDSTATUS : ICON_REMSTATUS];
 			break;
 		case GC_EVENT_KICK:
 			if(bInactive || !g_Settings.SoundsFocus)
@@ -398,7 +397,7 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 			if(bInactive && !(si->wState&STATE_TALK)) {
 				si->wState |= STATE_TALK;
 				DBWriteContactSettingWord(si->hContact, si->pszModule,"ApparentMode",(LPARAM)(WORD) 40071);
-			}
+            }
 			break;
 		case GC_EVENT_ACTION:
 			if(bInactive || !g_Settings.SoundsFocus)
@@ -434,9 +433,6 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
             case GC_EVENT_QUIT:
                 hNotifyIcon = hIcons[ICON_QUIT];
                 break;
-            case GC_EVENT_ADDSTATUS:
-            case GC_EVENT_REMOVESTATUS:
-                break;
             case GC_EVENT_KICK:
                 hNotifyIcon = hIcons[ICON_KICK];
                 break;
@@ -451,6 +447,12 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
                 break;
             case GC_EVENT_TOPIC:
                 hNotifyIcon = hIcons[ICON_TOPIC];
+                break;
+            case GC_EVENT_ADDSTATUS:
+                hNotifyIcon = hIcons[ICON_ADDSTATUS];
+                break;
+            case GC_EVENT_REMOVESTATUS:
+                hNotifyIcon = hIcons[ICON_REMSTATUS];
                 break;
             default:
                 break;
@@ -494,6 +496,7 @@ flash_and_switch:
                     FlashContainer(dat->pContainer, 1, 0);
             }
             if(hNotifyIcon && bInactive) {
+                dat->hTabIcon = hNotifyIcon;
                 SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)hNotifyIcon);
                 dat->pContainer->dwFlags |= CNT_NEED_UPDATETITLE;
             }

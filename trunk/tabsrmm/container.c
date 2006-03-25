@@ -616,7 +616,7 @@ static BOOL CALLBACK ContainerWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 					ReleaseDC(hwndDlg, dcFrame);
                 }
 				else
-					CallWindowProc(DefDlgProc, hwndDlg, msg, wParam, lParam);
+					CallWindowProc(OldContainerWndProc, hwndDlg, msg, wParam, lParam);
 
 				hdcReal = BeginPaint(hwndDlg, &ps);
 
@@ -645,10 +645,11 @@ static BOOL CALLBACK ContainerWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 				EndPaint(hwndDlg, &ps);
 				return 0;
 			}
-		case WM_SETTEXT:
+        case WM_SETTEXT:
+        case WM_SETICON:
 			{
 				if(g_framelessSkinmode) {
-					DefDlgProc(hwndDlg, msg, wParam, lParam);
+					DefWindowProc(hwndDlg, msg, wParam, lParam);
 					RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE | RDW_UPDATENOW | RDW_NOCHILDREN);
 					return 0;
 				}
@@ -705,7 +706,7 @@ static BOOL CALLBACK ContainerWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 		default:
 			break;
 	}
-	return DefDlgProc(hwndDlg, msg, wParam, lParam);
+	return CallWindowProc(OldContainerWndProc, hwndDlg, msg, wParam, lParam);
 }
 /*
  * container window procedure...
@@ -1300,13 +1301,13 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
                 if(lParam) {                // lparen != 0 means sent by a chat window
                     char szText[512];
-                    dat = (struct MessageWindowData *)GetWindowLong((HWND)lParam, GWL_USERDATA);
+                    dat = (struct MessageWindowData *)GetWindowLong((HWND)wParam, GWL_USERDATA);
 
                     GetWindowTextA((HWND)wParam, szText, 512);
                     szText[511] = 0;
                     SetWindowTextA(hwndDlg, szText);
                     if(dat)
-                        SendMessage(hwndDlg, DM_SETICON, (WPARAM) ICON_BIG, (LPARAM)(dat->hXStatusIcon ? dat->hXStatusIcon : dat->hTabStatusIcon));
+                        SendMessage(hwndDlg, DM_SETICON, (WPARAM) ICON_BIG, (LPARAM)(dat->hTabIcon != dat->hTabStatusIcon ? dat->hTabIcon : dat->hTabStatusIcon));
                     break;
                 }
                 if(wParam == 0) {            // no hContact given - obtain the hContact for the active tab
@@ -2495,16 +2496,16 @@ int GetTabIndexFromHWND(HWND hwndTab, HWND hwnd)
 {
     TCITEM item;
     int i = 0;
-
-    if(!IsWindow(hwndTab) || hwndTab == 0)
-        MessageBoxA(0, "hwndTab invalid", "Error", MB_OK);
-
+    int iItems;
+    
+    iItems = TabCtrl_GetItemCount(hwndTab);
+    
     ZeroMemory((void *)&item, sizeof(item));
     item.mask = TCIF_PARAM;
 
-    for (i = 0; i < TabCtrl_GetItemCount(hwndTab); i++) {
+    for (i = 0; i < iItems; i++) {
         TabCtrl_GetItem(hwndTab, i, &item);
-        if ((HWND) item.lParam == hwnd) {
+        if ((HWND)item.lParam == hwnd) {
             return i;
         }
     }

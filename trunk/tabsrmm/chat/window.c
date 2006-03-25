@@ -835,12 +835,13 @@ default_process:
 
 static BOOL CALLBACK FilterWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 {
-	static SESSION_INFO * si = NULL;
+	SESSION_INFO * si = (SESSION_INFO *)GetWindowLong(hwndDlg, GWL_USERDATA);
 	switch (uMsg)
 	{	
 	case WM_INITDIALOG:
 	{	
 		si = (SESSION_INFO *)lParam;
+        SetWindowLong(hwndDlg, GWL_USERDATA, (LONG)si);
 		CheckDlgButton(hwndDlg, IDC_1, si->iLogFilterFlags&GC_EVENT_ACTION);
 		CheckDlgButton(hwndDlg, IDC_2, si->iLogFilterFlags&GC_EVENT_MESSAGE);
 		CheckDlgButton(hwndDlg, IDC_3, si->iLogFilterFlags&GC_EVENT_NICK);
@@ -897,16 +898,22 @@ static BOOL CALLBACK FilterWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM l
 				if (iFlags&GC_EVENT_ADDSTATUS)
 					iFlags |= GC_EVENT_REMOVESTATUS;
 
-				SendMessage(GetParent(hwndDlg), GC_CHANGEFILTERFLAG, 0, (LPARAM)iFlags);
-				if(si->bFilterEnabled)
-					SendMessage(GetParent(hwndDlg), GC_REDRAWLOG, 0, 0);
+                if(si) {
+                    SendMessage(si->hWnd, GC_CHANGEFILTERFLAG, 0, (LPARAM)iFlags);
+                    if(si->bFilterEnabled)
+                        SendMessage(si->hWnd, GC_REDRAWLOG, 0, 0);
+                }
 				PostMessage(hwndDlg, WM_CLOSE, 0, 0);
 			}
 		}break;
 	case WM_CLOSE:
 		DestroyWindow(hwndDlg);
 		break;
-		default:break;
+    case WM_DESTROY:
+        SetWindowLong(hwndDlg, GWL_USERDATA, 0);
+        break;
+	default:
+        break;
 	}
 	return(FALSE);
 }
@@ -1351,7 +1358,7 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
             dat->wOldStatus = -1;
             SendMessage(hwndDlg, GC_SETWNDPROPS, 0, 0);
 			SendMessage(hwndDlg, GC_UPDATESTATUSBAR, 0, 0);
-			SendMessage(hwndDlg, GC_UPDATETITLE, 0, 0);
+			SendMessage(hwndDlg, GC_UPDATETITLE, 0, 1);
             SendMessage(dat->pContainer->hwnd, DM_QUERYCLIENTAREA, 0, (LPARAM)&rc);
             SetWindowPos(hwndDlg, HWND_TOP, rc.left, rc.top, (rc.right - rc.left), (rc.bottom - rc.top), 0);
             ShowWindow(hwndDlg, SW_SHOW);
@@ -1362,7 +1369,7 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
         case WM_SETFOCUS:
             SetActiveSession(si->pszID, si->pszModule);
             if(GetTickCount() - dat->dwLastUpdate < (DWORD)200) {
-                SendMessage(hwndDlg, GC_UPDATETITLE, 0, 0);
+                SendMessage(hwndDlg, GC_UPDATETITLE, 0, 1);
                 SetFocus(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE));
                 //if(dat->dwFlags & MWF_DEFERREDSCROLL)
                 //    SendMessage(hwndDlg, DM_SCROLLLOGTOBOTTOM, 0, 0);
@@ -1371,7 +1378,7 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
             }
             if (dat->iTabID >= 0) {
                 //ConfigureSideBar(hwndDlg, dat);
-                SendMessage(hwndDlg, GC_UPDATETITLE, 0, 0);
+                SendMessage(hwndDlg, GC_UPDATETITLE, 0, 1);
                 dat->dwTickLastEvent = 0;
                 dat->dwFlags &= ~MWF_DIVIDERSET;
                 if (KillTimer(hwndDlg, TIMERID_FLASHWND)) {
@@ -1382,10 +1389,9 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
                     FlashContainer(dat->pContainer, 0, 0);
                     dat->pContainer->dwFlashingStarted = 0;
                 }
-                if(dat->pContainer->dwFlags & CNT_NEED_UPDATETITLE) {
+                if(dat->pContainer->dwFlags & CNT_NEED_UPDATETITLE)
                     dat->pContainer->dwFlags &= ~CNT_NEED_UPDATETITLE;
-                    SendMessage(hwndDlg, GC_UPDATETITLE, 0, 0);
-                }
+
                 if(dat->dwFlags & MWF_NEEDCHECKSIZE)
                     PostMessage(hwndDlg, DM_SAVESIZE, 0, 0);		
 
@@ -1492,7 +1498,9 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
                     break;
             }
 
-            dat->hTabIcon = dat->hTabStatusIcon = hIcon;
+            dat->hTabStatusIcon = hIcon;
+            if(lParam)
+                dat->hTabIcon = dat->hTabStatusIcon;
             
             if(dat->wStatus != dat->wOldStatus) {
                 TCITEM item;
@@ -1509,7 +1517,6 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
             dat->wOldStatus = dat->wStatus;
 			SetWindowTextA(hwndDlg, szTemp);
             if(dat->pContainer->hwndActive == hwndDlg) {
-                SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)hIcon);
                 SendMessage(dat->pContainer->hwnd, DM_UPDATETITLE, (WPARAM)hwndDlg, 1);
                 SendMessage(hwndDlg, GC_UPDATESTATUSBAR, 0, 0);
             }
@@ -1969,7 +1976,7 @@ LABEL_SHOWWINDOW:
                 }
                 if(dat->pContainer->dwFlags & CNT_NEED_UPDATETITLE) {
                     dat->pContainer->dwFlags &= ~CNT_NEED_UPDATETITLE;
-                    SendMessage(hwndDlg, GC_UPDATETITLE, 0, 0);
+                    SendMessage(hwndDlg, GC_UPDATETITLE, 0, 1);
                 }
                 if(dat->dwFlags & MWF_NEEDCHECKSIZE)
                     PostMessage(hwndDlg, DM_SAVESIZE, 0, 0);			

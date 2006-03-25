@@ -187,7 +187,9 @@ static void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nH
 {
     TCITEM item = {0};
     struct MessageWindowData *dat = 0;
+    int iSize = 16;
     DWORD dwTextFlags = DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX;
+    
     item.mask = TCIF_PARAM;
     TabCtrl_GetItem(tabdat->hwnd, nItem, &item);
 
@@ -236,8 +238,11 @@ static void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nH
         
         if(dat->dwFlags & MWF_ERRORSTATE)
             hIcon = myGlobals.g_iconErr;
-        else if(dat->mayFlashTab)
+        else if(dat->mayFlashTab) {
             hIcon = dat->iFlashIcon;
+            if(dat->si && dat->iFlashIcon != myGlobals.g_IconMsgEvent)
+                iSize = 10;
+        }
 		else {
 			if(dat->hTabIcon == dat->hTabStatusIcon && dat->hXStatusIcon)
 				hIcon = dat->hXStatusIcon;
@@ -247,15 +252,15 @@ static void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nH
 
         if(dat->mayFlashTab == FALSE || (dat->mayFlashTab == TRUE && dat->bTabFlash != 0) || !(myGlobals.m_TabAppearance & TCF_FLASHICON)) {
             DWORD ix = rcItem->left + tabdat->m_xpad - 1;
-            DWORD iy = (rcItem->bottom + rcItem->top - tabdat->cy) / 2;
+            DWORD iy = (rcItem->bottom + rcItem->top - iSize) / 2;
             if(dat->dwEventIsShown & MWF_SHOW_ISIDLE && myGlobals.m_IdleDetect) {
                 ImageList_ReplaceIcon(myGlobals.g_hImageList, 0, hIcon);
 				ImageList_DrawEx(myGlobals.g_hImageList, 0, dc, ix, iy, 0, 0, CLR_NONE, CLR_NONE, ILD_SELECTED);
             }
             else
-                DrawIconEx (dc, ix, iy, hIcon, tabdat->cx, tabdat->cy, 0, NULL, DI_NORMAL | DI_COMPAT); 
+                DrawIconEx (dc, ix, iy, hIcon, iSize, iSize, 0, NULL, DI_NORMAL | DI_COMPAT); 
         }
-        rcItem->left += (tabdat->cx + 2 + tabdat->m_xpad);
+        rcItem->left += (iSize + 2 + tabdat->m_xpad);
         
         if(dat->mayFlashTab == FALSE || (dat->mayFlashTab == TRUE && dat->bTabFlash != 0) || !(myGlobals.m_TabAppearance & TCF_FLASHLABEL)) {
             oldFont = SelectObject(dc, (HFONT)SendMessage(tabdat->hwnd, WM_GETFONT, 0, 0));
