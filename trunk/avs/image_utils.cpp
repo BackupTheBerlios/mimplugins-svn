@@ -48,7 +48,7 @@ HBITMAP LoadAnyImage(char *szFilename)
 {
 	HBITMAP hBmp = (HBITMAP)CallService(MS_UTILS_LOADBITMAP, 0, (LPARAM)szFilename);
 	// TODO: Remove this when core miranda adds LR_CREATEDIBSECTION to LoadImageA
-	CorrectBitmap32Alpha(hBmp);
+	// CorrectBitmap32Alpha(hBmp);
 	return hBmp;
 }
 

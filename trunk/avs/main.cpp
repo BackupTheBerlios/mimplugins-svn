@@ -47,8 +47,6 @@ struct protoPicCacheEntry *g_MyAvatars = 0;
 CRITICAL_SECTION cachecs;
 static CRITICAL_SECTION avcs;
 
-BOOL g_imgDecoderAvail = 0;
-
 HANDLE hAvatarThread = 0;
 DWORD dwAvatarThreadID = 0;
 BOOL bAvatarThreadRunning = TRUE;
@@ -67,7 +65,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 1, 19), 
+	PLUGIN_MAKE_VERSION(0, 0, 1, 20), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -776,7 +774,7 @@ static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap)
  * return TRUE if the image has at least one pixel with transparency
  */
 
-static BOOL PreMultiply(HBITMAP hBitmap, int mode)
+static BOOL PreMultiply(HBITMAP hBitmap)
 {
 	BYTE *p = NULL;
 	DWORD dwLen;
@@ -784,32 +782,54 @@ static BOOL PreMultiply(HBITMAP hBitmap, int mode)
     BITMAP bmp;
     BYTE alpha;
 	BOOL transp = FALSE;
+	BOOL fixIt = TRUE;
     
 	GetObject(hBitmap, sizeof(bmp), &bmp);
     width = bmp.bmWidth;
 	height = bmp.bmHeight;
 	dwLen = width * height * 4;
 	p = (BYTE *)malloc(dwLen);
-    if(p) {
+    if(p) 
+	{
         GetBitmapBits(hBitmap, dwLen, p);
 
-        for (y = 0; y < height; ++y) {
+        for (y = 0; fixIt && y < height; ++y) 
+		{
             BYTE *px = p + width * 4 * y;
 
-            for (x = 0; x < width; ++x) {
-                if(mode) {
+            for (x = 0; fixIt && x < width; ++x) 
+			{
+				if (px[3] != 0) 
+					fixIt = FALSE;
+
+				px += 4;
+			}
+		}
+
+        for (y = 0; y < height; ++y) 
+		{
+            BYTE *px = p + width * 4 * y;
+
+            for (x = 0; x < width; ++x) 
+			{
+                if(fixIt) 
+				{
+                    px[3] = 255;
+                }
+                else
+				{
                     alpha = px[3];
 
-					if (alpha < 255) {
+					if (alpha < 255) 
+					{
 						transp  = TRUE;
 
 						px[0] = px[0] * alpha/255;
 						px[1] = px[1] * alpha/255;
 						px[2] = px[2] * alpha/255;
 					}
-                }
-                else
-                    px[3] = 255;
+				}
+
                 px += 4;
             }
         }
@@ -868,7 +888,7 @@ static void AvatarUpdateThread(LPVOID vParam)
             if (avatarUpdateQueue[i] != 0) {
                 int status = ID_STATUS_OFFLINE;
                 szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)avatarUpdateQueue[i], 0);
-                if(g_MetaName && !strcmp(szProto, g_MetaName)) {
+                if(szProto && g_MetaName && !strcmp(szProto, g_MetaName)) {
                     HANDLE hSubContact = (HANDLE)CallService(MS_MC_GETMOSTONLINECONTACT, (WPARAM)avatarUpdateQueue[i], 0);
                     if(hSubContact)
                         szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hSubContact, 0);
@@ -1071,7 +1091,6 @@ done:
 	ace->hbmPic = LoadAnyImage(szFilename);
     if(ace->hbmPic != 0) {
         BITMAP bminfo;
-		BOOL transpBkg;
 
         GetObject(ace->hbmPic, sizeof(bminfo), &bminfo);
 
@@ -1097,7 +1116,6 @@ done:
 			}
 		}
 
-		transpBkg = FALSE;
 		if (( (hContact != 0 && hContact != (HANDLE)-1) || DBGetContactSettingByte(0, AVS_MODULE, "MakeMyAvatarsTransparent", 0)) &&
 			DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0) && 
 			DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 1))
@@ -1105,27 +1123,24 @@ done:
 			if (MakeTransparentBkg(hContact, &ace->hbmPic))
 			{
 				ace->dwFlags |= AVS_CUSTOMTRANSPBKG | AVS_HASTRANSPARENCY;
-				transpBkg = TRUE;
 				GetObject(ace->hbmPic, sizeof(bminfo), &bminfo);
 			}
 		}
 
 		if (DBGetContactSettingByte(0, AVS_MODULE, "MakeGrayscale", 0))
 		{
-			if (MakeGrayscale(hContact, &ace->hbmPic))
-			{
-				transpBkg = TRUE;
-			}
+			MakeGrayscale(hContact, &ace->hbmPic);
 		}
 
-        if(transpBkg) {
-            int mode = bminfo.bmBitsPixel == 32 ? 1 : 0;
-            if (PreMultiply(ace->hbmPic, mode))
+		if (bminfo.bmBitsPixel == 32)
+		{
+			if (PreMultiply(ace->hbmPic))
 			{
 				ace->dwFlags |= AVS_HASTRANSPARENCY;
 			}
-            ace->dwFlags |= AVS_PREMULTIPLIED;
-        }
+			ace->dwFlags |= AVS_PREMULTIPLIED;
+		}
+
         if(szProto) {
             struct protoPicCacheEntry *pAce = (struct protoPicCacheEntry *)ace;
 			if(hContact == 0)
@@ -1296,10 +1311,7 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
         ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
         ofn.hwndOwner = 0;
         ofn.lpstrFile = FileName;
-        if(g_imgDecoderAvail)
-            ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp;*.png\0\0";
-        else
-            ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp\0\0";
+		ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp;*.png\0\0";
         ofn.nMaxFile = MAX_PATH;
         ofn.nMaxFileTitle = MAX_PATH;
         ofn.Flags = OFN_FILEMUSTEXIST | OFN_ENABLETEMPLATE | OFN_EXPLORER | OFN_ENABLEHOOK;
@@ -1393,10 +1405,7 @@ int SetMyAvatar(WPARAM wParam, LPARAM lParam)
         ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
         ofn.hwndOwner = 0;
         ofn.lpstrFile = FileName;
-        if(g_imgDecoderAvail)
-            ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp;*.png\0\0";
-        else
-            ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp\0\0";
+        ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp;*.png\0\0";
         ofn.nMaxFile = MAX_PATH;
         ofn.nMaxFileTitle = MAX_PATH;
         ofn.Flags = OFN_FILEMUSTEXIST; // | OFN_ENABLETEMPLATE | OFN_EXPLORER | OFN_ENABLEHOOK;

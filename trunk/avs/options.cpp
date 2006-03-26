@@ -67,10 +67,7 @@ static void SetProtoPic(char *szProto)
     OPENFILENAMEA ofn={0};
 
     ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
-    if(g_imgDecoderAvail)
-        ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp;*.png\0\0";
-    else
-        ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp\0\0";
+    ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp;*.png\0\0";
     ofn.hwndOwner=0;
     ofn.lpstrFile = FileName;
     ofn.nMaxFile = MAX_PATH;
