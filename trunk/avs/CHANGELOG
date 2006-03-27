@@ -1,6 +1,10 @@
 
         Version history:
 
+0.0.1.21 - 2006/03/26
+
+		* fixes for image transparency
+
 0.0.1.19 - 2006/03/15
 
 		+ removed dependency of imagedecoder

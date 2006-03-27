@@ -5,8 +5,8 @@
 #include "m_avatars.h"
 
 
-//HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename);
 HBITMAP LoadAnyImage(char *szFilename);
+HBITMAP CopyBitmapTo32(HBITMAP hBitmap);
 
 
 int SaveBMP(HBITMAP hBmp, const char *szFilename);

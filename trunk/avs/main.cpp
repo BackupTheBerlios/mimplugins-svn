@@ -65,7 +65,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 1, 20), 
+	PLUGIN_MAKE_VERSION(0, 0, 1, 21), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -207,90 +207,6 @@ int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode)
 		cacheNode = cacheNode->pNextNode;
 	}
     return 0;
-}
-
-// Correct alpha from bitmaps loaded without it (it cames with 0 and should be 255)
-void CorrectBitmap32Alpha(HBITMAP hBitmap, BYTE *p, int width, int height)
-{
-	int x, y;
-
-	for (y = 0; y < height; ++y) {
-        BYTE *px = p + width * 4 * y;
-
-        for (x = 0; x < width; ++x) 
-		{
-			px[3] = 255;
-            px += 4;
-        }
-    }
-
-	SetBitmapBits(hBitmap, width * height * 4, p);
-}
-
-
-HBITMAP CopyBitmapTo32(HBITMAP hBitmap)
-{
-	BITMAPINFO RGB32BitsBITMAPINFO; 
-	BYTE * ptPixels;
-	HBITMAP hDirectBitmap;
-
-	BITMAP bmp;
-	DWORD dwLen;
-	BYTE *p;
-
-	GetObject(hBitmap, sizeof(bmp), &bmp);
-
-	dwLen = bmp.bmWidth * bmp.bmHeight * 4;
-	p = (BYTE *)malloc(dwLen);
-	if (p == NULL)
-		return NULL;
-
-	// Create bitmap
-	ZeroMemory(&RGB32BitsBITMAPINFO, sizeof(BITMAPINFO));
-	RGB32BitsBITMAPINFO.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	RGB32BitsBITMAPINFO.bmiHeader.biWidth = bmp.bmWidth;
-	RGB32BitsBITMAPINFO.bmiHeader.biHeight = bmp.bmHeight;
-	RGB32BitsBITMAPINFO.bmiHeader.biPlanes = 1;
-	RGB32BitsBITMAPINFO.bmiHeader.biBitCount = 32;
-
-	hDirectBitmap = CreateDIBSection(NULL, 
-									(BITMAPINFO *)&RGB32BitsBITMAPINFO, 
-									DIB_RGB_COLORS,
-									(void **)&ptPixels, 
-									NULL, 0);
-
-	// Copy data
-	if (bmp.bmBitsPixel != 32)
-	{
-		HDC hdcOrig, hdcDest;
-		HBITMAP oldOrig, oldDest;
-		
-		hdcOrig = CreateCompatibleDC(NULL);
-		oldOrig = (HBITMAP) SelectObject(hdcOrig, hBitmap);
-
-		hdcDest = CreateCompatibleDC(NULL);
-		oldDest = (HBITMAP) SelectObject(hdcDest, hDirectBitmap);
-
-		StretchBlt(hdcDest, 0, 0, bmp.bmWidth, bmp.bmHeight, hdcOrig, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
-
-		SelectObject(hdcDest, oldDest);
-		DeleteObject(hdcDest);
-		SelectObject(hdcOrig, oldOrig);
-		DeleteObject(hdcOrig);
-
-		// Set alpha
-		GetBitmapBits(hDirectBitmap, dwLen, p);
-		CorrectBitmap32Alpha(hDirectBitmap, p, bmp.bmWidth, bmp.bmHeight);
-	}
-	else
-	{
-		GetBitmapBits(hBitmap, dwLen, p);
-		SetBitmapBits(hDirectBitmap, dwLen, p);
-	}
-
-	free(p);
-
-	return hDirectBitmap;
 }
 
 
@@ -782,29 +698,15 @@ static BOOL PreMultiply(HBITMAP hBitmap)
     BITMAP bmp;
     BYTE alpha;
 	BOOL transp = FALSE;
-	BOOL fixIt = TRUE;
     
 	GetObject(hBitmap, sizeof(bmp), &bmp);
     width = bmp.bmWidth;
 	height = bmp.bmHeight;
 	dwLen = width * height * 4;
 	p = (BYTE *)malloc(dwLen);
-    if(p) 
+    if (p != NULL) 
 	{
         GetBitmapBits(hBitmap, dwLen, p);
-
-        for (y = 0; fixIt && y < height; ++y) 
-		{
-            BYTE *px = p + width * 4 * y;
-
-            for (x = 0; fixIt && x < width; ++x) 
-			{
-				if (px[3] != 0) 
-					fixIt = FALSE;
-
-				px += 4;
-			}
-		}
 
         for (y = 0; y < height; ++y) 
 		{
@@ -812,30 +714,25 @@ static BOOL PreMultiply(HBITMAP hBitmap)
 
             for (x = 0; x < width; ++x) 
 			{
-                if(fixIt) 
-				{
-                    px[3] = 255;
-                }
-                else
-				{
-                    alpha = px[3];
+                alpha = px[3];
 
-					if (alpha < 255) 
-					{
-						transp  = TRUE;
+				if (alpha < 255) 
+				{
+					transp  = TRUE;
 
-						px[0] = px[0] * alpha/255;
-						px[1] = px[1] * alpha/255;
-						px[2] = px[2] * alpha/255;
-					}
+					px[0] = px[0] * alpha/255;
+					px[1] = px[1] * alpha/255;
+					px[2] = px[2] * alpha/255;
 				}
 
                 px += 4;
             }
         }
+
         dwLen = SetBitmapBits(hBitmap, dwLen, p);
         free(p);
     }
+
 	return transp;
 }
 
@@ -1450,6 +1347,18 @@ int SetMyAvatar(WPARAM wParam, LPARAM lParam)
     if (hBmp == 0)
 		return -4;
 
+	BITMAP bminfo;
+	GetObject(hBmp, sizeof(bminfo), &bminfo);
+
+	if (bminfo.bmBitsPixel != 32)
+	{
+		HBITMAP hBmpTmp = CopyBitmapTo32(hBmp);
+		if (hBmpTmp == 0)
+			return -5;
+		DeleteObject(hBmp);
+		hBmp = hBmpTmp;
+	}
+
 	int ret = 0;
 	if (protocol != NULL)
 	{
@@ -1528,6 +1437,9 @@ int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	} else {
 		width = bminfo.bmWidth;
 		height = bminfo.bmHeight;
+
+		if (square)
+			width = height = min(width, height);
 	}
 
 	// Has to stretch?

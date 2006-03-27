@@ -114,7 +114,5 @@ struct protoPicCacheEntry {
 };
 
 int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode);
-void CorrectBitmap32Alpha(HBITMAP hBitmap, BYTE *p, int width, int height);
-HBITMAP CopyBitmapTo32(HBITMAP hBitmap);
 static BOOL ColorsAreTheSame(int colorDiff, BYTE *px1, BYTE *px2);
 void AddToStack(int *stack, int *topPos, int x, int y);

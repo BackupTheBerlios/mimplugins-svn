@@ -28,17 +28,29 @@ void CorrectBitmap32Alpha(HBITMAP hBitmap)
 
 	GetBitmapBits(hBitmap, dwLen, p);
 
+	BOOL fixIt = TRUE;
 	for (y = 0; y < bmp.bmHeight; ++y) {
         BYTE *px = p + bmp.bmWidth * 4 * y;
 
         for (x = 0; x < bmp.bmWidth; ++x) 
 		{
-			px[3] = 255;
-            px += 4;
-        }
-    }
+			if (px[3] != 0) 
+			{
+				fixIt = FALSE;
+			}
+			else
+			{
+				px[3] = 255;
+			}
 
-	SetBitmapBits(hBitmap, bmp.bmWidth * bmp.bmHeight * 4, p);
+			px += 4;
+		}
+	}
+
+	if (fixIt)
+	{
+		SetBitmapBits(hBitmap, bmp.bmWidth * bmp.bmHeight * 4, p);
+	}
 
 	free(p);
 }
@@ -47,11 +59,73 @@ void CorrectBitmap32Alpha(HBITMAP hBitmap)
 HBITMAP LoadAnyImage(char *szFilename)
 {
 	HBITMAP hBmp = (HBITMAP)CallService(MS_UTILS_LOADBITMAP, 0, (LPARAM)szFilename);
-	// TODO: Remove this when core miranda adds LR_CREATEDIBSECTION to LoadImageA
-	// CorrectBitmap32Alpha(hBmp);
+	CorrectBitmap32Alpha(hBmp);
 	return hBmp;
 }
 
+HBITMAP CopyBitmapTo32(HBITMAP hBitmap)
+{
+	BITMAPINFO RGB32BitsBITMAPINFO; 
+	BYTE * ptPixels;
+	HBITMAP hDirectBitmap;
+
+	BITMAP bmp;
+	DWORD dwLen;
+	BYTE *p;
+
+	GetObject(hBitmap, sizeof(bmp), &bmp);
+
+	dwLen = bmp.bmWidth * bmp.bmHeight * 4;
+	p = (BYTE *)malloc(dwLen);
+	if (p == NULL)
+		return NULL;
+
+	// Create bitmap
+	ZeroMemory(&RGB32BitsBITMAPINFO, sizeof(BITMAPINFO));
+	RGB32BitsBITMAPINFO.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	RGB32BitsBITMAPINFO.bmiHeader.biWidth = bmp.bmWidth;
+	RGB32BitsBITMAPINFO.bmiHeader.biHeight = bmp.bmHeight;
+	RGB32BitsBITMAPINFO.bmiHeader.biPlanes = 1;
+	RGB32BitsBITMAPINFO.bmiHeader.biBitCount = 32;
+
+	hDirectBitmap = CreateDIBSection(NULL, 
+									(BITMAPINFO *)&RGB32BitsBITMAPINFO, 
+									DIB_RGB_COLORS,
+									(void **)&ptPixels, 
+									NULL, 0);
+
+	// Copy data
+	if (bmp.bmBitsPixel != 32)
+	{
+		HDC hdcOrig, hdcDest;
+		HBITMAP oldOrig, oldDest;
+		
+		hdcOrig = CreateCompatibleDC(NULL);
+		oldOrig = (HBITMAP) SelectObject(hdcOrig, hBitmap);
+
+		hdcDest = CreateCompatibleDC(NULL);
+		oldDest = (HBITMAP) SelectObject(hdcDest, hDirectBitmap);
+
+		BitBlt(hdcDest, 0, 0, bmp.bmWidth, bmp.bmHeight, hdcOrig, 0, 0, SRCCOPY);
+
+		SelectObject(hdcDest, oldDest);
+		DeleteObject(hdcDest);
+		SelectObject(hdcOrig, oldOrig);
+		DeleteObject(hdcOrig);
+
+		// Set alpha
+		CorrectBitmap32Alpha(hDirectBitmap);
+	}
+	else
+	{
+		GetBitmapBits(hBitmap, dwLen, p);
+		SetBitmapBits(hDirectBitmap, dwLen, p);
+	}
+
+	free(p);
+
+	return hDirectBitmap;
+}
 
 
 #include "savebmp.c"
