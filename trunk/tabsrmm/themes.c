@@ -47,11 +47,12 @@ extern TemplateSet LTR_Active, RTL_Active;
 extern MYGLOBALS myGlobals;
 extern struct ContainerWindowData *pFirstContainer;
 
+/*
 typedef  DWORD  (__stdcall *pfnImgNewDecoder)(void ** ppDecoder); 
 typedef DWORD (__stdcall *pfnImgDeleteDecoder)(void * pDecoder);
-typedef  DWORD  (__stdcall *pfnImgNewDIBFromFile)(LPVOID /*in*/pDecoder, LPCSTR /*in*/pFileName, LPVOID /*out*/*pImg);
-typedef DWORD (__stdcall *pfnImgDeleteDIBSection)(LPVOID /*in*/pImg);
-typedef DWORD (__stdcall *pfnImgGetHandle)(LPVOID /*in*/pImg, HBITMAP /*out*/*pBitmap, LPVOID /*out*/*ppDIBBits);
+typedef  DWORD  (__stdcall *pfnImgNewDIBFromFile)(LPVOID pDecoder, LPCSTR pFileName, LPVOID *pImg);
+typedef DWORD (__stdcall *pfnImgDeleteDIBSection)(LPVOID pImg);
+typedef DWORD (__stdcall *pfnImgGetHandle)(LPVOID pImg, HBITMAP *pBitmap, LPVOID *ppDIBBits);
 
 static pfnImgNewDecoder ImgNewDecoder = 0;
 static pfnImgDeleteDecoder ImgDeleteDecoder = 0;
@@ -61,6 +62,7 @@ static pfnImgGetHandle ImgGetHandle = 0;
 
 static BOOL g_imgDecoderAvail = FALSE;
 HMODULE g_hModuleImgDecoder = 0;
+*/
 
 static void __inline gradientVertical(UCHAR *ubRedFinal, UCHAR *ubGreenFinal, UCHAR *ubBlueFinal, 
 					  ULONG ulBitmapHeight, UCHAR ubRed, UCHAR ubGreen, UCHAR ubBlue, UCHAR ubRed2, 
@@ -1004,6 +1006,7 @@ static void __fastcall IMG_RenderImageItem(HDC hdc, ImageItem *item, RECT *rc)
 
 void IMG_InitDecoder()
 {
+    /*
     if((g_hModuleImgDecoder = LoadLibraryA("imgdecoder.dll")) == 0) {
         if((g_hModuleImgDecoder = LoadLibraryA("plugins\\imgdecoder.dll")) != 0)
             g_imgDecoderAvail = TRUE;
@@ -1017,15 +1020,18 @@ void IMG_InitDecoder()
         ImgNewDIBFromFile=(pfnImgNewDIBFromFile)GetProcAddress(g_hModuleImgDecoder, "ImgNewDIBFromFile");
         ImgDeleteDIBSection=(pfnImgDeleteDIBSection)GetProcAddress(g_hModuleImgDecoder, "ImgDeleteDIBSection");
         ImgGetHandle=(pfnImgGetHandle)GetProcAddress(g_hModuleImgDecoder, "ImgGetHandle");
-	} 
+	}
+    */ 
 }
 
 void IMG_FreeDecoder()
 {
-	if(g_imgDecoderAvail && g_hModuleImgDecoder) {
+    /*
+    if(g_imgDecoderAvail && g_hModuleImgDecoder) {
 		FreeLibrary(g_hModuleImgDecoder);
 		g_hModuleImgDecoder = 0;
 	}
+    */
 }
 
 static DWORD __fastcall HexStringToLong(const char *szSource)
@@ -1190,6 +1196,53 @@ static void IMG_ReadItem(const char *itemname, const char *szFileName)
     ReleaseDC(0, hdc);
 }
 
+static void CorrectBitmap32Alpha(HBITMAP hBitmap)
+{
+	BITMAP bmp;
+	DWORD dwLen;
+	BYTE *p;
+	int x, y;
+    BOOL fixIt = TRUE;
+
+	GetObject(hBitmap, sizeof(bmp), &bmp);
+
+	if (bmp.bmBitsPixel != 32)
+		return;
+
+	dwLen = bmp.bmWidth * bmp.bmHeight * (bmp.bmBitsPixel / 8);
+	p = (BYTE *)malloc(dwLen);
+	if (p == NULL)
+		return;
+	memset(p, 0, dwLen);
+
+	GetBitmapBits(hBitmap, dwLen, p);
+
+	for (y = 0; y < bmp.bmHeight; ++y) {
+        BYTE *px = p + bmp.bmWidth * 4 * y;
+
+        for (x = 0; x < bmp.bmWidth; ++x) 
+		{
+			if (px[3] != 0) 
+			{
+				fixIt = FALSE;
+			}
+			else
+			{
+				px[3] = 255;
+			}
+
+			px += 4;
+		}
+	}
+
+	if (fixIt)
+	{
+		SetBitmapBits(hBitmap, bmp.bmWidth * bmp.bmHeight * 4, p);
+	}
+
+	free(p);
+}
+
 static void PreMultiply(HBITMAP hBitmap, int mode)
 {
 	BYTE *p = NULL;
@@ -1233,9 +1286,18 @@ static HBITMAP LoadPNG(const char *szFilename, ImageItem *item)
     LPVOID pBitmapBits = NULL;
     LPVOID m_pImgDecoder = NULL;
 
+    /*
     if(!g_imgDecoderAvail)
         return 0;
+    */
+    hBitmap = (HBITMAP)CallService(MS_UTILS_LOADBITMAP, 0, (LPARAM)szFilename);
+    if(hBitmap != 0)
+        CorrectBitmap32Alpha(hBitmap);
+    item->lpDIBSection = 0;
+
+    return hBitmap;
     
+    /*
     ImgNewDecoder(&m_pImgDecoder);
     if (!ImgNewDIBFromFile(m_pImgDecoder, (char *)szFilename, &pImg))
         ImgGetHandle(pImg, &hBitmap, (LPVOID *)&pBitmapBits);
@@ -1243,7 +1305,7 @@ static HBITMAP LoadPNG(const char *szFilename, ImageItem *item)
     if(hBitmap == 0)
         return 0;
     item->lpDIBSection = pImg;
-    return hBitmap;
+    return hBitmap;*/
 }
 
 static void IMG_CreateItem(ImageItem *item, const char *fileName, HDC hdc)
@@ -1284,8 +1346,10 @@ static void IMG_DeleteItem(ImageItem *item)
     SelectObject(item->hdc, item->hbmOld);
     DeleteObject(item->hbm);
     DeleteDC(item->hdc);
+    /*
     if(item->lpDIBSection && ImgDeleteDIBSection)
         ImgDeleteDIBSection(item->lpDIBSection);
+    */
 	if(item->fillBrush)
 		DeleteObject(item->fillBrush);
 }
@@ -1425,9 +1489,10 @@ static void LoadSkinItems(char *file)
     if(!(GetPrivateProfileIntA("Global", "Version", 0, file) >= 1 && GetPrivateProfileIntA("Global", "Signature", 0, file) == 101))
 		return;
 
-	if(!g_imgDecoderAvail)
+    /*
+    if(!g_imgDecoderAvail)
 		return;
-
+    */
 	g_skinnedContainers = TRUE;
 
 	ZeroMemory(szSections, 3000);
@@ -1594,7 +1659,7 @@ void ReloadContainerSkin()
 	if(!DBGetContactSettingByte(NULL, SRMSGMOD_T, "useskin", 0))
 		return;
 
-	if(pSetLayeredWindowAttributes == 0 || !g_imgDecoderAvail || MyAlphaBlend == 0)
+	if(pSetLayeredWindowAttributes == 0 || /*!g_imgDecoderAvail || */  MyAlphaBlend == 0)
 		return;
 
 	if(!DBGetContactSetting(NULL, SRMSGMOD_T, "ContainerSkin", &dbv)) {
