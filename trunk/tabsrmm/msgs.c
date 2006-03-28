@@ -1135,6 +1135,9 @@ int LoadSendRecvMessageModule(void)
 
         dwResult = GetTimeZoneInformation(&tzinfo);
 
+        nOffset = -(tzinfo.Bias + tzinfo.StandardBias) * 60;
+        goto tzdone;
+        
         switch(dwResult)
         {
 
@@ -1161,6 +1164,7 @@ int LoadSendRecvMessageModule(void)
         myGlobals.local_gmt_diff = (int)difftime(now, gmt_time);*/
     }
 
+tzdone:
     if (LoadLibraryA("riched20.dll") == NULL) {
         if (IDYES !=
             MessageBoxA(0,
