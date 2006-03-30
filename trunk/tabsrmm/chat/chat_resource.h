@@ -58,10 +58,15 @@
 #define IDC_1                           1075
 #define IDC_2                           1076
 #define IDC_3                           1077
+#define IDC_STATIC_ADD                  1077
 #define IDC_4                           1078
+#define IDC_STATIC_ULIST                1078
 #define IDC_5                           1079
+#define IDC_STATIC_OTHER                1079
 #define IDC_6                           1080
+#define IDC_CHAT_ENABLE                 1080
 #define IDC_7                           1081
+#define IDC_STATIC_MESSAGE              1081
 #define IDC_8                           1082
 #define IDC_9                           1083
 #define IDC_10                          1084
@@ -98,7 +103,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        163
 #define _APS_NEXT_COMMAND_VALUE         40030
-#define _APS_NEXT_CONTROL_VALUE         1077
+#define _APS_NEXT_CONTROL_VALUE         1082
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

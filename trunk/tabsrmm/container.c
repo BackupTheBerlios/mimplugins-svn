@@ -1299,7 +1299,7 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                 TCHAR *szNewTitle = NULL;
                 struct MessageWindowData *dat = NULL;
 
-                if(lParam) {                // lparen != 0 means sent by a chat window
+                if(lParam) {                // lParam != 0 means sent by a chat window
                     char szText[512];
                     dat = (struct MessageWindowData *)GetWindowLong((HWND)wParam, GWL_USERDATA);
 

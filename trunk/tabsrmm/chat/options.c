@@ -475,6 +475,11 @@ static void InitSetting(char ** ppPointer, char * pszSetting, char*pszDefault)
 
 }
 #define OPT_FIXHEADINGS (WM_USER+1)
+
+static UINT _o1controls[] = {IDC_CHECKBOXES, IDC_GROUP, IDC_NICKROW, IDC_CHAT_SPIN2, IDC_STATIC_ADD, IDC_STATIC_ULIST,
+    IDC_STATIC_OTHER, 0
+};
+    
 BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 {
 	static HTREEITEM hListHeading1 = 0;
@@ -486,31 +491,42 @@ BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
-		{
+	{
 		char * pszGroup = NULL;
 
-		TranslateDialogDefault(hwndDlg);
-		SetWindowLong(GetDlgItem(hwndDlg,IDC_CHECKBOXES),GWL_STYLE,GetWindowLong(GetDlgItem(hwndDlg,IDC_CHECKBOXES),GWL_STYLE)|TVS_NOHSCROLL|TVS_CHECKBOXES);
-		SendDlgItemMessage(hwndDlg,IDC_CHAT_SPIN2,UDM_SETRANGE,0,MAKELONG(255,10));
-		SendDlgItemMessage(hwndDlg,IDC_CHAT_SPIN2,UDM_SETPOS,0,MAKELONG(DBGetContactSettingByte(NULL,"Chat","NicklistRowDist",12),0));
-		hListHeading1 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Appearance and functionality of chat room windows"), DBGetContactSettingByte(NULL, "Chat", "Branch1Exp", 0)?TRUE:FALSE);
-		hListHeading2 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Appearance of the message log"), DBGetContactSettingByte(NULL, "Chat", "Branch2Exp", 0)?TRUE:FALSE);
-		hListHeading3 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Default events to show in new chat rooms if the \'event filter\' is enabled"), DBGetContactSettingByte(NULL, "Chat", "Branch3Exp", 0)?TRUE:FALSE);
-		hListHeading4 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Icons to display in the message log"), DBGetContactSettingByte(NULL, "Chat", "Branch4Exp", 0)?TRUE:FALSE);
-		hListHeading5 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Icons to display in the tray"), DBGetContactSettingByte(NULL, "Chat", "Branch5Exp", 0)?TRUE:FALSE);
-        if(myGlobals.g_PopupAvail)
-			hListHeading6 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Pop-ups to display"), DBGetContactSettingByte(NULL, "Chat", "Branch6Exp", 0)?TRUE:FALSE);
-		FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading1, branch1, SIZEOF(branch1), 0);
-		FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading2, branch2, SIZEOF(branch2), 0);
-		FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading3, branch3, SIZEOF(branch3), 0x03E0);
-		FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading4, branch4, SIZEOF(branch4), 0x0000);
-		FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading5, branch5, SIZEOF(branch5), 0x1000);
-		FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading6, branch6, SIZEOF(branch6), 0x0000);
-		SendMessage(hwndDlg, OPT_FIXHEADINGS, 0, 0);
-		InitSetting(&pszGroup, "AddToGroup", "Chat rooms"); 
-		SetWindowTextA(GetDlgItem(hwndDlg, IDC_GROUP), pszGroup);
-		free(pszGroup);
-		}break;
+        TranslateDialogDefault(hwndDlg);
+        if(g_chat_integration_enabled) {
+            SetWindowLong(GetDlgItem(hwndDlg,IDC_CHECKBOXES),GWL_STYLE,GetWindowLong(GetDlgItem(hwndDlg,IDC_CHECKBOXES),GWL_STYLE)|TVS_NOHSCROLL|TVS_CHECKBOXES);
+            SendDlgItemMessage(hwndDlg,IDC_CHAT_SPIN2,UDM_SETRANGE,0,MAKELONG(255,10));
+            SendDlgItemMessage(hwndDlg,IDC_CHAT_SPIN2,UDM_SETPOS,0,MAKELONG(DBGetContactSettingByte(NULL,"Chat","NicklistRowDist",12),0));
+            hListHeading1 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Appearance and functionality of chat room windows"), DBGetContactSettingByte(NULL, "Chat", "Branch1Exp", 0)?TRUE:FALSE);
+            hListHeading2 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Appearance of the message log"), DBGetContactSettingByte(NULL, "Chat", "Branch2Exp", 0)?TRUE:FALSE);
+            hListHeading3 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Default events to show in new chat rooms if the \'event filter\' is enabled"), DBGetContactSettingByte(NULL, "Chat", "Branch3Exp", 0)?TRUE:FALSE);
+            hListHeading4 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Icons to display in the message log"), DBGetContactSettingByte(NULL, "Chat", "Branch4Exp", 0)?TRUE:FALSE);
+            hListHeading5 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Icons to display in the tray"), DBGetContactSettingByte(NULL, "Chat", "Branch5Exp", 0)?TRUE:FALSE);
+            if(myGlobals.g_PopupAvail)
+                hListHeading6 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Pop-ups to display"), DBGetContactSettingByte(NULL, "Chat", "Branch6Exp", 0)?TRUE:FALSE);
+            FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading1, branch1, SIZEOF(branch1), 0);
+            FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading2, branch2, SIZEOF(branch2), 0);
+            FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading3, branch3, SIZEOF(branch3), 0x03E0);
+            FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading4, branch4, SIZEOF(branch4), 0x0000);
+            FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading5, branch5, SIZEOF(branch5), 0x1000);
+            FillBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading6, branch6, SIZEOF(branch6), 0x0000);
+            SendMessage(hwndDlg, OPT_FIXHEADINGS, 0, 0);
+            InitSetting(&pszGroup, "AddToGroup", "Chat rooms"); 
+            SetWindowTextA(GetDlgItem(hwndDlg, IDC_GROUP), pszGroup);
+            free(pszGroup);
+            ShowWindow(GetDlgItem(hwndDlg, IDC_STATIC_MESSAGE), SW_HIDE);
+        }
+        else {
+            int i = 0;
+
+            while(_o1controls[i])
+                ShowWindow(GetDlgItem(hwndDlg, _o1controls[i++]), SW_HIDE);
+        }
+        CheckDlgButton(hwndDlg, IDC_CHAT_ENABLE, DBGetContactSettingByte(NULL, SRMSGMOD_T, "enable_chat", 0));
+        break;
+	}
 
 	case OPT_FIXHEADINGS:
 		CheckHeading(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading1);
@@ -520,7 +536,7 @@ BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam
 		CheckHeading(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading5);
 		CheckHeading(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading6);
 		break;
-	case WM_COMMAND:
+    case WM_COMMAND:
 		if(	(LOWORD(wParam) == IDC_NICKROW
 				|| LOWORD(wParam) == IDC_GROUP)
 				&& (HIWORD(wParam)!=EN_CHANGE || (HWND)lParam!=GetFocus()))	return 0;
@@ -576,45 +592,48 @@ BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam
 				{
 				case PSN_APPLY:
 					{
-						int iLen;
-						char * pszText = NULL;
-						BYTE b;
-		
-						iLen = GetWindowTextLength(GetDlgItem(hwndDlg, IDC_GROUP));
-						if(iLen > 0)
-						{
-							pszText = realloc(pszText, iLen+1);
-							GetDlgItemTextA(hwndDlg, IDC_GROUP, pszText,iLen+1);
-							DBWriteContactSettingString(NULL, "Chat", "AddToGroup", pszText);
-						}
-						else
-							DBWriteContactSettingString(NULL, "Chat", "AddToGroup", "");
-						if(pszText)
-							free(pszText);
+                        if(g_chat_integration_enabled) {
+                            int iLen;
+                            char * pszText = NULL;
+                            BYTE b;
 
-						iLen = SendDlgItemMessage(hwndDlg,IDC_CHAT_SPIN2,UDM_GETPOS,0,0);
-						if(iLen > 0)
-							DBWriteContactSettingByte(NULL, "Chat", "NicklistRowDist", (BYTE)iLen);
-						else
-							DBDeleteContactSetting(NULL, "Chat", "NicklistRowDist");
-						b = DBGetContactSettingByte(NULL, "Chat", "Tabs", 1);
-						SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch1, sizeof(branch1) / sizeof(branch1[0]));
-						SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch2, sizeof(branch2) / sizeof(branch2[0]));
-						SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch3, sizeof(branch3) / sizeof(branch3[0]));
-						SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch4, sizeof(branch4) / sizeof(branch4[0]));
-						SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch5, sizeof(branch5) / sizeof(branch5[0]));
-						if(myGlobals.g_PopupAvail)
-							SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch6, sizeof(branch6) / sizeof(branch6[0]));
-						g_Settings.dwIconFlags = DBGetContactSettingDword(NULL, "Chat", "IconFlags", 0x0000);
-						g_Settings.dwTrayIconFlags = DBGetContactSettingDword(NULL, "Chat", "TrayIconFlags", 0x1000);
-						g_Settings.dwPopupFlags = DBGetContactSettingDword(NULL, "Chat", "PopupFlags", 0x0000);
-						g_Settings.StripFormat = (BOOL)DBGetContactSettingByte(NULL, "Chat", "TrimFormatting", 0);
-						g_Settings.TrayIconInactiveOnly = (BOOL)DBGetContactSettingByte(NULL, "Chat", "TrayIconInactiveOnly", 1);
-						g_Settings.PopUpInactiveOnly = (BOOL)DBGetContactSettingByte(NULL, "Chat", "PopUpInactiveOnly", 1);
-						
-						g_Settings.LogIndentEnabled = (DBGetContactSettingByte(NULL, "Chat", "LogIndentEnabled", 1) != 0)?TRUE:FALSE;
-						MM_FontsChanged();
-						SM_BroadcastMessage(NULL, GC_SETWNDPROPS, 0, 0, TRUE);
+                            iLen = GetWindowTextLength(GetDlgItem(hwndDlg, IDC_GROUP));
+                            if(iLen > 0)
+                            {
+                                pszText = realloc(pszText, iLen+1);
+                                GetDlgItemTextA(hwndDlg, IDC_GROUP, pszText,iLen+1);
+                                DBWriteContactSettingString(NULL, "Chat", "AddToGroup", pszText);
+                            }
+                            else
+                                DBWriteContactSettingString(NULL, "Chat", "AddToGroup", "");
+                            if(pszText)
+                                free(pszText);
+
+                            iLen = SendDlgItemMessage(hwndDlg,IDC_CHAT_SPIN2,UDM_GETPOS,0,0);
+                            if(iLen > 0)
+                                DBWriteContactSettingByte(NULL, "Chat", "NicklistRowDist", (BYTE)iLen);
+                            else
+                                DBDeleteContactSetting(NULL, "Chat", "NicklistRowDist");
+                            b = DBGetContactSettingByte(NULL, "Chat", "Tabs", 1);
+                            SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch1, sizeof(branch1) / sizeof(branch1[0]));
+                            SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch2, sizeof(branch2) / sizeof(branch2[0]));
+                            SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch3, sizeof(branch3) / sizeof(branch3[0]));
+                            SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch4, sizeof(branch4) / sizeof(branch4[0]));
+                            SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch5, sizeof(branch5) / sizeof(branch5[0]));
+                            if(myGlobals.g_PopupAvail)
+                                SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch6, sizeof(branch6) / sizeof(branch6[0]));
+                            g_Settings.dwIconFlags = DBGetContactSettingDword(NULL, "Chat", "IconFlags", 0x0000);
+                            g_Settings.dwTrayIconFlags = DBGetContactSettingDword(NULL, "Chat", "TrayIconFlags", 0x1000);
+                            g_Settings.dwPopupFlags = DBGetContactSettingDword(NULL, "Chat", "PopupFlags", 0x0000);
+                            g_Settings.StripFormat = (BOOL)DBGetContactSettingByte(NULL, "Chat", "TrimFormatting", 0);
+                            g_Settings.TrayIconInactiveOnly = (BOOL)DBGetContactSettingByte(NULL, "Chat", "TrayIconInactiveOnly", 1);
+                            g_Settings.PopUpInactiveOnly = (BOOL)DBGetContactSettingByte(NULL, "Chat", "PopUpInactiveOnly", 1);
+
+                            g_Settings.LogIndentEnabled = (DBGetContactSettingByte(NULL, "Chat", "LogIndentEnabled", 1) != 0)?TRUE:FALSE;
+                            MM_FontsChanged();
+                            SM_BroadcastMessage(NULL, GC_SETWNDPROPS, 0, 0, TRUE);
+                        }
+                        DBWriteContactSettingByte(NULL, SRMSGMOD_T, "enable_chat", IsDlgButtonChecked(hwndDlg, IDC_CHAT_ENABLE) ? 1 : 0);
 					}
 					return TRUE;
 				}

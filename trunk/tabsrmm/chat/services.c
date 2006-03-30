@@ -698,11 +698,19 @@ void ShowRoom(SESSION_INFO * si, WPARAM wp, BOOL bSetForeground)
     _DebugTraceA("show room: %s, %x, %x", si->pszName, si->hWnd, si->pContainer);
 #endif    
 	if (si->hWnd == NULL) {
+        TCHAR szName[CONTAINER_NAMELEN + 2];
         struct ContainerWindowData *pContainer = si->pContainer;
+        
+        szName[0] = 0;
+        if(pContainer == NULL) {
+            GetContainerNameForContact(si->hContact, szName, CONTAINER_NAMELEN);
+            if(!g_Settings.OpenInDefault && !_tcscmp(szName, _T("default")))
+                _tcsncpy(szName, _T("Chat Rooms"), CONTAINER_NAMELEN);
+            szName[CONTAINER_NAMELEN] = 0;
+            pContainer = FindContainerByName(szName);
+        }
         if(pContainer == NULL)
-            pContainer = FindContainerByName(g_Settings.OpenInDefault ? _T("default") : _T("Chat Rooms"));
-        if(pContainer == NULL)
-            pContainer = CreateContainer(g_Settings.OpenInDefault ? _T("default") : _T("Chat Rooms"), FALSE, si->hContact);
+            pContainer = CreateContainer(szName, FALSE, si->hContact);
 		si->hWnd = CreateNewRoom(pContainer, si, TRUE, TRUE, FALSE);
 	}
     else

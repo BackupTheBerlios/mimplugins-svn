@@ -855,6 +855,10 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
         myGlobals.g_SmileyAddAvail = 1;
         hEventSmileyAdd = HookEvent(ME_SMILEYADD_OPTIONSCHANGED, SmileyAddOptionsChanged);
     }
+
+    if(ServiceExists(MS_MAKE_FAVATAR))
+        myGlobals.g_FlashAvatarAvail = 1;
+    
     myGlobals.g_WantIEView = ServiceExists(MS_IEVIEW_WINDOW) && DBGetContactSettingByte(NULL, SRMSGMOD_T, "want_ieview", 0);
 	
 	if(ServiceExists(MS_IEVIEW_WINDOW))
@@ -1074,7 +1078,8 @@ static int AvatarChanged(WPARAM wParam, LPARAM lParam)
         struct MessageWindowData *dat = (struct MessageWindowData *)GetWindowLong(hwnd, GWL_USERDATA);
         if(dat) {
             dat->ace = ace;
-			dat->panelWidth = -1;				// force new size calculations
+            if(dat->hwndFlash == 0)
+                dat->panelWidth = -1;				// force new size calculations (not for flash avatars)
             ShowPicture(hwnd, dat, TRUE);
 			if(dat->dwEventIsShown & MWF_SHOW_INFOPANEL) {
 				InvalidateRect(GetDlgItem(hwnd, IDC_PANELPIC), NULL, TRUE);

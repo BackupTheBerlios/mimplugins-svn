@@ -1431,17 +1431,15 @@ static BOOL CALLBACK OptionsDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
          ShowWindow((HWND)tci.lParam, SW_HIDE);
          if(MyEnableThemeDialogTexture)
              MyEnableThemeDialogTexture((HWND)tci.lParam, ETDT_ENABLETAB);
-         if(g_chat_integration_enabled) {
-             tci.lParam = (LPARAM)CreateDialog(g_hInst,MAKEINTRESOURCE(IDD_OPTIONS1),hwnd, DlgProcOptions1);
-             tci.pszText = TranslateT("Group chats");
-             TabCtrl_InsertItem(GetDlgItem(hwnd, IDC_OPTIONSTAB), 4, &tci);
-             MoveWindow((HWND)tci.lParam,5,25,rcClient.right-9,rcClient.bottom-30,1);
-             ShowWindow((HWND)tci.lParam, SW_HIDE);
-             if(MyEnableThemeDialogTexture)
-                 MyEnableThemeDialogTexture((HWND)tci.lParam, ETDT_ENABLETAB);
-         }
-         // add more tabs here if needed
-         // activate the final tab
+         
+         tci.lParam = (LPARAM)CreateDialog(g_hInst,MAKEINTRESOURCE(IDD_OPTIONS1),hwnd, DlgProcOptions1);
+         tci.pszText = TranslateT("Group chats");
+         TabCtrl_InsertItem(GetDlgItem(hwnd, IDC_OPTIONSTAB), 4, &tci);
+         MoveWindow((HWND)tci.lParam,5,25,rcClient.right-9,rcClient.bottom-30,1);
+         ShowWindow((HWND)tci.lParam, SW_HIDE);
+         if(MyEnableThemeDialogTexture)
+             MyEnableThemeDialogTexture((HWND)tci.lParam, ETDT_ENABLETAB);
+
          iInit = FALSE;
          return FALSE;
       }

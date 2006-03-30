@@ -1146,6 +1146,15 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
         case IDC_PANELPIC:
 			urc->rcItem.left = urc->rcItem.right - (panelWidth > 0 ? panelWidth - 2: panelHeight + 2);
             urc->rcItem.bottom = urc->rcItem.top + (panelHeight - 3);
+            if (myGlobals.g_FlashAvatarAvail) {
+		    	RECT rc = { urc->rcItem.left,  urc->rcItem.top, urc->rcItem.right, urc->rcItem.bottom };
+    			if(dat->dwEventIsShown & MWF_SHOW_INFOPANEL) {
+    				FLASHAVATAR fa; 
+
+                    fa.hContact = dat->hContact;
+					CallService(MS_RESIZE_FAVATAR, (WPARAM)&fa, (LPARAM)&rc);
+				}
+			}
             return RD_ANCHORX_RIGHT | RD_ANCHORY_TOP;
         case IDC_PANEL:
             return RD_ANCHORX_WIDTH | RD_ANCHORY_TOP;
@@ -1321,7 +1330,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 int i;
                 BOOL isFlat = DBGetContactSettingByte(NULL, SRMSGMOD_T, "tbflat", 1);
                 BOOL isThemed = !DBGetContactSettingByte(NULL, SRMSGMOD_T, "nlflat", 1);
-
+					
                 struct NewMessageWindowLParam *newData = (struct NewMessageWindowLParam *) lParam;
                 dat = (struct MessageWindowData *) malloc(sizeof(struct MessageWindowData));
                 ZeroMemory((void *) dat, sizeof(struct MessageWindowData));
@@ -1484,7 +1493,6 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 
                 dat->iAvatarDisplayMode = myGlobals.m_AvatarDisplayMode;
                 dat->showPic = GetAvatarVisibility(hwndDlg, dat);
-
                 GetWindowRect(GetDlgItem(hwndDlg, IDC_SMILEYBTN), &rc);
 
                 ShowWindow(GetDlgItem(hwndDlg, IDC_MULTISPLITTER), SW_HIDE);
@@ -2208,6 +2216,17 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                         InvalidateRect(GetDlgItem(hwndDlg, IDC_PANELUIN), NULL, FALSE);
                         UpdateApparentModeDisplay(hwndDlg, dat);
                     }
+                    
+  					if (myGlobals.g_FlashAvatarAvail) {
+  						FLASHAVATAR fa; 
+
+                        fa.hContact = dat->hContact;
+   						dat->hwndFlash = (HWND)CallService(MS_GET_HANDLE, (WPARAM)&fa, 0);
+   						if(dat->hwndFlash) {
+   							BOOL isInfoPanel = dat->dwEventIsShown & MWF_SHOW_INFOPANEL;
+   							SetParent(dat->hwndFlash, GetDlgItem(hwndDlg, isInfoPanel ? IDC_PANELPIC : IDC_CONTACTPIC));
+   						}
+   					}
                     dat->lastRetrievedStatusMsg = 0;
                 }
                 // care about MetaContacts and update the statusbar icon with the currently "most online" contact...
@@ -3231,6 +3250,15 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             }
             GetObject(hbm, sizeof(bminfo), &bminfo);
             CalcDynamicAvatarSize(hwndDlg, dat, &bminfo);
+            if (myGlobals.g_FlashAvatarAvail) {
+    			RECT rc = { 0, 0, dat->pic.cx, dat->pic.cy };
+    			if(!(dat->dwEventIsShown & MWF_SHOW_INFOPANEL)) {
+    				FLASHAVATAR fa; 
+
+                    fa.hContact = dat->hContact;
+					CallService(MS_RESIZE_FAVATAR, (WPARAM)&fa, (LPARAM)&rc);
+				}
+			}
             SendMessage(hwndDlg, WM_SIZE, 0, 0);
             return 0;
         }
@@ -5406,6 +5434,12 @@ verify:
 			}
 			break;
         case WM_DESTROY:
+			if (myGlobals.g_FlashAvatarAvail) {
+				FLASHAVATAR fa; 
+
+                fa.hContact = dat->hContact;
+				CallService(MS_DESTROY_FAVATAR, (WPARAM)&fa, 0);
+			}
             TABSRMM_FireEvent(dat->hContact, hwndDlg, MSG_WINDOW_EVT_CLOSING, 0);
             AddContactToFavorites(dat->hContact, dat->szNickname, dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->szStatus, dat->wStatus, LoadSkinnedProtoIcon(dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->bIsMeta ? dat->wMetaStatus : dat->wStatus), 1, myGlobals.g_hMenuRecent, dat->codePage);
             if(dat->hContact) {

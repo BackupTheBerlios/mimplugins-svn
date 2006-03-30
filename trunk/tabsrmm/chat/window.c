@@ -2224,9 +2224,7 @@ LABEL_SHOWWINDOW:
 
 					item = LOWORD(SendMessage(GetDlgItem(hwndDlg, IDC_LIST), LB_ITEMFROMPOINT, 0, MAKELPARAM(hti.pt.x, hti.pt.y)));
 					ui = SM_GetUserFromIndex(si->pszID, si->pszModule, item);
-//					ui = (USERINFO *)SendMessage(GetDlgItem(hwndDlg, IDC_LIST), LB_GETITEMDATA, item, 0);
-					if(ui)
-					{
+					if(ui) {
 						if(GetKeyState(VK_SHIFT) & 0x8000)
 						{
 							LRESULT lResult = (LRESULT)SendMessage(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE), EM_GETSEL, (WPARAM)NULL, (LPARAM)NULL);
@@ -2238,7 +2236,7 @@ LABEL_SHOWWINDOW:
 								mir_snprintf(pszName, lstrlenA(ui->pszUID)+2, "%s ", ui->pszUID);
 
 							SendMessageA(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE), EM_REPLACESEL, FALSE, (LPARAM) pszName);
-							PostMessage(hwndDlg, WM_MOUSEACTIVATE, 0, 0);
+							PostMessage(hwndDlg, WM_SETFOCUS, 0, 0);
 							free(pszName);
 							
 						}

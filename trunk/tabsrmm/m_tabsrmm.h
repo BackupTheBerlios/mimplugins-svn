@@ -269,7 +269,7 @@ struct MessageWindowTheme {
 struct MessageWindowData {
 	BYTE bType;
 	HANDLE hContact, hSubContact;
-	HWND hwndLog;
+	HWND hwndLog, hwndFlash;
     HWND hwnd;
 	HANDLE hDbEventFirst,hDbEventLast;
 	int sendMode;
@@ -419,6 +419,7 @@ typedef struct _globals {
     HCURSOR hCurSplitNS, hCurSplitWE, hCurHyperlinkHand;
     HBITMAP g_hbmUnknown;
     int g_MetaContactsAvail, g_SmileyAddAvail, g_SecureIMAvail, g_WantIEView, g_PopupAvail, g_PopupWAvail, g_FontServiceAvail;
+    int g_FlashAvatarAvail;
     HICON g_IconMsgEvent, g_IconTypingEvent, g_IconEmpty, g_IconFileEvent, g_IconUrlEvent, g_IconSend;
     HICON g_IconFolder, g_IconChecked, g_IconUnchecked;
 	HICON g_closeGlyph, g_maxGlyph, g_minGlyph, g_pulldownGlyph;

@@ -789,7 +789,15 @@ TCHAR *QuoteText(TCHAR *text,int charsPerLine,int removeExistingQuotes)
 void AdjustBottomAvatarDisplay(HWND hwndDlg, struct MessageWindowData *dat)
 {
     HBITMAP hbm = dat->dwEventIsShown & MWF_SHOW_INFOPANEL ? dat->hOwnPic : (dat->ace ? dat->ace->hbmPic : myGlobals.g_hbmUnknown);
-    
+	FLASHAVATAR fa; 
+
+    if(myGlobals.g_FlashAvatarAvail) {
+        fa.hContact = dat->hContact;
+        dat->hwndFlash = (HWND)CallService(MS_GET_HANDLE, (WPARAM)&fa, 0);
+        if(dat->hwndFlash)
+            SetParent(dat->hwndFlash, GetDlgItem(hwndDlg, (dat->dwEventIsShown & MWF_SHOW_INFOPANEL) ? IDC_PANELPIC : IDC_CONTACTPIC));
+    }
+    	
     if(dat->iAvatarDisplayMode != AVATARMODE_DYNAMIC)
         dat->iRealAvatarHeight = 0;
     if(hbm) {
@@ -822,7 +830,7 @@ void ShowPicture(HWND hwndDlg, struct MessageWindowData *dat, BOOL showNewPic)
     RECT rc;
     
     if(!(dat->dwEventIsShown & MWF_SHOW_INFOPANEL))
-        dat->pic.cy = dat->pic.cx = 60;
+        dat->pic.cy = dat->pic.cx = 60;        
     
     if (showNewPic) {
         if(dat->dwEventIsShown & MWF_SHOW_INFOPANEL) {
@@ -2038,7 +2046,19 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         SelectObject(hdcDraw, hOldBrush);
         DeleteObject(bgBrush);
         DeleteObject(hPenBorder);
-        BitBlt(dis->hDC, 0, 0, cx, cy, hdcDraw, 0, 0, SRCCOPY);
+        if(myGlobals.g_FlashAvatarAvail) {
+            FLASHAVATAR fa; 
+
+            fa.hWindow = 0; 
+            fa.hContact = dat->hContact; 
+            fa.hParentWindow = GetDlgItem(hwndDlg, (dat->dwEventIsShown & MWF_SHOW_INFOPANEL) ? IDC_PANELPIC : IDC_CONTACTPIC);
+            CallService(MS_MAKE_FAVATAR, (WPARAM)&fa, 0);
+            dat->hwndFlash = fa.hWindow;
+            if((fa.hWindow == 0) || (!bPanelPic && (dat->dwEventIsShown & MWF_SHOW_INFOPANEL)))
+                BitBlt(dis->hDC, 0, 0, cx, cy, hdcDraw, 0, 0, SRCCOPY);
+        }
+        else
+            BitBlt(dis->hDC, 0, 0, cx, cy, hdcDraw, 0, 0, SRCCOPY);
         SelectObject(hdcDraw, hbmOld);
         DeleteObject(hbmDraw);
         DeleteDC(hdcDraw);

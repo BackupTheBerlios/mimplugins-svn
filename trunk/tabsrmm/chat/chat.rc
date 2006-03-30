@@ -128,13 +128,16 @@ EXSTYLE WS_EX_CONTROLPARENT
 FONT 8, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
     CONTROL         "Tree1",IDC_CHECKBOXES,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_FULLROWSELECT | WS_BORDER | WS_TABSTOP,10,12,280,154
-    EDITTEXT        IDC_NICKROW,153,206,29,14,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_NICKROW,152,210,29,14,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "Spin2",IDC_CHAT_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS | UDS_HOTTRACK,181,206,11,14
     GROUPBOX        "Options",IDC_STATIC,3,0,297,170
-    GROUPBOX        "Other",IDC_STATIC,3,171,297,55
-    LTEXT           "Userlist row distance (pixels):",IDC_STATIC,10,209,132,8
-    EDITTEXT        IDC_GROUP,153,185,49,14,ES_AUTOHSCROLL
-    LTEXT           "Add new rooms to group:",IDC_STATIC,10,188,132,8
+    GROUPBOX        "Other",IDC_STATIC_OTHER,3,171,297,61
+    LTEXT           "Userlist row distance (pixels):",IDC_STATIC_ULIST,10,213,132,8
+    EDITTEXT        IDC_GROUP,152,193,50,14,ES_AUTOHSCROLL
+    LTEXT           "Add new rooms to group:",IDC_STATIC_ADD,10,196,132,8
+    CONTROL         "Enable chat integration (changing this needs restart)",IDC_CHAT_ENABLE,
+                    "Button",BS_AUTOCHECKBOX | BS_FLAT | WS_TABSTOP,10,180,280,11
+    LTEXT           "Chat integration is currently disabled. You can enable it using the check box below. Note that you NEED RESTART Miranda to make this change effective.",IDC_STATIC_MESSAGE,21,52,256,74
 END
 
 IDD_OPTIONS2 DIALOGEX 0, 0, 300, 240
@@ -219,7 +222,7 @@ BEGIN
     IDD_OPTIONS1, DIALOG
     BEGIN
         VERTGUIDE, 10
-        VERTGUIDE, 153
+        VERTGUIDE, 152
         VERTGUIDE, 181
         VERTGUIDE, 202
         VERTGUIDE, 290
@@ -262,7 +265,6 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
-
 #endif    // Neutral (Default) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -289,7 +291,6 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,172,136,26,14,NOT WS_TABSTOP
     CTEXT           "",IDC_COLORTEXT,0,0,197,12,SS_CENTERIMAGE
 END
-
 
 
 #ifdef APSTUDIO_INVOKED
