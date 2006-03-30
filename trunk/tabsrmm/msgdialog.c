@@ -1152,7 +1152,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
     				FLASHAVATAR fa; 
 
                     fa.hContact = dat->hContact;
-					CallService(MS_RESIZE_FAVATAR, (WPARAM)&fa, (LPARAM)&rc);
+					CallService(MS_FAVATAR_RESIZE, (WPARAM)&fa, (LPARAM)&rc);
 				}
 			}
             return RD_ANCHORX_RIGHT | RD_ANCHORY_TOP;
@@ -2221,7 +2221,10 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
   						FLASHAVATAR fa; 
 
                         fa.hContact = dat->hContact;
-   						dat->hwndFlash = (HWND)CallService(MS_GET_HANDLE, (WPARAM)&fa, 0);
+						fa.hWindow = 0;
+
+						CallService(MS_FAVATAR_GETINFO, (WPARAM)&fa, 0);
+   						dat->hwndFlash = fa.hWindow;
    						if(dat->hwndFlash) {
    							BOOL isInfoPanel = dat->dwEventIsShown & MWF_SHOW_INFOPANEL;
    							SetParent(dat->hwndFlash, GetDlgItem(hwndDlg, isInfoPanel ? IDC_PANELPIC : IDC_CONTACTPIC));
@@ -3256,7 +3259,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
     				FLASHAVATAR fa; 
 
                     fa.hContact = dat->hContact;
-					CallService(MS_RESIZE_FAVATAR, (WPARAM)&fa, (LPARAM)&rc);
+					fa.hWindow = 0;
+					CallService(MS_FAVATAR_RESIZE, (WPARAM)&fa, (LPARAM)&rc);
 				}
 			}
             SendMessage(hwndDlg, WM_SIZE, 0, 0);
@@ -5438,7 +5442,7 @@ verify:
 				FLASHAVATAR fa; 
 
                 fa.hContact = dat->hContact;
-				CallService(MS_DESTROY_FAVATAR, (WPARAM)&fa, 0);
+				CallService(MS_FAVATAR_DESTROY, (WPARAM)&fa, 0);
 			}
             TABSRMM_FireEvent(dat->hContact, hwndDlg, MSG_WINDOW_EVT_CLOSING, 0);
             AddContactToFavorites(dat->hContact, dat->szNickname, dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->szStatus, dat->wStatus, LoadSkinnedProtoIcon(dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->bIsMeta ? dat->wMetaStatus : dat->wStatus), 1, myGlobals.g_hMenuRecent, dat->codePage);

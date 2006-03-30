@@ -793,9 +793,12 @@ void AdjustBottomAvatarDisplay(HWND hwndDlg, struct MessageWindowData *dat)
 
     if(myGlobals.g_FlashAvatarAvail) {
         fa.hContact = dat->hContact;
-        dat->hwndFlash = (HWND)CallService(MS_GET_HANDLE, (WPARAM)&fa, 0);
-        if(dat->hwndFlash)
+		fa.hWindow = 0;
+        CallService(MS_FAVATAR_GETINFO, (WPARAM)&fa, 0);
+		if(fa.hWindow) {
+			dat->hwndFlash = fa.hWindow;
             SetParent(dat->hwndFlash, GetDlgItem(hwndDlg, (dat->dwEventIsShown & MWF_SHOW_INFOPANEL) ? IDC_PANELPIC : IDC_CONTACTPIC));
+		}
     }
     	
     if(dat->iAvatarDisplayMode != AVATARMODE_DYNAMIC)
@@ -2052,7 +2055,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
             fa.hWindow = 0; 
             fa.hContact = dat->hContact; 
             fa.hParentWindow = GetDlgItem(hwndDlg, (dat->dwEventIsShown & MWF_SHOW_INFOPANEL) ? IDC_PANELPIC : IDC_CONTACTPIC);
-            CallService(MS_MAKE_FAVATAR, (WPARAM)&fa, 0);
+			CallService(MS_FAVATAR_MAKE, (WPARAM)&fa, 0);
             dat->hwndFlash = fa.hWindow;
             if((fa.hWindow == 0) || (!bPanelPic && (dat->dwEventIsShown & MWF_SHOW_INFOPANEL)))
                 BitBlt(dis->hDC, 0, 0, cx, cy, hdcDraw, 0, 0, SRCCOPY);

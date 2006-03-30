@@ -24,31 +24,31 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	WPARAM FLASHAVATAR* (hContact, hParentWindow)
 	LPARAM not used
  */
-#define MS_DESTROY_FAVATAR 	"FlashAvatar/destroyAvatar"
+#define MS_FAVATAR_DESTROY 		"FlashAvatar/Destroy"
 
 /**
 	WPARAM FLASHAVATAR* (hContact, hParentWindow)
 	LPARAM not used
  */
-#define MS_MAKE_FAVATAR 	"FlashAvatar/makeAvatar"
+#define MS_FAVATAR_MAKE 		"FlashAvatar/Make"
 
 /**
 	WPARAM FLASHAVATAR* (hContact, hParentWindow)
 	LPARAM LPRECT
  */
-#define MS_RESIZE_FAVATAR 	"FlashAvatar/resizeAvatar"
+#define MS_FAVATAR_RESIZE 		"FlashAvatar/Resize"
 
 /**
 	WPARAM FLASHAVATAR* (hContact, hParentWindow)
 	LPARAM not used
  */
-#define MS_GET_HANDLE 		"FlashAvatar/getHandle"
+#define MS_FAVATAR_GETINFO 		"FlashAvatar/GetInfo"
 
 /**
 	WPARAM FLASHAVATAR* (hContact, hParentWindow)
 	LPARAM BSTR
  */
-#define MS_SET_EMOFACE 		"FlashAvatar/setEmoFace"
+#define MS_FAVATAR_SETEMOFACE 	"FlashAvatar/SetEmoFace"
 
 // Avatar emotion faces
 #define AV_SMILE	"smile"

@@ -856,7 +856,7 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
         hEventSmileyAdd = HookEvent(ME_SMILEYADD_OPTIONSCHANGED, SmileyAddOptionsChanged);
     }
 
-    if(ServiceExists(MS_MAKE_FAVATAR))
+    if(ServiceExists(MS_FAVATAR_GETINFO))
         myGlobals.g_FlashAvatarAvail = 1;
     
     myGlobals.g_WantIEView = ServiceExists(MS_IEVIEW_WINDOW) && DBGetContactSettingByte(NULL, SRMSGMOD_T, "want_ieview", 0);
