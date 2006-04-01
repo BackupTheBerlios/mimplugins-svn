@@ -52,21 +52,6 @@ typedef struct
 } MESSAGESUBDATA;
 
 
-static void Chat_FlashTab(struct MessageWindowData *dat, HWND hwndTab, int iTabindex, BOOL *bState, BOOL mode, HICON origImage)
-{
-    TCITEM item;
-
-    ZeroMemory((void *)&item, sizeof(item));
-    item.mask = TCIF_IMAGE;
-
-    if (mode)
-        *bState = !(*bState);
-    else
-        dat->hTabIcon = origImage;
-    item.iImage = 0;
-    TabCtrl_SetItem(hwndTab, iTabindex, &item);
-}
-
 static struct _tagbtns { int id; char *szTip;} _btns[] = {
     IDC_SMILEY, "Insert emoticon",
     IDC_CHAT_BOLD, "Bold text",
@@ -1382,7 +1367,7 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
                 dat->dwTickLastEvent = 0;
                 dat->dwFlags &= ~MWF_DIVIDERSET;
                 if (KillTimer(hwndDlg, TIMERID_FLASHWND)) {
-                    Chat_FlashTab(dat, hwndTab, dat->iTabID, &dat->bTabFlash, FALSE, dat->hTabIcon);
+                    FlashTab(dat, hwndTab, dat->iTabID, &dat->bTabFlash, FALSE, dat->hTabIcon);
                     dat->mayFlashTab = FALSE;
                 }
                 if(dat->pContainer->dwFlashingStarted != 0) {
@@ -1929,7 +1914,7 @@ LABEL_SHOWWINDOW:
 		{
 			if (wParam == TIMERID_FLASHWND) {
                 if (dat->mayFlashTab)
-                    Chat_FlashTab(dat, hwndTab, dat->iTabID, &dat->bTabFlash, TRUE, dat->hTabIcon);
+                    FlashTab(dat, hwndTab, dat->iTabID, &dat->bTabFlash, TRUE, dat->hTabIcon);
 			}
 		}
         break;
@@ -1967,7 +1952,7 @@ LABEL_SHOWWINDOW:
                 dat->dwFlags &= ~MWF_DIVIDERSET;
                 dat->dwTickLastEvent = 0;
                 if (KillTimer(hwndDlg, TIMERID_FLASHWND)) {
-                    Chat_FlashTab(dat, hwndTab, dat->iTabID, &dat->bTabFlash, FALSE, dat->hTabIcon);
+                    FlashTab(dat, hwndTab, dat->iTabID, &dat->bTabFlash, FALSE, dat->hTabIcon);
                     dat->mayFlashTab = FALSE;
                 }
                 if(dat->pContainer->dwFlashingStarted != 0) {

@@ -57,6 +57,27 @@ struct RTFColorTable rtf_ctable[] = {
 };
 
 /*
+ * flash a tab icon if mode = true, otherwise restore default icon
+ * store flashing state into bState
+ */
+
+void FlashTab(struct MessageWindowData *dat, HWND hwndTab, int iTabindex, BOOL *bState, BOOL mode, HICON origImage)
+{
+    TCITEM item;
+
+    ZeroMemory((void *)&item, sizeof(item));
+    item.mask = TCIF_IMAGE;
+
+    if (mode)
+        *bState = !(*bState);
+    else
+        dat->hTabIcon = origImage;
+    item.iImage = 0;
+    TabCtrl_SetItem(hwndTab, iTabindex, &item);
+}
+
+
+/*
  * draw transparent avatar image. Get around crappy image rescaling quality of the
  * AlphaBlend() API.
  */
@@ -794,6 +815,7 @@ void AdjustBottomAvatarDisplay(HWND hwndDlg, struct MessageWindowData *dat)
     if(myGlobals.g_FlashAvatarAvail) {
         fa.hContact = dat->hContact;
 		fa.hWindow = 0;
+        fa.id = 25367;
         CallService(MS_FAVATAR_GETINFO, (WPARAM)&fa, 0);
 		if(fa.hWindow) {
 			dat->hwndFlash = fa.hWindow;
@@ -2054,6 +2076,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 
             fa.hWindow = 0; 
             fa.hContact = dat->hContact; 
+            fa.id = 25367;
             fa.hParentWindow = GetDlgItem(hwndDlg, (dat->dwEventIsShown & MWF_SHOW_INFOPANEL) ? IDC_PANELPIC : IDC_CONTACTPIC);
 			CallService(MS_FAVATAR_MAKE, (WPARAM)&fa, 0);
             dat->hwndFlash = fa.hWindow;

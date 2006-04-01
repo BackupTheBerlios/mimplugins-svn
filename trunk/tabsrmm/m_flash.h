@@ -62,8 +62,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define AV_NORMAL	"stam"
 
 typedef struct {
-	HANDLE hContact;
-	HWND hWindow;
-	HWND hParentWindow;
-	char* cUrl;
+	HANDLE hContact;	// contact who flash avatar belongs to
+	HWND hWindow;		// handle of flash avatar object
+	HWND hParentWindow;	// handle of flash avatar's parent object
+	char* cUrl;			// url of .swf file
+	int id;				// unique number of plugin which wants to use avatar service
 } FLASHAVATAR;

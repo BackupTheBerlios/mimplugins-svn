@@ -68,8 +68,6 @@ static DWORD CALLBACK StreamOut(DWORD_PTR dwCookie, LPBYTE pbBuff, LONG cb, LONG
 
 char *pszIDCSAVE_close = 0, *pszIDCSAVE_save = 0;
 
-static void FlashTab(struct MessageWindowData *dat, HWND hwndTab, int iTabindex, BOOL *bState, BOOL mode, HICON origImage);
-
 static WNDPROC OldMessageEditProc, OldAvatarWndProc, OldMessageLogProc;
 WNDPROC OldSplitterProc = 0;
 
@@ -1152,6 +1150,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
     				FLASHAVATAR fa; 
 
                     fa.hContact = dat->hContact;
+                    fa.id = 25367;
 					CallService(MS_FAVATAR_RESIZE, (WPARAM)&fa, (LPARAM)&rc);
 				}
 			}
@@ -2222,7 +2221,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 
                         fa.hContact = dat->hContact;
 						fa.hWindow = 0;
-
+                        fa.id = 25367;
+                        
 						CallService(MS_FAVATAR_GETINFO, (WPARAM)&fa, 0);
    						dat->hwndFlash = fa.hWindow;
    						if(dat->hwndFlash) {
@@ -3038,7 +3038,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                         _DebugPopup(dat->hContact, "iCurrentQueueError out of bounds (%d)", dat->iCurrentQueueError);
                     dat->iCurrentQueueError = -1;
                     ShowErrorControls(hwndDlg, dat, FALSE);
-                    SetDlgItemText(hwndDlg, IDC_MESSAGE, _T(""));
+                    if(wParam != MSGERROR_CANCEL || (wParam == MSGERROR_CANCEL && lParam == 0))
+                        SetDlgItemText(hwndDlg, IDC_MESSAGE, _T(""));
                     CheckSendQueue(hwndDlg, dat);
                     if((iNextFailed = FindNextFailedMsg(hwndDlg, dat)) >= 0)
                         HandleQueueError(hwndDlg, dat, iNextFailed);
@@ -3260,7 +3261,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 
                     fa.hContact = dat->hContact;
 					fa.hWindow = 0;
-					CallService(MS_FAVATAR_RESIZE, (WPARAM)&fa, (LPARAM)&rc);
+					fa.id = 25367;
+                    CallService(MS_FAVATAR_RESIZE, (WPARAM)&fa, (LPARAM)&rc);
 				}
 			}
             SendMessage(hwndDlg, WM_SIZE, 0, 0);
@@ -5359,7 +5361,7 @@ verify:
                 
                 if(dat->iOpenJobs > 0 && lParam != 2) {
                     if(dat->dwFlags & MWF_ERRORSTATE)
-                        SendMessage(hwndDlg, WM_COMMAND, IDC_CANCELSEND, 0);
+                        SendMessage(hwndDlg, DM_ERRORDECIDED, MSGERROR_CANCEL, 1);
                     else {
                         TCHAR szBuffer[256];
                         _sntprintf(szBuffer, safe_sizeof(szBuffer), TranslateT("Message delivery in progress (%d unsent). You cannot close the session right now"), dat->iOpenJobs);
@@ -5442,6 +5444,7 @@ verify:
 				FLASHAVATAR fa; 
 
                 fa.hContact = dat->hContact;
+                fa.id = 25367;
 				CallService(MS_FAVATAR_DESTROY, (WPARAM)&fa, 0);
 			}
             TABSRMM_FireEvent(dat->hContact, hwndDlg, MSG_WINDOW_EVT_CLOSING, 0);
@@ -5582,26 +5585,6 @@ verify:
             break;
     }
     return FALSE;
-}
-
-/*
- * flash a tab icon if mode = true, otherwise restore default icon
- * store flashing state into bState
- */
-
-static void FlashTab(struct MessageWindowData *dat, HWND hwndTab, int iTabindex, BOOL *bState, BOOL mode, HICON origImage)
-{
-    TCITEM item;
-
-    ZeroMemory((void *)&item, sizeof(item));
-    item.mask = TCIF_IMAGE;
-
-    if (mode)
-        *bState = !(*bState);
-    else
-        dat->hTabIcon = origImage;
-    item.iImage = 0;
-    TabCtrl_SetItem(hwndTab, iTabindex, &item);
 }
 
 /*
