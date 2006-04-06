@@ -1089,7 +1089,6 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact)
 
 	if(foundNode == NULL) {					// no free entry found, create a new and append it to the list
 		struct CacheNode *newNode = AllocCacheBlock();
-		_DebugPopup(hContact, "block realloc");
 		AddToList(newNode);
 		foundNode = newNode;
 	}
@@ -1882,7 +1881,9 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 {
     DWORD dwExitcode = 0;
 
+    EnterCriticalSection(&cachecs);
 	g_shutDown = TRUE;
+    LeaveCriticalSection(&cachecs);
 
 	DestroyServiceFunction(MS_AV_GETAVATARBITMAP);
     DestroyServiceFunction(MS_AV_PROTECTAVATAR);
@@ -1906,7 +1907,8 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 	WaitForSingleObject(hAvatarThread, 6000);
 
     DeleteCriticalSection(&avcs);
-    DeleteCriticalSection(&cachecs);
+    
+	EnterCriticalSection(&cachecs);
 
 	if(avatarUpdateQueue)
         free(avatarUpdateQueue);
@@ -1933,6 +1935,8 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 	if(g_MyAvatars)
 		free(g_MyAvatars);
 
+    LeaveCriticalSection(&cachecs);
+    DeleteCriticalSection(&cachecs);
 	return 0;
 }
 
@@ -2005,10 +2009,24 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
             newWidth = (float)bmWidth * dScale;
         }
         else {
+            /* ??? */
+            dScale = (float)(targetWidth) / (float)bmWidth;
+            newWidth = (float)(targetWidth);
+            newHeight = (float)bmHeight * dScale;
+            /* ??? */
+        }
+		/*
+		if(dAspect >= 1.0) {            // height > width
+            dScale = (float)(targetHeight) / (float)bmHeight;
+            newHeight = (float)(targetHeight);
+            newWidth = (float)bmWidth * dScale;
+        }
+        else {
             newWidth = (float)(targetHeight);
             dScale = (float)(targetHeight) / (float)bmWidth;
             newHeight = (float)bmHeight * dScale;
-        }
+        }*/
+
         topoffset = targetHeight > (int)newHeight ? (targetHeight - (int)newHeight) / 2 : 0;
 
         // create the region for the avatar border - use the same region for clipping, if needed.
