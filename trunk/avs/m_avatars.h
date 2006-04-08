@@ -186,6 +186,7 @@ typedef struct _avatarDrawRequest {
 // return value: 0 -> failure, avatar probably not available, or not ready. The drawing
 // service DOES schedule an avatar update so your plugin will be notified by the ME_AV_AVATARCHANGED
 // event when the requested avatar is ready for use.
+//				 1 -> success. avatar was found and drawing should be ok.
 
 #define MS_AV_DRAWAVATAR "SV_Avatars/Draw"
 
