@@ -730,9 +730,9 @@ void SetSelftypingIcon(HWND dlg, struct MessageWindowData *dat, int iMode)
  * checks, if there is a valid smileypack installed for the given protocol
  */
 
-int CheckValidSmileyPack(char *szProto, HICON *hButtonIcon)
+int CheckValidSmileyPack(char *szProto, HANDLE hContact, HICON *hButtonIcon)
 {
-    SMADD_INFO smainfo;
+    SMADD_INFO2 smainfo = {0};
 
     if(myGlobals.g_SmileyAddAvail) {
         smainfo.cbSize = sizeof(smainfo);
@@ -2444,8 +2444,8 @@ void ConfigureSmileyButton(HWND hwndDlg, struct MessageWindowData *dat)
     int nrSmileys = 0;
     int showToolbar = dat->pContainer->dwFlags & CNT_HIDETOOLBAR ? 0 : 1;
 
-    if(myGlobals.g_SmileyAddAvail && myGlobals.m_SmileyPluginEnabled && dat->hwndLog == 0) {
-        nrSmileys = CheckValidSmileyPack(dat->bIsMeta ? dat->szMetaProto : dat->szProto, &hButtonIcon);
+    if(myGlobals.g_SmileyAddAvail && myGlobals.m_SmileyPluginEnabled) {
+        nrSmileys = CheckValidSmileyPack(dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->bIsMeta ? dat->hSubContact : dat->hContact, &hButtonIcon);
 
         dat->doSmileys = 1;
 
@@ -2457,15 +2457,6 @@ void ConfigureSmileyButton(HWND hwndDlg, struct MessageWindowData *dat)
             SendDlgItemMessage(hwndDlg, IDC_SMILEYBTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hButtonIcon);
             dat->hSmileyIcon = hButtonIcon;
         }
-    }
-    else if(dat->hwndLog != 0) {
-        dat->doSmileys = 1;
-        nrSmileys = 1;
-        if(dat->hSmileyIcon != 0) {
-            DestroyIcon(dat->hSmileyIcon);
-            dat->hSmileyIcon = 0;
-        }
-        SendDlgItemMessage(hwndDlg, IDC_SMILEYBTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM) myGlobals.g_buttonBarIcons[11]);
     }
 
     if(nrSmileys == 0 || dat->hContact == 0)

@@ -36,7 +36,7 @@ int GetAvatarVisibility(HWND hwndDlg, struct MessageWindowData *dat);
 void UpdateStatusBar(HWND hwndDlg, struct MessageWindowData *dat);
 void UpdateStatusBarTooltips(HWND hwndDlg, struct MessageWindowData *dat, int iSecIMStatus);
 void SetSelftypingIcon(HWND dlg, struct MessageWindowData *dat, int iMode);
-int CheckValidSmileyPack(char *szProto, HICON *hButtonIcon);
+int CheckValidSmileyPack(char *szProto, HANDLE hContact, HICON *hButtonIcon);
 TCHAR *QuoteText(TCHAR *text,int charsPerLine,int removeExistingQuotes);
 void UpdateReadChars(HWND hwndDlg, struct MessageWindowData *dat);
 void ShowPicture(HWND hwndDlg, struct MessageWindowData *dat, BOOL showNewPic);

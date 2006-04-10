@@ -1495,7 +1495,7 @@ void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG startAt, int
 
     if(myGlobals.g_SmileyAddAvail && myGlobals.m_SmileyPluginEnabled) {
         CHARRANGE sel;
-        SMADD_RICHEDIT2 smadd;
+        SMADD_RICHEDIT3 smadd;
 
         sel.cpMin = startAt;
         sel.cpMax = -1;
@@ -1505,11 +1505,14 @@ void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG startAt, int
 		smadd.cbSize = sizeof(smadd);
         smadd.hwndRichEditControl = GetDlgItem(hwndDlg, IDC_LOG);
         smadd.Protocolname = dat->bIsMeta ? dat->szMetaProto : dat->szProto;
+        smadd.hContact = dat->bIsMeta ? dat->hSubContact : dat->hContact;
+        
         if(startAt > 0)
             smadd.rangeToReplace = &sel;
         else
             smadd.rangeToReplace = NULL;
         smadd.disableRedraw = TRUE;
+        smadd.flags = SAFLRE_INSERTEMF;
         if(dat->doSmileys)
             CallService(MS_SMILEYADD_REPLACESMILEYS, TABSRMM_SMILEYADD_BKGCOLORMODE, (LPARAM)&smadd);
     }

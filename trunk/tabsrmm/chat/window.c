@@ -103,9 +103,6 @@ static void	InitButtons(HWND hwndDlg, SESSION_INFO* si)
 	SendDlgItemMessage(hwndDlg, IDC_COLOR, BUTTONSETASPUSHBTN, 0, 0);
 	SendDlgItemMessage(hwndDlg, IDC_BKGCOLOR, BUTTONSETASPUSHBTN, 0, 0);
 
-    EnableWindow(GetDlgItem(hwndDlg, IDOK), 0);
-    InvalidateRect(GetDlgItem(hwndDlg, IDOK), NULL, TRUE);
-                        
 	if (pInfo)
 	{
 		EnableWindow(GetDlgItem(hwndDlg, IDC_CHAT_BOLD), pInfo->bBold);
@@ -721,16 +718,16 @@ default_process:
         case WM_RBUTTONUP:
         case WM_MBUTTONUP:
 			{
-			CHARFORMAT2 cf;
+			CHARFORMAT2A cf;
 			UINT u = 0;
 			UINT u2 = 0;
 			COLORREF cr;
 
 			LoadLogfont(MSGFONTID_MESSAGEAREA, NULL, &cr, FONTMODULE);
 			
-			cf.cbSize = sizeof(CHARFORMAT2);
+			cf.cbSize = sizeof(CHARFORMAT2A);
 			cf.dwMask = CFM_BOLD|CFM_ITALIC|CFM_UNDERLINE|CFM_BACKCOLOR|CFM_COLOR;
-			SendMessage(hwnd, EM_GETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf);
+			SendMessageA(hwnd, EM_GETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf);
 
 			if(MM_FindModule(Parentsi->pszModule) && MM_FindModule(Parentsi->pszModule)->bColor)
 			{
@@ -759,8 +756,12 @@ default_process:
 					Parentsi->bBGSet = TRUE;
 					Parentsi->iBG = index;
 				}		
-				if(u == BST_UNCHECKED && cf.crBackColor != crB)
-					CheckDlgButton(hwndParent, IDC_BKGCOLOR, BST_CHECKED);
+				if(u == BST_UNCHECKED && cf.crBackColor != crB) {
+#ifdef _DEBUG
+                    _DebugTraceA("checking back button - %x, %x", crB, cf.crBackColor);
+#endif                    
+                    CheckDlgButton(hwndParent, IDC_BKGCOLOR, BST_CHECKED);
+                }
 				else if(u == BST_CHECKED && cf.crBackColor == crB)
 					CheckDlgButton(hwndParent, IDC_BKGCOLOR, BST_UNCHECKED);
 			}
@@ -1409,27 +1410,30 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 				hIcon = si->wStatus==ID_STATUS_ONLINE?MM_FindModule(si->pszModule)->hOnlineIcon:MM_FindModule(si->pszModule)->hOfflineIcon;
 			}
 
-			SendMessage(GetDlgItem(hwndDlg, IDC_CHAT_LOG), EM_SETBKGNDCOLOR , 0, g_Settings.crLogBackground);
+			SendDlgItemMessage(hwndDlg, IDC_CHAT_LOG, EM_SETBKGNDCOLOR, 0, g_Settings.crLogBackground);
 
 			{ //messagebox
 				COLORREF	    crFore;
                 LOGFONTA        lf;
-				CHARFORMAT2A    cf2;
-
+				CHARFORMAT2A    cf2 = {0};
+                COLORREF crB = DBGetContactSettingDword(NULL, FONTMODULE, "inputbg", GetSysColor(COLOR_WINDOW));
+                
 				LoadLogfont(MSGFONTID_MESSAGEAREA, &lf, &crFore, FONTMODULE);
-                cf2.dwMask = CFM_COLOR | CFM_FACE | CFM_CHARSET | CFM_SIZE | CFM_WEIGHT | CFM_BOLD | CFM_ITALIC;
+                cf2.dwMask = CFM_COLOR | CFM_FACE | CFM_CHARSET | CFM_SIZE | CFM_WEIGHT | CFM_BOLD | CFM_ITALIC | CFM_BACKCOLOR;
                 cf2.cbSize = sizeof(cf2);
                 cf2.crTextColor = crFore;
                 cf2.bCharSet = lf.lfCharSet;
+                cf2.crBackColor = crB;
                 strncpy(cf2.szFaceName, lf.lfFaceName, LF_FACESIZE);
                 cf2.dwEffects = ((lf.lfWeight >= FW_BOLD) ? CFE_BOLD : 0) | (lf.lfItalic ? CFE_ITALIC : 0);
                 cf2.wWeight = (WORD)lf.lfWeight;
                 cf2.bPitchAndFamily = lf.lfPitchAndFamily;
                 cf2.yHeight = abs(lf.lfHeight) * 15;
-				SendMessage(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE), EM_SETBKGNDCOLOR , 0, DBGetContactSettingDword(NULL, FONTMODULE, "inputbg", GetSysColor(COLOR_WINDOW)));
-				//SendDlgItemMessage(hwndDlg, IDC_CHAT_MESSAGE, WM_SETFONT, (WPARAM) g_Settings.MessageBoxFont, MAKELPARAM(TRUE, 0));
-				SendDlgItemMessage(hwndDlg, IDC_CHAT_MESSAGE, EM_SETCHARFORMAT, 0, (LPARAM)&cf2);
+                SetDlgItemText(hwndDlg, IDC_CHAT_MESSAGE, _T(""));
+				SendDlgItemMessage(hwndDlg, IDC_CHAT_MESSAGE, EM_SETBKGNDCOLOR, 0, (LPARAM)crB);
+				SendDlgItemMessageA(hwndDlg, IDC_CHAT_MESSAGE, EM_SETCHARFORMAT, 0, (LPARAM)&cf2);
 			}
+            SendDlgItemMessage(hwndDlg, IDOK, BUTTONSETASFLATBTN + 14, 0, 0);
 			{ // nicklist
 				int ih;
 				int ih2;
@@ -1550,8 +1554,8 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 			urd.pfnResizer=RoomWndResize;
 			CallService(MS_UTILS_RESIZEDIALOG,0,(LPARAM)&urd);
 			
-			RedrawWindow(GetDlgItem(hwndDlg,IDC_CHAT_MESSAGE), NULL, NULL, RDW_INVALIDATE);
-			RedrawWindow(GetDlgItem(hwndDlg,IDOK), NULL, NULL, RDW_INVALIDATE);
+			//RedrawWindow(GetDlgItem(hwndDlg,IDC_CHAT_MESSAGE), NULL, NULL, RDW_INVALIDATE);
+			//RedrawWindow(GetDlgItem(hwndDlg,IDOK), NULL, NULL, RDW_INVALIDATE);
 		} break;
 
 		case GC_REDRAWWINDOW:
@@ -2296,19 +2300,20 @@ LABEL_SHOWWINDOW:
                             UpdateReadChars(hwndDlg, dat);
                         dat->dwLastActivity = GetTickCount();
                         dat->pContainer->dwLastActivity = dat->dwLastActivity;
-                        EnableWindow(GetDlgItem(hwndDlg, IDOK), GetRichTextLength(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE)) != 0);
+                        SendDlgItemMessage(hwndDlg, IDOK, BUTTONSETASFLATBTN + 14, GetRichTextLength(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE)) != 0, 0);
+                        //EnableWindow(GetDlgItem(hwndDlg, IDOK), GetRichTextLength(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE)) != 0);
                     }
                     break;
 				}
                 
 			case IDC_SMILEY:
 				{
-					SMADD_SHOWSEL smaddInfo;
+					SMADD_SHOWSEL3 smaddInfo = {0};
 					RECT rc;
 
 					GetWindowRect(GetDlgItem(hwndDlg, IDC_SMILEY), &rc);
 					
-					smaddInfo.cbSize = sizeof(SMADD_SHOWSEL);
+					smaddInfo.cbSize = sizeof(SMADD_SHOWSEL3);
 					smaddInfo.hwndTarget = GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE);
 					smaddInfo.targetMessage = EM_REPLACESEL;
 					smaddInfo.targetWParam = TRUE;
@@ -2316,7 +2321,7 @@ LABEL_SHOWWINDOW:
 					smaddInfo.Direction = 3;
 					smaddInfo.xPosition = rc.left+3;
 					smaddInfo.yPosition = rc.top-1;
-
+                    smaddInfo.hContact = si->hContact;
 					if(myGlobals.g_SmileyAddAvail)
 						CallService(MS_SMILEYADD_SHOWSELECTION, 0, (LPARAM) &smaddInfo);
 
