@@ -2954,7 +2954,7 @@ HMENU BuildContainerMenu()
 
     if(myGlobals.g_hMenuContainer != 0) {
         HMENU submenu = GetSubMenu(myGlobals.g_hMenuContext, 0);
-        RemoveMenu(submenu, 5, MF_BYPOSITION);
+        RemoveMenu(submenu, 6, MF_BYPOSITION);
         DestroyMenu(myGlobals.g_hMenuContainer);
         myGlobals.g_hMenuContainer = 0;
     }

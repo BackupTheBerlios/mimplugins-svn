@@ -419,8 +419,10 @@ static int MessageEventAdded(WPARAM wParam, LPARAM lParam)
          * care about popups for non-message events for contacts w/o an openend window
          * if a window is open, the msg window itself will care about showing the popup
          */
-        if(dbei.eventType != EVENTTYPE_MESSAGE && dbei.eventType != EVENTTYPE_STATUSCHANGE && hwnd == NULL && !(dbei.flags & DBEF_SENT))
-            tabSRMM_ShowPopup(wParam, lParam, dbei.eventType, 0, 0, 0, dbei.szModule, 0);
+        if(dbei.eventType != EVENTTYPE_MESSAGE && dbei.eventType != EVENTTYPE_STATUSCHANGE && hwnd == 0 && !(dbei.flags & DBEF_SENT)) {
+            if(!(dbei.flags & DBEF_READ))
+                tabSRMM_ShowPopup(wParam, lParam, dbei.eventType, 0, 0, 0, dbei.szModule, 0);
+        }
         return 0;
     }
     
@@ -718,6 +720,10 @@ static int ContactDeleted(WPARAM wParam, LPARAM lParam)
     HWND hwnd;
 
     if (hwnd = WindowList_Find(hMessageWindowList, (HANDLE) wParam)) {
+        struct MessageWindowData *dat = (struct MessageWindowData *)GetWindowLong(hwnd, GWL_USERDATA);
+
+        if(dat)
+            dat->bWasDeleted = 1;
         SendMessage(hwnd, WM_CLOSE, 0, 1);
     }
     return 0;

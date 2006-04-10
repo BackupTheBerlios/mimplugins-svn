@@ -374,6 +374,8 @@ static BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			SendDlgItemMessage(hwndDlg, IDC_AVATARSPIN, UDM_SETRANGE, 0, MAKELONG(150, 50));
 			SendDlgItemMessage(hwndDlg, IDC_AVATARSPIN, UDM_SETPOS, 0, GetDlgItemInt(hwndDlg, IDC_MAXAVATARHEIGHT, &translated, FALSE));
 
+            EnableWindow(GetDlgItem(hwndDlg, IDC_MAXAVATARHEIGHT), DBGetContactSettingByte(NULL, SRMSGMOD_T, "avatardisplaymode", 0) != 0);
+
 			SetDlgItemInt(hwndDlg, IDC_AUTOCLOSETABTIME, DBGetContactSettingDword(NULL, SRMSGMOD_T, "tabautoclose", 0), FALSE);
 			SendDlgItemMessage(hwndDlg, IDC_AUTOCLOSETABSPIN, UDM_SETRANGE, 0, MAKELONG(1800, 0));
 			SendDlgItemMessage(hwndDlg, IDC_AUTOCLOSETABSPIN, UDM_SETPOS, 0, GetDlgItemInt(hwndDlg, IDC_AUTOCLOSETABTIME, &translated, FALSE));
@@ -402,13 +404,14 @@ static BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 				break;
 			}
 		case IDC_AVATARBORDER:
-		case IDC_AVATARDISPLAY:
+        case IDC_AVATARDISPLAY:
+            EnableWindow(GetDlgItem(hwndDlg, IDC_MAXAVATARHEIGHT), SendDlgItemMessage(hwndDlg, IDC_AVATARDISPLAY, CB_GETCURSEL, 0, 0) != 0);
 			if(HIWORD(wParam) != CBN_SELCHANGE || (HWND)lParam != GetFocus())
 				return TRUE;
 			break;
-			}
-			SendMessage(GetParent(hwndDlg), PSM_CHANGED, 0, 0);
-			break;
+		}
+        SendMessage(GetParent(hwndDlg), PSM_CHANGED, 0, 0);
+        break;
 		case WM_NOTIFY:
 			switch (((LPNMHDR) lParam)->idFrom) {
 		case IDC_WINDOWOPTIONS:

@@ -268,6 +268,7 @@ struct MessageWindowTheme {
 
 struct MessageWindowData {
 	BYTE bType;
+    BYTE bWasDeleted;
 	HANDLE hContact, hSubContact;
 	HWND hwndLog, hwndFlash;
     HWND hwnd;

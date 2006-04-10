@@ -5447,26 +5447,29 @@ verify:
                 fa.id = 25367;
 				CallService(MS_FAVATAR_DESTROY, (WPARAM)&fa, 0);
 			}
-            TABSRMM_FireEvent(dat->hContact, hwndDlg, MSG_WINDOW_EVT_CLOSING, 0);
-            AddContactToFavorites(dat->hContact, dat->szNickname, dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->szStatus, dat->wStatus, LoadSkinnedProtoIcon(dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->bIsMeta ? dat->wMetaStatus : dat->wStatus), 1, myGlobals.g_hMenuRecent, dat->codePage);
-            if(dat->hContact) {
-                int len;
-                
-                char *msg = Message_GetFromStream(GetDlgItem(hwndDlg, IDC_MESSAGE), dat, (CP_UTF8 << 16) | (SF_TEXT|SF_USECODEPAGE));
-                if(msg) {
-                    DBWriteContactSettingString(dat->hContact, SRMSGMOD, "SavedMsg", msg);
-                    free(msg);
-                }
-                else
-                    DBWriteContactSettingString(dat->hContact, SRMSGMOD, "SavedMsg", "");
-                len = GetWindowTextLengthA(GetDlgItem(hwndDlg, IDC_NOTES));
-                if(len > 0) {
-                    msg = malloc(len + 1);
-                    GetDlgItemTextA(hwndDlg, IDC_NOTES, msg, len + 1);
-                    DBWriteContactSettingString(dat->hContact, "UserInfo", "MyNotes", msg);
-                    free(msg);
+            if(!dat->bWasDeleted) {
+                TABSRMM_FireEvent(dat->hContact, hwndDlg, MSG_WINDOW_EVT_CLOSING, 0);
+                AddContactToFavorites(dat->hContact, dat->szNickname, dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->szStatus, dat->wStatus, LoadSkinnedProtoIcon(dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->bIsMeta ? dat->wMetaStatus : dat->wStatus), 1, myGlobals.g_hMenuRecent, dat->codePage);
+                if(dat->hContact) {
+                    int len;
+
+                    char *msg = Message_GetFromStream(GetDlgItem(hwndDlg, IDC_MESSAGE), dat, (CP_UTF8 << 16) | (SF_TEXT|SF_USECODEPAGE));
+                    if(msg) {
+                        DBWriteContactSettingString(dat->hContact, SRMSGMOD, "SavedMsg", msg);
+                        free(msg);
+                    }
+                    else
+                        DBWriteContactSettingString(dat->hContact, SRMSGMOD, "SavedMsg", "");
+                    len = GetWindowTextLengthA(GetDlgItem(hwndDlg, IDC_NOTES));
+                    if(len > 0) {
+                        msg = malloc(len + 1);
+                        GetDlgItemTextA(hwndDlg, IDC_NOTES, msg, len + 1);
+                        DBWriteContactSettingString(dat->hContact, "UserInfo", "MyNotes", msg);
+                        free(msg);
+                    }
                 }
             }
+            
             if (dat->nTypeMode == PROTOTYPE_SELFTYPING_ON)
                 NotifyTyping(dat, PROTOTYPE_SELFTYPING_OFF);
 
@@ -5522,14 +5525,18 @@ verify:
             if(myGlobals.g_hMenuTrayUnread)
                 DeleteMenu(myGlobals.g_hMenuTrayUnread, (UINT_PTR)dat->hContact, MF_BYCOMMAND);
             WindowList_Remove(hMessageWindowList, hwndDlg);
-            SendMessage(hwndDlg, DM_SAVEPERCONTACT, 0, 0);
-            if(myGlobals.m_SplitterSaveOnClose)
-                SaveSplitter(hwndDlg, dat);
-            if(!dat->stats.bWritten) {
-                WriteStatsOnClose(hwndDlg, dat);
-                dat->stats.bWritten = TRUE;
-            }
 
+            if(!dat->bWasDeleted) {
+                SendMessage(hwndDlg, DM_SAVEPERCONTACT, 0, 0);
+                if(myGlobals.m_SplitterSaveOnClose)
+                    SaveSplitter(hwndDlg, dat);
+                if(!dat->stats.bWritten) {
+                    WriteStatsOnClose(hwndDlg, dat);
+                    dat->stats.bWritten = TRUE;
+                }
+
+            }
+            
             SetWindowLong(GetDlgItem(hwndDlg, IDC_MULTISPLITTER), GWL_WNDPROC, (LONG) OldSplitterProc);
             SetWindowLong(GetDlgItem(hwndDlg, IDC_PANELSPLITTER), GWL_WNDPROC, (LONG) OldSplitterProc);
             SetWindowLong(GetDlgItem(hwndDlg, IDC_SPLITTER), GWL_WNDPROC, (LONG) OldSplitterProc);
@@ -5540,7 +5547,7 @@ verify:
 
             // remove temporary contacts...
             
-            if (dat->hContact && DBGetContactSettingByte(NULL, SRMSGMOD_T, "deletetemp", 0)) {
+            if (!dat->bWasDeleted && dat->hContact && DBGetContactSettingByte(NULL, SRMSGMOD_T, "deletetemp", 0)) {
                 if (DBGetContactSettingByte(dat->hContact, "CList", "NotOnList", 0)) {
                     CallService(MS_DB_CONTACT_DELETE, (WPARAM)dat->hContact, 0);
                 }
