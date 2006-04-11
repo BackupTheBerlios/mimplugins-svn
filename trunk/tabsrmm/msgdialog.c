@@ -438,7 +438,12 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
 			SendMessage(hwndParent,WM_DROPFILES,(WPARAM)wParam,(LPARAM)lParam);
 			break;
         case WM_CHAR:
-            if (wParam == 0x0d && (GetKeyState(VK_CONTROL) & 0x8000) && myGlobals.m_MathModAvail) {
+        {
+            BOOL isCtrl = GetKeyState(VK_CONTROL) & 0x8000;
+            BOOL isShift = GetKeyState(VK_SHIFT) & 0x8000;
+            BOOL isAlt = GetKeyState(VK_MENU) & 0x8000;
+            
+            if (wParam == 0x0d && isCtrl && myGlobals.m_MathModAvail) {
                 TCHAR toInsert[100];
                 BYTE keyState[256];
                 int i;
@@ -452,7 +457,7 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
                     SendMessage(hwnd, WM_KEYDOWN, mwdat->dwFlags & MWF_LOG_RTL ? VK_RIGHT : VK_LEFT, 0);
                 return 0;
             }
-            if((GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000)) {
+            if(isCtrl && !isAlt) {
                 switch(wParam) {
                     case 0x02:               // bold
                         if(mwdat->SendFormat) {
@@ -479,6 +484,7 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
                 break;
             }
             break;
+        }
         case WM_MOUSEWHEEL:
         {
             RECT rc;
@@ -565,8 +571,13 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
         case WM_KEYUP:
             break;
         case WM_KEYDOWN:
+        {
+            BOOL isCtrl = GetKeyState(VK_CONTROL) & 0x8000;
+            BOOL isShift = GetKeyState(VK_SHIFT) & 0x8000;
+            BOOL isAlt = GetKeyState(VK_MENU) & 0x8000;
+            
             if(wParam == VK_RETURN) {
-                if (GetKeyState(VK_SHIFT) & 0x8000) {
+                if (isShift) {
                     if(myGlobals.m_SendOnShiftEnter) {
                         PostMessage(hwndParent, WM_COMMAND, IDOK, 0);
                         return 0;
@@ -574,12 +585,12 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
                     else
                         break;
                 }
-                if (((GetKeyState(VK_CONTROL) & 0x8000) != 0 && !(GetKeyState(VK_SHIFT) & 0x8000)) ^ (0 != myGlobals.m_SendOnEnter)) {
+                if ((isCtrl && !isShift) ^ (0 != myGlobals.m_SendOnEnter)) {
                     PostMessage(hwndParent, WM_COMMAND, IDOK, 0);
                     return 0;
                 }
                 if(myGlobals.m_SendOnEnter || myGlobals.m_SendOnDblEnter) {
-                    if(GetKeyState(VK_CONTROL) & 0x8000)
+                    if(isCtrl)
                         break;
                     else {
                         if (myGlobals.m_SendOnDblEnter) {
@@ -605,8 +616,8 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
             else
                 SetWindowLong(hwnd, GWL_USERDATA, 0);
             
-            if ((GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000) && !(GetKeyState(VK_SHIFT) & 0x8000)) {
-                if (!(GetKeyState(VK_SHIFT) & 0x8000) && (wParam == VK_UP || wParam == VK_DOWN)) {          // input history scrolling (ctrl-up / down)
+            if (isCtrl && !isAlt && !isShift) {
+                if (!isShift && (wParam == VK_UP || wParam == VK_DOWN)) {          // input history scrolling (ctrl-up / down)
                     SETTEXTEX stx = {ST_DEFAULT,CP_UTF8};
 
                     SetWindowLong(hwnd, GWL_USERDATA, 0);
@@ -656,7 +667,7 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
                     return 0;
                 }
             }
-            if ((GetKeyState(VK_CONTROL) & 0x8000) && (GetKeyState(VK_MENU) & 0x8000) && !(GetKeyState(VK_SHIFT) & 0x8000)) {
+            if(isCtrl && isAlt && !isShift) {
                 switch (wParam) {
                     case VK_UP:
                     case VK_DOWN:
@@ -689,11 +700,15 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
             }
             if (wParam == VK_RETURN)
                 break;
+        }
         case WM_SYSCHAR:
         {
             HWND hwndDlg = hwndParent;
+            BOOL isCtrl = GetKeyState(VK_CONTROL) & 0x8000;
+            BOOL isShift = GetKeyState(VK_SHIFT) & 0x8000;
+            BOOL isAlt = GetKeyState(VK_MENU) & 0x8000;
             
-            if((GetKeyState(VK_MENU) & 0x8000) && !(GetKeyState(VK_SHIFT) & 0x8000) && !(GetKeyState(VK_CONTROL) & 0x8000)) {
+            if(isAlt && !isShift && !isCtrl) {
                 switch (LOBYTE(VkKeyScan((TCHAR)wParam))) {
                     case 'S':
                         if (!(GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_STYLE) & ES_READONLY)) {

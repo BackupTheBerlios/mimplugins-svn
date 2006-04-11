@@ -84,7 +84,7 @@ static void	InitButtons(HWND hwndDlg, SESSION_INFO* si)
 	SendDlgItemMessage(hwndDlg,IDC_CHAT_HISTORY,BM_SETIMAGE,IMAGE_ICON,(LPARAM)myGlobals.g_buttonBarIcons[1]);
 	SendDlgItemMessage(hwndDlg,IDC_CHANMGR,BM_SETIMAGE,IMAGE_ICON,(LPARAM)LoadIconEx(IDI_TOPICBUT, "settings", 0, 0 ));
 	SendDlgItemMessage(hwndDlg,IDC_CHAT_CLOSE,BM_SETIMAGE,IMAGE_ICON,(LPARAM)myGlobals.g_buttonBarIcons[6]);
-	SendDlgItemMessage(hwndDlg,IDC_SHOWNICKLIST,BM_SETIMAGE,IMAGE_ICON,(LPARAM)LoadIconEx(si->bNicklistEnabled ? IDI_SHOWNICKLIST : IDI_HIDENICKLIST, si->bNicklistEnabled ? "shownicklist" : "hidenicklist", 0, 0));
+	SendDlgItemMessage(hwndDlg,IDC_SHOWNICKLIST,BM_SETIMAGE,IMAGE_ICON,(LPARAM)LoadIconEx(si->bNicklistEnabled ? IDI_HIDENICKLIST : IDI_SHOWNICKLIST, si->bNicklistEnabled ? "hidenicklist" : "shownicklist", 0, 0));
 	SendDlgItemMessage(hwndDlg,IDC_FILTER,BM_SETIMAGE,IMAGE_ICON,(LPARAM)LoadIconEx(si->bFilterEnabled?IDI_FILTER:IDI_FILTER2, si->bFilterEnabled?"filter":"filter2", 0, 0 ));
     SendDlgItemMessage(hwndDlg,IDOK,BM_SETIMAGE,IMAGE_ICON,(LPARAM)myGlobals.g_buttonBarIcons[9]);
 
@@ -293,8 +293,22 @@ default_process:
         case WM_SYSCHAR:
         {
             HWND hwndDlg = hwndParent;
+            BOOL isShift = GetKeyState(VK_SHIFT) & 0x8000;
+            BOOL isCtrl = GetKeyState(VK_CONTROL) & 0x8000;
+            BOOL isMenu = GetKeyState(VK_MENU) & 0x8000;
 
-            if((GetKeyState(VK_MENU) & 0x8000) && !(GetKeyState(VK_SHIFT) & 0x8000) && !(GetKeyState(VK_CONTROL) & 0x8000)) {
+            if((wParam >= '0' && wParam <= '9') && isMenu) {       // ALT-1 -> ALT-0 direct tab selection
+                BYTE bChar = (BYTE)wParam;
+                int iIndex;
+
+                if(bChar == '0')
+                    iIndex = 10;
+                else
+                    iIndex = bChar - (BYTE)'0';
+                SendMessage(mwdat->pContainer->hwnd, DM_SELECTTAB, DM_SELECT_BY_INDEX, (LPARAM)iIndex);
+                return 0;
+            }
+            if(isMenu && !isShift && !isCtrl) {
                 switch (LOBYTE(VkKeyScan((TCHAR)wParam))) {
                     case 'S':
                         if (!(GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_STYLE) & ES_READONLY)) {
@@ -316,21 +330,26 @@ default_process:
             }
             break;
         }
- 		case WM_CHAR:
-			if (GetWindowLong(hwnd, GWL_STYLE) & ES_READONLY)
+        case WM_CHAR:
+        {
+            BOOL isShift = GetKeyState(VK_SHIFT) & 0x8000;
+            BOOL isCtrl = GetKeyState(VK_CONTROL) & 0x8000;
+            BOOL isMenu = GetKeyState(VK_MENU) & 0x8000;
+
+            if (GetWindowLong(hwnd, GWL_STYLE) & ES_READONLY)
 				break;
 
-			if (wParam == 9 && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-i (italics)
+			if (wParam == 9 && isCtrl && !isMenu) // ctrl-i (italics)
 			{
 				return TRUE;
 			}
-			if (wParam == VK_SPACE && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-space (paste clean text)
+			if (wParam == VK_SPACE && isCtrl && !isMenu) // ctrl-space (paste clean text)
 			{
 				return TRUE;
 			}
 
 			if (wParam == '\n' || wParam == '\r') {
-                if (GetKeyState(VK_SHIFT) & 0x8000) {
+                if (isShift) {
                     if(myGlobals.m_SendOnShiftEnter) {
                         PostMessage(hwndParent, WM_COMMAND, IDOK, 0);
                         return 0;
@@ -338,12 +357,12 @@ default_process:
                     else
                         break;
                 }
-                if (((GetKeyState(VK_CONTROL) & 0x8000) != 0 && !(GetKeyState(VK_SHIFT) & 0x8000)) ^ (0 != myGlobals.m_SendOnEnter)) {
+                if ((isCtrl && !isShift) ^ (0 != myGlobals.m_SendOnEnter)) {
                     PostMessage(hwndParent, WM_COMMAND, IDOK, 0);
                     return 0;
                 }
                 if(myGlobals.m_SendOnEnter || myGlobals.m_SendOnDblEnter) {
-                    if(GetKeyState(VK_CONTROL) & 0x8000)
+                    if(isCtrl)
                         break;
                     else {
                         if (myGlobals.m_SendOnDblEnter) {
@@ -368,18 +387,23 @@ default_process:
 			else
 				dat->lastEnterTime = 0;
 
-			if (wParam == 1 && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) {      //ctrl-a
+			if (wParam == 1 && isCtrl && !isMenu) {      //ctrl-a
 				SendMessage(hwnd, EM_SETSEL, 0, -1);
 				return 0;
 			}
-		break;
+            break;
+        }
 		case WM_KEYDOWN:
 			{
 			static int start, end;
+            BOOL isShift = GetKeyState(VK_SHIFT) & 0x8000;
+            BOOL isCtrl = GetKeyState(VK_CONTROL) & 0x8000;
+            BOOL isAlt = GetKeyState(VK_MENU) & 0x8000;
+            
  			if (wParam == VK_RETURN) 
 			{
 				dat->szTabSave[0] = '\0';
-				if (((GetKeyState(VK_CONTROL) & 0x8000) != 0) ^ (0 != myGlobals.m_SendOnEnter)) 
+				if (((isCtrl) != 0) ^ (0 != myGlobals.m_SendOnEnter)) 
 				{
 					return 0;
 				}
@@ -393,25 +417,25 @@ default_process:
 				}
 				break;
 			}
- 			if (wParam == VK_TAB && GetKeyState(VK_SHIFT) & 0x8000 && !(GetKeyState(VK_CONTROL) & 0x8000)) // SHIFT-TAB (go to nick list)
+ 			if (wParam == VK_TAB && isShift && !isCtrl) // SHIFT-TAB (go to nick list)
 			{
 				SetFocus(GetDlgItem(hwndParent, IDC_LIST));
 				return TRUE;
 		
 			}
- 			if (wParam == VK_TAB && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_SHIFT) & 0x8000)) // CTRL-TAB (switch tab/window)
+ 			if ((wParam == VK_NEXT && isCtrl && !isShift) || (wParam == VK_TAB && isCtrl && !isShift)) // CTRL-TAB (switch tab/window)
 			{
-				ShowRoom(SM_GetNextWindow(Parentsi), WINDOW_VISIBLE, TRUE);
+                SendMessage(mwdat->pContainer->hwnd, DM_SELECTTAB, DM_SELECT_NEXT, 0);
 				return TRUE;
 	
 			}
- 			if (wParam == VK_TAB && GetKeyState(VK_CONTROL) & 0x8000 && GetKeyState(VK_SHIFT) & 0x8000) // CTRL_SHIFT-TAB (switch tab/window)
+ 			if ((wParam == VK_PRIOR && isCtrl && !isShift) || (wParam == VK_TAB && isCtrl && isShift)) // CTRL_SHIFT-TAB (switch tab/window)
 			{
-				ShowRoom(SM_GetPrevWindow(Parentsi), WINDOW_VISIBLE, TRUE);
+                SendMessage(mwdat->pContainer->hwnd, DM_SELECTTAB, DM_SELECT_PREV, 0);
 				return TRUE;
 		
 			}
-			if (wParam == VK_TAB && !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_SHIFT) & 0x8000)) {    //tab-autocomplete
+			if (wParam == VK_TAB && !isCtrl && !isShift) {    //tab-autocomplete
                 char *pszText = NULL;
                 int iLen;
 				GETTEXTLENGTHEX gtl = {0};
@@ -485,40 +509,39 @@ default_process:
 				}
 				dat->szTabSave[0] = '\0';
 			}
-			}
-			if (wParam == VK_F4 && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-F4 (close tab)
+			if (wParam == VK_F4 && isCtrl && !isAlt) // ctrl-F4 (close tab)
 			{
 				SendMessage(hwndParent, WM_COMMAND, MAKEWPARAM(IDC_CHAT_CLOSE, BN_CLICKED), 0);
 				return TRUE;		
 			}			
-			if (wParam == 0x49 && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-i (italics)
+			if (wParam == 0x49 && isCtrl && !isAlt) // ctrl-i (italics)
 			{
 				CheckDlgButton(hwndParent, IDC_ITALICS, IsDlgButtonChecked(hwndParent, IDC_ITALICS) == BST_UNCHECKED?BST_CHECKED:BST_UNCHECKED);
 				SendMessage(hwndParent, WM_COMMAND, MAKEWPARAM(IDC_ITALICS, 0), 0);
 				return TRUE;		
 			}			
-			if (wParam == 0x42 && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000) ) // ctrl-b (bold)
+			if (wParam == 0x42 && isCtrl && !isAlt) // ctrl-b (bold)
 			{
 				CheckDlgButton(hwndParent, IDC_CHAT_BOLD, IsDlgButtonChecked(hwndParent, IDC_CHAT_BOLD) == BST_UNCHECKED?BST_CHECKED:BST_UNCHECKED);
 				SendMessage(hwndParent, WM_COMMAND, MAKEWPARAM(IDC_CHAT_BOLD, 0), 0);
 				return TRUE;
 		
 			}			
-			if (wParam == 0x55 && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-u (paste clean text)
+			if (wParam == 0x55 && isCtrl && !isAlt) // ctrl-u (paste clean text)
 			{
 				CheckDlgButton(hwndParent, IDC_CHAT_UNDERLINE, IsDlgButtonChecked(hwndParent, IDC_CHAT_UNDERLINE) == BST_UNCHECKED?BST_CHECKED:BST_UNCHECKED);
 				SendMessage(hwndParent, WM_COMMAND, MAKEWPARAM(IDC_CHAT_UNDERLINE, 0), 0);
 				return TRUE;
 		
 			}			
-			if (wParam == 0x4b && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-k (paste clean text)
+			if (wParam == 0x4b && isCtrl && !isAlt) // ctrl-k (paste clean text)
 			{
 				CheckDlgButton(hwndParent, IDC_COLOR, IsDlgButtonChecked(hwndParent, IDC_COLOR) == BST_UNCHECKED?BST_CHECKED:BST_UNCHECKED);
 				SendMessage(hwndParent, WM_COMMAND, MAKEWPARAM(IDC_COLOR, 0), 0);
 				return TRUE;
 		
 			}			
-			if (wParam == VK_SPACE && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-space (paste clean text)
+			if (wParam == VK_SPACE && isCtrl && !isAlt) // ctrl-space (paste clean text)
 			{
 				CheckDlgButton(hwndParent, IDC_BKGCOLOR, BST_UNCHECKED);
 				CheckDlgButton(hwndParent, IDC_COLOR, BST_UNCHECKED);
@@ -533,47 +556,47 @@ default_process:
 				return TRUE;
 		
 			}			
-			if (wParam == 0x4c && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-l (paste clean text)
+			if (wParam == 0x4c && isCtrl && !isAlt) // ctrl-l (paste clean text)
 			{
 				CheckDlgButton(hwndParent, IDC_BKGCOLOR, IsDlgButtonChecked(hwndParent, IDC_BKGCOLOR) == BST_UNCHECKED?BST_CHECKED:BST_UNCHECKED);
 				SendMessage(hwndParent, WM_COMMAND, MAKEWPARAM(IDC_BKGCOLOR, 0), 0);
 				return TRUE;
 		
 			}			
-			if (wParam == 0x46 && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-f (paste clean text)
+			if (wParam == 0x46 && isCtrl && !isAlt) // ctrl-f (paste clean text)
 			{
 				if(IsWindowEnabled(GetDlgItem(hwndParent, IDC_FILTER)))
 				SendMessage(hwndParent, WM_COMMAND, MAKEWPARAM(IDC_FILTER, 0), 0);
 				return TRUE;
 		
 			}			
-			if (wParam == 0x4e && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-n (nicklist)
+			if (wParam == 0x4e && isCtrl && !isAlt) // ctrl-n (nicklist)
 			{
 				if(IsWindowEnabled(GetDlgItem(hwndParent, IDC_SHOWNICKLIST)))
 				SendMessage(hwndParent, WM_COMMAND, MAKEWPARAM(IDC_SHOWNICKLIST, 0), 0);
 				return TRUE;
 		
 			}			
-			if (wParam == 0x48 && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-h (history)
+			if (wParam == 0x48 && isCtrl && !isAlt) // ctrl-h (history)
 			{
 				SendMessage(hwndParent, WM_COMMAND, MAKEWPARAM(IDC_CHAT_HISTORY, 0), 0);
 				return TRUE;
 		
 			}			
-			if (wParam == 0x4f && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-o (options)
+			if (wParam == 0x4f && isCtrl && !isAlt) // ctrl-o (options)
 			{
 				if(IsWindowEnabled(GetDlgItem(hwndParent, IDC_CHANMGR)))
 					SendMessage(hwndParent, WM_COMMAND, MAKEWPARAM(IDC_CHANMGR, 0), 0);
 				return TRUE;
 		
 			}			
-			if ((wParam == 45 && GetKeyState(VK_SHIFT) & 0x8000 || wParam == 0x56 && GetKeyState(VK_CONTROL) & 0x8000 )&& !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-v (paste clean text)
+			if ((wParam == 45 && isShift || wParam == 0x56 && isCtrl) && !isAlt) // ctrl-v (paste clean text)
 			{
 				SendMessage(hwnd, EM_PASTESPECIAL, CF_TEXT, 0);
 				return TRUE;
 		
 			}			
-			if (wParam == 0x57 && GetKeyState(VK_CONTROL) & 0x8000 && !(GetKeyState(VK_MENU) & 0x8000)) // ctrl-w (close window)
+			if (wParam == 0x57 && isCtrl && !isAlt) // ctrl-w (close window)
 			{
 				PostMessage(hwndParent, WM_CLOSE, 0, 0);
 				return TRUE;
@@ -586,7 +609,7 @@ default_process:
 		        dat->lastEnterTime = 0;
 				return TRUE;
 			}
-			if (wParam == VK_UP && (GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000))
+			if (wParam == VK_UP && isCtrl && !isAlt)
 			{
 			    int iLen;
 				GETTEXTLENGTHEX gtl = {0};
@@ -614,7 +637,7 @@ default_process:
 		        dat->lastEnterTime = 0;
 				return TRUE;
 			}
-			if (wParam == VK_DOWN && (GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000))
+			if (wParam == VK_DOWN && isCtrl && !isAlt)
 			{
 
 				int iLen;
@@ -644,6 +667,7 @@ default_process:
 			}
 			if (wParam == VK_RETURN)
                 break;
+            }
             //fall through
         case WM_LBUTTONDOWN:
         case WM_MBUTTONDOWN:
@@ -2287,7 +2311,7 @@ LABEL_SHOWWINDOW:
 
 					si->bNicklistEnabled = !si->bNicklistEnabled;
 	
-					SendDlgItemMessage(hwndDlg,IDC_SHOWNICKLIST,BM_SETIMAGE,IMAGE_ICON,(LPARAM)LoadIconEx(si->bNicklistEnabled ? IDI_SHOWNICKLIST : IDI_HIDENICKLIST, si->bNicklistEnabled ? "shownicklist" : "hidenicklist", 0, 0));
+					SendDlgItemMessage(hwndDlg,IDC_SHOWNICKLIST,BM_SETIMAGE,IMAGE_ICON,(LPARAM)LoadIconEx(si->bNicklistEnabled ? IDI_HIDENICKLIST : IDI_SHOWNICKLIST, si->bNicklistEnabled ? "hidenicklist" : "shownicklist", 0, 0));
 					SendMessage(hwndDlg, WM_SIZE, 0, 0);
                     PostMessage(hwndDlg, DM_SCROLLLOGTOBOTTOM, 0, 0);
 				}break;
