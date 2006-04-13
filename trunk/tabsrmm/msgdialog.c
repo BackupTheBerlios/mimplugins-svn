@@ -5286,6 +5286,15 @@ verify:
             SetWindowLong(hwndDlg, DWL_MSGRESULT, state);
             return TRUE;
         }
+        case DM_CLIENTCHANGED:
+        {
+            GetClientIcon(dat, hwndDlg);
+            if(dat->hClientIcon) {
+                SendMessage(hwndDlg, WM_SIZE, 0, 0);
+                InvalidateRect(GetDlgItem(hwndDlg, IDC_PANELSTATUS), NULL, TRUE);
+            }
+            return 0;
+        }
         case DM_SPLITTEREMERGENCY:
             dat->splitterY = 150;
             SendMessage(hwndDlg, WM_SIZE, 0, 0);
