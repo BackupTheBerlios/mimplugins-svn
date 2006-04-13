@@ -1390,6 +1390,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     dat->wStatus = ID_STATUS_OFFLINE;
                 
 				GetContactUIN(hwndDlg, dat);
+                GetClientIcon(dat, hwndDlg);
+                
                 dat->showUIElements = dat->pContainer->dwFlags & CNT_HIDETOOLBAR ? 0 : 1;
                 dat->sendMode |= DBGetContactSettingByte(dat->hContact, SRMSGMOD_T, "forceansi", 0) ? SMODE_FORCEANSI : 0;
                 dat->sendMode |= dat->hContact == 0 ? SMODE_MULTIPLE : 0;

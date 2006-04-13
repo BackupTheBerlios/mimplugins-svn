@@ -1493,7 +1493,7 @@ void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG startAt, int
      * do smiley replacing, using the service
      */
 
-    if(myGlobals.g_SmileyAddAvail && myGlobals.m_SmileyPluginEnabled) {
+    if(myGlobals.g_SmileyAddAvail) {
         CHARRANGE sel;
         SMADD_RICHEDIT3 smadd;
 
@@ -1512,7 +1512,7 @@ void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG startAt, int
         else
             smadd.rangeToReplace = NULL;
         smadd.disableRedraw = TRUE;
-        smadd.flags = SAFLRE_INSERTEMF;
+        //smadd.flags = SAFLRE_INSERTEMF;
         if(dat->doSmileys)
             CallService(MS_SMILEYADD_REPLACESMILEYS, TABSRMM_SMILEYADD_BKGCOLORMODE, (LPARAM)&smadd);
     }

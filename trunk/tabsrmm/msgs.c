@@ -710,6 +710,8 @@ static int MessageSettingChanged(WPARAM wParam, LPARAM lParam)
     if(hwnd) {
         if(strstr("MyHandle,Status,Nick,ApparentMode,Default,ForceSend,IdleTS,XStatusId", cws->szSetting))
             SendMessage(hwnd, DM_UPDATETITLE, 0, 0);
+        else if(!strcmp(cws->szSetting, "MirVer"))
+            SendMessage(hwnd, DM_CLIENTCHANGED, 0, 0);
     }
     
     return 0;

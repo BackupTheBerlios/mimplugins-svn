@@ -2109,7 +2109,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
             GetTextExtentPoint32A(dis->hDC, szProto, lstrlenA(szProto), &sProto);
         }
     
-        dat->panelStatusCX = sStatus.cx + sProto.cx + 14;
+        dat->panelStatusCX = sStatus.cx + sProto.cx + 14 + (dat->hClientIcon ? 20 : 0);
         
         if(dat->panelStatusCX != oldPanelStatusCX)
             SendMessage(hwndDlg, WM_SIZE, 0, 0);
@@ -2138,7 +2138,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
             DrawTextA(dis->hDC, dat->szStatus, lstrlenA(dat->szStatus), &rc, DT_SINGLELINE | DT_VCENTER);
         }
         if(szProto) {
-            rc.left = rc.right - sProto.cx - 3;
+            rc.left = rc.right - sProto.cx - 3 - (dat->hClientIcon ? 20 : 0);
             if(config) {
                 SelectObject(dis->hDC, myGlobals.ipConfig.hFonts[IPFONTID_PROTO]);
                 SetTextColor(dis->hDC, myGlobals.ipConfig.clrs[IPFONTID_PROTO]);
@@ -2147,6 +2147,10 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
                 SetTextColor(dis->hDC, GetSysColor(COLOR_HOTLIGHT));
             DrawTextA(dis->hDC, szProto, lstrlenA(szProto), &rc, DT_SINGLELINE | DT_VCENTER);
         }
+
+        if(dat->hClientIcon)
+            DrawIconEx(dis->hDC, rc.right - 19, (rc.bottom + rc.top - 16) / 2, dat->hClientIcon, 16, 16, 0, 0, DI_NORMAL);
+        
         if(config && hOldFont)
             SelectObject(dis->hDC, hOldFont);
         return TRUE;
@@ -2444,7 +2448,7 @@ void ConfigureSmileyButton(HWND hwndDlg, struct MessageWindowData *dat)
     int nrSmileys = 0;
     int showToolbar = dat->pContainer->dwFlags & CNT_HIDETOOLBAR ? 0 : 1;
 
-    if(myGlobals.g_SmileyAddAvail && myGlobals.m_SmileyPluginEnabled) {
+    if(myGlobals.g_SmileyAddAvail) {
         nrSmileys = CheckValidSmileyPack(dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->bIsMeta ? dat->hSubContact : dat->hContact, &hButtonIcon);
 
         dat->doSmileys = 1;
@@ -2499,6 +2503,19 @@ void SendNudge(struct MessageWindowData *dat, HWND hwndDlg)
 		CallProtoService(szProto, "/SendNudge", (WPARAM)hContact, 0);
 }
 
+void GetClientIcon(struct MessageWindowData *dat, HWND hwndDlg)
+{
+    DBVARIANT dbv = {0};
+
+    dat->hClientIcon = 0;
+    
+    if(ServiceExists(MS_FP_GETCLIENTICON)) {
+        if(!DBGetContactSetting(dat->hContact, dat->szProto, "MirVer", &dbv)) {
+            dat->hClientIcon = (HICON)CallService(MS_FP_GETCLIENTICON, (WPARAM)dbv.pszVal, 1);
+            DBFreeVariant(&dbv);
+        }
+    }
+}
 // size in TCHARs
 // szwBuf must be large enough to hold at least size wchar_t's
 // proto may be NULL
