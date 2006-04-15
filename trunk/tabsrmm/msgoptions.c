@@ -925,6 +925,7 @@ static struct LISTOPTIONSGROUP tabGroups[] = {
 
 static struct LISTOPTIONSITEM tabItems[] = {
     0, _T("Show status text on tabs"), 0, LOI_TYPE_SETTING, (UINT_PTR)"tabstatus", 0,
+    0, _T("Show xStatus icons when available (ICQJ only)"), 0, LOI_TYPE_SETTING, (UINT_PTR)"use_xicons", 0,
     0, _T("Warn on close message tab"), 0, LOI_TYPE_SETTING, (UINT_PTR)"warnonexit", 0,
     0, _T("Automatically pop up the window/tab when a message is received (has PRIORITY!)"), SRMSGDEFSET_AUTOPOPUP, LOI_TYPE_SETTING, (UINT_PTR)SRMSGSET_AUTOPOPUP, 1,
     0, _T("Create tabs in the background"), 0, LOI_TYPE_SETTING, (UINT_PTR)"autotabs", 1,

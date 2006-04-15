@@ -1260,7 +1260,7 @@ int Chat_OptionsInitialize(WPARAM wParam, LPARAM lParam)
     odp.hInstance = g_hInst;
     odp.pszTemplate = MAKEINTRESOURCEA(IDD_OPTIONS2);
     odp.pszTitle = "Fonts and colors";
-    odp.pszGroup = "Message sessions";
+    odp.pszGroup = "Message Sessions";
     odp.pfnDlgProc = DlgProcOptions2;
     odp.flags = ODPF_BOLDGROUPS;
     CallService(MS_OPT_ADDPAGE, wParam, (LPARAM)&odp);

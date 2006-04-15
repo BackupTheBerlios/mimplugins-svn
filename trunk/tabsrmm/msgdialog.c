@@ -2887,7 +2887,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
              * of SENDJOBS_MAX_SENDS)
              */
            
-            if (wParam == TIMERID_AWAYMSG || wParam == TIMERID_AWAYMSG + 1) {
+            if (wParam >= TIMERID_AWAYMSG && wParam <= TIMERID_AWAYMSG + 2) {
                 POINT pt;
                 RECT rc, rcNick;
                 
@@ -2896,7 +2896,18 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 GetCursorPos(&pt);
                 GetWindowRect(GetDlgItem(hwndDlg, IDC_PANELSTATUS), &rc);
                 GetWindowRect(GetDlgItem(hwndDlg, IDC_PANELNICK), &rcNick);
-                if(wParam == TIMERID_AWAYMSG && PtInRect(&rc, pt)) {
+                if(wParam == TIMERID_AWAYMSG + 2 && PtInRect(&rc, pt) && pt.x >= rc.right - 20) {
+                    TCHAR szBuffer[256];
+                    DBVARIANT dbv = {0};
+                    
+                    if(!DBGetContactSettingTString(dat->hContact, dat->szProto, "MirVer", &dbv)) {
+                        SendMessage(hwndDlg, DM_ACTIVATETOOLTIP, IDC_PANELSTATUS + 1, (LPARAM)dbv.ptszVal);
+                        DBFreeVariant(&dbv);
+                    }
+                    else
+                        SendMessage(hwndDlg, DM_ACTIVATETOOLTIP, IDC_PANELSTATUS + 1, (LPARAM)TranslateT("Unknown client"));
+                }
+                else if(wParam == TIMERID_AWAYMSG && PtInRect(&rc, pt)) {
                     if(GetTickCount() - dat->lastRetrievedStatusMsg > 60000) {
                         SendMessage(hwndDlg, DM_ACTIVATETOOLTIP, 0, (LPARAM)TranslateT("Retrieving..."));
                         if(!(dat->hProcessAwayMsg = (HANDLE)CallContactService(dat->bIsMeta ? dat->hSubContact : dat->hContact, PSS_GETAWAYMSG, 0, 0)))
@@ -3393,9 +3404,12 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 else if(dat->dwEventIsShown & MWF_SHOW_INFOPANEL && !(dat->dwEventIsShown & MWF_SHOW_INFONOTES)) {
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_PANELSTATUS), &rc);
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_PANELNICK), &rcNick);
-                    if(PtInRect(&rc, pt) && myGlobals.m_DoStatusMsg) { 
+                    if(PtInRect(&rc, pt) && (myGlobals.m_DoStatusMsg || dat->hClientIcon)) { 
                         if(!(dat->dwEventIsShown & MWF_SHOW_AWAYMSGTIMER)) {
-                            SetTimer(hwndDlg, TIMERID_AWAYMSG, 500, 0);
+                            if(dat->hClientIcon && pt.x >= rc.right - 20)
+                                SetTimer(hwndDlg, TIMERID_AWAYMSG + 2, 500, 0);
+                            else
+                                SetTimer(hwndDlg, TIMERID_AWAYMSG, 500, 0);
                             dat->dwEventIsShown |= MWF_SHOW_AWAYMSGTIMER;
                         }
                         break;
@@ -3449,6 +3463,10 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             PostMessage(dat->pContainer->hwnd, WM_COMMAND, ID_HELP_MESSAGEWINDOWHELP, 0);
             break;
         case WM_COMMAND:
+
+            if(!dat)
+                break;
+            
             if (CallService(MS_CLIST_MENUPROCESSCOMMAND, MAKEWPARAM(LOWORD(wParam), MPCF_CONTACTMENU), (LPARAM) dat->hContact))
                 break;
             switch (LOWORD(wParam)) {
@@ -5048,7 +5066,11 @@ verify:
 
                 if(id == 0)
                     id = IDC_PANELSTATUS;
-                GetWindowRect(GetDlgItem(hwndDlg, id), &rc);
+                
+                if(id == IDC_PANELSTATUS + 1)
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_PANELSTATUS), &rc);
+                else
+                    GetWindowRect(GetDlgItem(hwndDlg, id), &rc);
                 SendMessage(dat->hwndTip, TTM_TRACKPOSITION, 0, (LPARAM)MAKELONG(rc.left, rc.bottom));
                 if(lParam)
                     dat->ti.lpszText = (TCHAR *)lParam;
@@ -5084,6 +5106,12 @@ verify:
                             return 0;
                         break;
                     }
+                    case IDC_PANELSTATUS + 1:
+                    {
+                        _sntprintf(szTitle, safe_sizeof(szTitle), _T("%s is using"), dat->szNickname);
+                        szTitle[safe_sizeof(szTitle) - 1] = 0;
+                        break;
+                    }
                     case IDC_PANELSTATUS: 
                     {
                         WCHAR szwStatus[100];
@@ -5111,6 +5139,11 @@ verify:
                             mir_snprintf(szTitle, sizeof(szTitle), Translate("Extended status for %s: %s"), dat->szNickname, xStatusDescr[dat->xStatus - 1]);
                         else
                             return 0;
+                        break;
+                    }
+                    case IDC_PANELSTATUS + 1:
+                    {
+                        mir_snprintf(szTitle, sizeof(szTitle), _T("%s is using"), dat->szNickname);
                         break;
                     }
                     case IDC_PANELSTATUS:
