@@ -1864,7 +1864,6 @@ panel_found:
                 if ((iItem = GetTabItemFromMouse(hwndTab, pt)) == -1)
                     break;
                 ZeroMemory((void *)&item, sizeof(item));
-                _DebugTraceA("close tab...");
                 item.mask = TCIF_PARAM;
                 TabCtrl_GetItem(hwndTab, iItem, &item);
                 if (item.lParam) {

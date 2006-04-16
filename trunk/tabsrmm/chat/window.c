@@ -2770,6 +2770,21 @@ LABEL_SHOWWINDOW:
                 return 0;
             }
 
+        case DM_GETWINDOWSTATE:
+        {
+            UINT state = 0;
+
+            state |= MSG_WINDOW_STATE_EXISTS;
+            if (IsWindowVisible(hwndDlg)) 
+               state |= MSG_WINDOW_STATE_VISIBLE;
+            if (GetForegroundWindow() == dat->pContainer->hwnd) 
+               state |= MSG_WINDOW_STATE_FOCUS;
+            if (IsIconic(dat->pContainer->hwnd))
+               state |= MSG_WINDOW_STATE_ICONIC;
+            SetWindowLong(hwndDlg, DWL_MSGRESULT, state);
+            return TRUE;
+        }
+        
         case DM_CHECKSIZE:
             dat->dwFlags |= MWF_NEEDCHECKSIZE;
             return 0;

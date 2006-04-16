@@ -2158,7 +2158,12 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
     else if(dis->hwndItem == GetDlgItem(hwndDlg, IDC_PANELNICK) && dat->dwEventIsShown & MWF_SHOW_INFOPANEL) {
         RECT rc = dis->rcItem;
 		TCHAR *szStatusMsg = NULL;
-
+        TCHAR *szLabel = TranslateT("Name:");
+        int   iNameLen = lstrlen(szLabel);
+        TCHAR *szLabelUIN = TranslateT("User Id:");
+        int   iNameLenUIN = lstrlen(szLabelUIN);
+        SIZE  szUIN;
+        
 		if(ServiceExists("CList/GetContactStatusMsg")) {
 			szStatusMsg = (TCHAR *)CallService("CList/GetContactStatusMsg", (WPARAM)dat->hContact, 0);
 			if(szStatusMsg == NULL)
@@ -2167,7 +2172,12 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 		else
 			szStatusMsg = dat->statusMsg;
 
-		GetTextExtentPoint32A(dis->hDC, "Name:", 5, &dat->szLabel);
+		GetTextExtentPoint32(dis->hDC, szLabel, iNameLen, &dat->szLabel);
+        GetTextExtentPoint32(dis->hDC, szLabelUIN, iNameLenUIN, &szUIN);
+
+        if(szUIN.cx > dat->szLabel.cx)
+            dat->szLabel = szUIN;
+        
         rc.right = rc.left + dat->szLabel.cx + 3;
         SetBkMode(dis->hDC, TRANSPARENT);
 		if(dat->pContainer->bSkinned) {
@@ -2178,7 +2188,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 			FillRect(dis->hDC, &rc, GetSysColorBrush(COLOR_3DFACE));
 			SetTextColor(dis->hDC, GetSysColor(COLOR_BTNTEXT));
 		}
-        DrawTextA(dis->hDC, "Name:", 5, &dis->rcItem, DT_SINGLELINE | DT_VCENTER);
+        DrawText(dis->hDC, szLabel, iNameLen, &dis->rcItem, DT_SINGLELINE | DT_VCENTER);
         dis->rcItem.left += (dat->szLabel.cx + 3);
 		if(dat->pContainer->bSkinned) {
 			StatusItems_t *item = &StatusItems[ID_EXTBKINFOPANEL];
@@ -2197,8 +2207,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
             HFONT hOldFont = 0;
 			HICON xIcon = 0;
 			
-			if(DBGetContactSettingByte(NULL, SRMSGMOD_T, "use_xicons", 0))
-				xIcon = GetXStatusIcon(dat);
+			xIcon = GetXStatusIcon(dat);
 			
 			if(xIcon) {
 				DrawIconEx(dis->hDC, dis->rcItem.left, (dis->rcItem.bottom + dis->rcItem.top - myGlobals.m_smcyicon) / 2, xIcon, myGlobals.m_smcxicon, myGlobals.m_smcyicon, 0, 0, DI_NORMAL | DI_COMPAT);
@@ -2237,6 +2246,8 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         BOOL config = myGlobals.ipConfig.isValid;
         HFONT hOldFont = 0;
         RECT rc = dis->rcItem;
+        TCHAR *szLabel = TranslateT("User Id:");
+        int   iNameLen = lstrlen(szLabel);
 
 		if(dat->pContainer->bSkinned) {
 			SkinDrawBG(dis->hwndItem, dat->pContainer->hwnd, dat->pContainer, &dis->rcItem, dis->hDC);
@@ -2248,7 +2259,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 		}
 
 		SetBkMode(dis->hDC, TRANSPARENT);
-        DrawTextA(dis->hDC, "UIN:", 4, &dis->rcItem, DT_SINGLELINE | DT_VCENTER);
+        DrawText(dis->hDC, szLabel, iNameLen, &dis->rcItem, DT_SINGLELINE | DT_VCENTER);
 
 		rc.right = rc.left + dat->szLabel.cx + 3;
         dis->rcItem.left += (dat->szLabel.cx + 3);
