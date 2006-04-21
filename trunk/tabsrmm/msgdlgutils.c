@@ -597,7 +597,9 @@ void UpdateStatusBar(HWND hwndDlg, struct MessageWindowData *dat)
         else {
             if(myGlobals.g_SecureIMAvail)
                 SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 2, (LPARAM)myGlobals.g_buttonBarIcons[14]);
-            SetSelftypingIcon(hwndDlg, dat, 0);
+            SetSelftypingIcon(hwndDlg, dat, -1);
+            if(myGlobals.g_SecureIMAvail)
+                SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 2, 0);
         }
         
 		SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, (myGlobals.g_SecureIMAvail ? 3 : 2) | SBT_NOBORDERS, (LPARAM)"");
@@ -715,11 +717,13 @@ void SetSelftypingIcon(HWND dlg, struct MessageWindowData *dat, int iMode)
         int nParts = SendMessage(dat->pContainer->hwndStatus, SB_GETPARTS, 0, 0);
 
         SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, (nParts - 1) | SBT_NOBORDERS, (LPARAM)"");
-		if(iMode)
+		if(iMode >= 0)
             SendMessage(dat->pContainer->hwndStatus, SB_SETICON, (nParts - 1), (LPARAM)myGlobals.g_buttonBarIcons[12]);
-        else
+        else if(iMode == 0)
             SendMessage(dat->pContainer->hwndStatus, SB_SETICON, (nParts - 1), (LPARAM)myGlobals.g_buttonBarIcons[13]);
-
+        else
+            SendMessage(dat->pContainer->hwndStatus, SB_SETICON, (nParts - 1), 0);
+        
         mir_snprintf(szTipText, sizeof(szTipText), Translate("Sending typing notifications is: %s"), iMode ? "Enabled" : "Disabled");
         SendMessage(dat->pContainer->hwndStatus, SB_SETTIPTEXTA, myGlobals.g_SecureIMAvail ? 4 : 3, (LPARAM)szTipText);
         InvalidateRect(dat->pContainer->hwndStatus, NULL, TRUE);

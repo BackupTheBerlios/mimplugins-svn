@@ -472,8 +472,10 @@ flash_and_switch:
 
             if(IsIconic(dat->pContainer->hwnd) || dat->pContainer->hwndActive != si->hWnd) {
                 dat->iFlashIcon = hNotifyIcon;
-                SetTimer(si->hWnd, TIMERID_FLASHWND, TIMEOUT_FLASHWND, NULL);
-                dat->mayFlashTab = TRUE;
+                if(bMustFlash) {
+                    SetTimer(si->hWnd, TIMERID_FLASHWND, TIMEOUT_FLASHWND, NULL);
+                    dat->mayFlashTab = TRUE;
+                }
             }
 
             // autoswitch tab..
@@ -497,8 +499,15 @@ flash_and_switch:
                     FlashContainer(dat->pContainer, 1, 0);
             }
             if(hNotifyIcon && bInactive) {
-                if(!bActiveTab)
+                if(!bActiveTab && bMustFlash)
                     dat->hTabIcon = hNotifyIcon;
+                else if(!bActiveTab) {
+                    TCITEM item = {0};
+
+                    item.mask = TCIF_IMAGE;
+                    item.iImage = 0;
+                    TabCtrl_SetItem(GetParent(si->hWnd), dat->iTabID, &item);
+                }
                 SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)hNotifyIcon);
                 dat->pContainer->dwFlags |= CNT_NEED_UPDATETITLE;
             }

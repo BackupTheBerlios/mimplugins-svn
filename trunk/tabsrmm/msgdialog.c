@@ -2890,7 +2890,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             if (wParam >= TIMERID_AWAYMSG && wParam <= TIMERID_AWAYMSG + 2) {
                 POINT pt;
                 RECT rc, rcNick;
-                
+
                 KillTimer(hwndDlg, wParam);
                 dat->dwEventIsShown &= ~MWF_SHOW_AWAYMSGTIMER;
                 GetCursorPos(&pt);
@@ -5646,8 +5646,8 @@ static DWORD CALLBACK StreamOut(DWORD_PTR dwCookie, LPBYTE pbBuff, LONG cb, LONG
 {                                                                                                        
     HANDLE hFile;
 
-    char *szFilename = (char *)dwCookie;
-    if(( hFile = CreateFileA(szFilename, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE )      
+    TCHAR *szFilename = (TCHAR *)dwCookie;
+    if(( hFile = CreateFile(szFilename, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE )      
     {                                                                                                    
         SetFilePointer(hFile, 0, NULL, FILE_END);                                                        
         WriteFile(hFile, pbBuff, cb, (DWORD *)pcb, NULL);                                                         

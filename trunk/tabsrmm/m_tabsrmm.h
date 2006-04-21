@@ -227,6 +227,7 @@ struct ContainerWindowData {
 	struct TitleBtn buttons[3];
 	struct TitleBtn oldbuttons[3];
 	int ncActive;
+    HICON hTitleIcon;
 };
 
 #define STICK_ICON_MSG 10

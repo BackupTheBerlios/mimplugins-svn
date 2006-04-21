@@ -1391,9 +1391,10 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
                 SendMessage(hwndDlg, GC_UPDATETITLE, 0, 1);
                 dat->dwTickLastEvent = 0;
                 dat->dwFlags &= ~MWF_DIVIDERSET;
-                if (KillTimer(hwndDlg, TIMERID_FLASHWND)) {
+                if(KillTimer(hwndDlg, TIMERID_FLASHWND) || dat->iFlashIcon) {
                     FlashTab(dat, hwndTab, dat->iTabID, &dat->bTabFlash, FALSE, dat->hTabIcon);
                     dat->mayFlashTab = FALSE;
+                    dat->iFlashIcon = 0;
                 }
                 if(dat->pContainer->dwFlashingStarted != 0) {
                     FlashContainer(dat->pContainer, 0, 0);
@@ -1979,9 +1980,10 @@ LABEL_SHOWWINDOW:
                 //ConfigureSideBar(hwndDlg, dat);
                 dat->dwFlags &= ~MWF_DIVIDERSET;
                 dat->dwTickLastEvent = 0;
-                if (KillTimer(hwndDlg, TIMERID_FLASHWND)) {
+                if(KillTimer(hwndDlg, TIMERID_FLASHWND) || dat->iFlashIcon) {
                     FlashTab(dat, hwndTab, dat->iTabID, &dat->bTabFlash, FALSE, dat->hTabIcon);
                     dat->mayFlashTab = FALSE;
+                    dat->iFlashIcon = 0;
                 }
                 if(dat->pContainer->dwFlashingStarted != 0) {
                     FlashContainer(dat->pContainer, 0, 0);
