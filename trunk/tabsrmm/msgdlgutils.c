@@ -2514,8 +2514,9 @@ void SendNudge(struct MessageWindowData *dat, HWND hwndDlg)
 	HANDLE hContact = dat->bIsMeta ? dat->hSubContact : dat->hContact;
 
 	mir_snprintf(szServiceName, 128, "%s/SendNudge", szProto);
-	if(ServiceExists(szServiceName))
-		CallProtoService(szProto, "/SendNudge", (WPARAM)hContact, 0);
+	if(ServiceExists(szServiceName) && ServiceExists(MS_NUDGE_SEND))
+        CallService(MS_NUDGE_SEND, (WPARAM)hContact, 0);
+		//CallProtoService(szProto, "/SendNudge", (WPARAM)hContact, 0);
 }
 
 void GetClientIcon(struct MessageWindowData *dat, HWND hwndDlg)

@@ -1388,6 +1388,12 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
             }
             if (dat->iTabID >= 0) {
                 //ConfigureSideBar(hwndDlg, dat);
+
+                if(DBGetContactSettingWord(si->hContact, si->pszModule ,"ApparentMode", 0) != 0)
+                    DBWriteContactSettingWord(si->hContact, si->pszModule ,"ApparentMode",(LPARAM) 0);
+                if(CallService(MS_CLIST_GETEVENT, (WPARAM)si->hContact, (LPARAM)0))
+                    CallService(MS_CLIST_REMOVEEVENT, (WPARAM)si->hContact, (LPARAM)"chaticon");
+                
                 SendMessage(hwndDlg, GC_UPDATETITLE, 0, 1);
                 dat->dwTickLastEvent = 0;
                 dat->dwFlags &= ~MWF_DIVIDERSET;
@@ -2063,7 +2069,7 @@ LABEL_SHOWWINDOW:
 							cr.cpMin = start;
 							cr.cpMax = end;
 							tr.chrg = cr;
-							tr.lpstrText = (LPWSTR)pszWord;
+							tr.lpstrText = (TCHAR *)pszWord;
 							iRes = SendMessage(GetDlgItem(hwndDlg, IDC_CHAT_LOG), EM_GETTEXTRANGE, 0, (LPARAM)&tr);
 							
 							if(iRes > 0)
