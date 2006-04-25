@@ -1595,6 +1595,7 @@ static void LoadSkinItems(char *file)
     
 	SkinCalcFrameWidth();
 
+    GetPrivateProfileStringA("Global", "FontColor", "None", buffer, 20, file);
 	if(strcmp(buffer, "None"))
 		myGlobals.skinDefaultFontColor = HexStringToLong(buffer);
 	else

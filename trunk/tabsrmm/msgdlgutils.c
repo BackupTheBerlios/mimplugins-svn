@@ -1902,6 +1902,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 			else {
 				if(dat->panelWidth) {
 					dat->panelWidth = 0;
+                    dat->dwEventIsShown |= MWF_SHOW_RESIZEIPONLY;
 					SendMessage(hwndDlg, WM_SIZE, 0, 0);
 				}
 				return TRUE;
@@ -1949,6 +1950,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
             }
 			if(dat->panelWidth == -1) {
 				dat->panelWidth = (int)dNewWidth + 2;
+                dat->dwEventIsShown |= MWF_SHOW_RESIZEIPONLY;
 				SendMessage(hwndDlg, WM_SIZE, 0, 0);
 			}
         }
@@ -2115,8 +2117,10 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
     
         dat->panelStatusCX = sStatus.cx + sProto.cx + 14 + (dat->hClientIcon ? 20 : 0);
         
-        if(dat->panelStatusCX != oldPanelStatusCX)
+        if(dat->panelStatusCX != oldPanelStatusCX) {
+            dat->dwEventIsShown |= MWF_SHOW_RESIZEIPONLY;
             SendMessage(hwndDlg, WM_SIZE, 0, 0);
+        }
     
         GetClientRect(dis->hwndItem, &rc);
 		if(dat->pContainer->bSkinned) {

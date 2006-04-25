@@ -1039,6 +1039,65 @@ LRESULT CALLBACK SplitterSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
     return CallWindowProc(OldSplitterProc, hwnd, msg, wParam, lParam);
 }
 
+static int MessageDialogResizeIP(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * urc)
+{
+    struct MessageWindowData *dat = (struct MessageWindowData *) lParam;
+    int panelHeight = dat->panelHeight + 1;
+    int panelWidth = (dat->panelWidth != -1 ? dat->panelWidth + 2: 0);
+    RECT rc;
+    POINT pt;
+    LONG width, height;
+    
+    if(dat->panelStatusCX == 0)
+        dat->panelStatusCX = 80;
+
+    switch (urc->wId) {
+        case IDC_PANELSPLITTER:
+            urc->rcItem.bottom = panelHeight;
+            urc->rcItem.top = panelHeight - 2;
+            return RD_ANCHORX_WIDTH | RD_ANCHORY_TOP;
+        case IDC_PANELPIC:
+            urc->rcItem.left = urc->rcItem.right - (panelWidth > 0 ? panelWidth - 2: panelHeight + 2);
+            urc->rcItem.bottom = urc->rcItem.top + (panelHeight - 3);
+            if (myGlobals.g_FlashAvatarAvail) {
+                RECT rc = { urc->rcItem.left,  urc->rcItem.top, urc->rcItem.right, urc->rcItem.bottom };
+                if(dat->dwEventIsShown & MWF_SHOW_INFOPANEL) {
+                    FLASHAVATAR fa; 
+
+                    fa.hContact = dat->hContact;
+                    fa.id = 25367;
+                    CallService(MS_FAVATAR_RESIZE, (WPARAM)&fa, (LPARAM)&rc);
+                }
+            }
+            return RD_ANCHORX_RIGHT | RD_ANCHORY_TOP;
+        case IDC_PANEL:
+            return RD_ANCHORX_WIDTH | RD_ANCHORY_TOP;
+        case IDC_PANELSTATUS:
+            urc->rcItem.right = urc->dlgNewSize.cx - panelWidth;
+            urc->rcItem.left = urc->dlgNewSize.cx - panelWidth - dat->panelStatusCX;
+            return RD_ANCHORX_CUSTOM | RD_ANCHORY_TOP;
+        case IDC_PANELNICK:
+            urc->rcItem.right = urc->dlgNewSize.cx - panelWidth - 27;
+            return RD_ANCHORX_CUSTOM | RD_ANCHORY_TOP;
+        case IDC_APPARENTMODE:
+            urc->rcItem.right -= (panelWidth + 3);
+            urc->rcItem.left -= (panelWidth + 3);
+            return RD_ANCHORX_CUSTOM | RD_ANCHORX_RIGHT;
+        case IDC_PANELUIN:
+            urc->rcItem.right = urc->dlgNewSize.cx - (panelWidth + 2) - dat->panelStatusCX;
+            return RD_ANCHORX_CUSTOM | RD_ANCHORY_TOP;
+    }
+    GetWindowRect(GetDlgItem(hwndDlg, urc->wId), &rc);
+    pt.x = rc.left;
+    pt.y = rc.top;
+    width = rc.right - rc.left; height = rc.bottom - rc.top;
+    ScreenToClient(hwndDlg, &pt);
+    rc.left = pt.x; rc.top = pt.y;
+    rc.right = rc.left + width;
+    rc.bottom = rc.top + height;
+    CopyRect(&urc->rcItem, &rc);
+    return 0;
+}
 /*
  * resizer proc for the "new" layout.
  */
@@ -2456,7 +2515,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 urd.hwndDlg = hwndDlg;
                 urd.lParam = (LPARAM) dat;
                 urd.lpTemplate = MAKEINTRESOURCEA(IDD_MSGSPLITNEW);
-                urd.pfnResizer = MessageDialogResize;
+                urd.pfnResizer = dat->dwEventIsShown & MWF_SHOW_RESIZEIPONLY ? MessageDialogResizeIP : MessageDialogResize;
 
                 if (dat->uMinHeight > 0 && HIWORD(lParam) >= dat->uMinHeight) {
                     if (dat->splitterY > HIWORD(lParam) - MINLOGHEIGHT) {
@@ -2523,6 +2582,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     }
                 }
                 CallService(MS_UTILS_RESIZEDIALOG, 0, (LPARAM) & urd);
+                dat->dwEventIsShown &= ~MWF_SHOW_RESIZEIPONLY;
                 
                 if(GetDlgItem(hwndDlg, IDC_CLIST) != 0) {
                     RECT rc, rcClient, rcLog;
