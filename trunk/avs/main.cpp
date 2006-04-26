@@ -25,8 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 HINSTANCE g_hInst = 0;
 PLUGINLINK *pluginLink;
-int hMyAvatarsFolder = 0;
-int hProtocolAvatarsFolder = 0;
+HANDLE hMyAvatarsFolder = 0;
+HANDLE hProtocolAvatarsFolder = 0;
 int g_shutDown = FALSE;
 
 PROTOCOLDESCRIPTOR **g_protocols = NULL;
@@ -930,12 +930,10 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
 				char szTestFile[MAX_PATH];
 				HANDLE hFFD;
 				WIN32_FIND_DATAA ffd = {0};
-				
 				char inipath[2048];
-				if (ServiceExists(MS_FOLDERS_GET_PATH) && hProtocolAvatarsFolder != 0)
-					CallService(MS_FOLDERS_GET_PATH, (WPARAM) hProtocolAvatarsFolder, (LPARAM) inipath);
-				else
-					strcpy(inipath, g_szDBPath);
+
+				// First try protocol avatars folder
+				FoldersGetCustomPath(hProtocolAvatarsFolder, inipath, sizeof(inipath), g_szDBPath);
 
 				_snprintf(szTestFile, MAX_PATH, "%s\\MSN\\%s avatar.*", inipath, szProto);
 				szTestFile[MAX_PATH - 1] = 0;
@@ -950,6 +948,26 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
 					_snprintf(szFilename, MAX_PATH, "%s\\jabber\\%s", inipath, ffd.cFileName);
 					FindClose(hFFD);
 					goto done;
+				}
+
+				// Now try profile folder
+				if (strcmpi(inipath, g_szDBPath)) {
+					strcpy(inipath, g_szDBPath);
+
+					_snprintf(szTestFile, MAX_PATH, "%s\\MSN\\%s avatar.*", inipath, szProto);
+					szTestFile[MAX_PATH - 1] = 0;
+					if((hFFD = FindFirstFileA(szTestFile, &ffd)) != INVALID_HANDLE_VALUE) {
+						_snprintf(szFilename, MAX_PATH, "%s\\MSN\\%s", inipath, ffd.cFileName);
+						FindClose(hFFD);
+						goto done;
+					}
+					_snprintf(szTestFile, MAX_PATH, "%s\\jabber\\%s avatar.*", inipath, szProto);
+					szTestFile[MAX_PATH - 1] = 0;
+					if((hFFD = FindFirstFileA(szTestFile, &ffd)) != INVALID_HANDLE_VALUE) {
+						_snprintf(szFilename, MAX_PATH, "%s\\jabber\\%s", inipath, ffd.cFileName);
+						FindClose(hFFD);
+						goto done;
+					}
 				}
 				return -1;
 			}
@@ -1306,9 +1324,8 @@ int SetMyAvatar(WPARAM wParam, LPARAM lParam)
         ofn.nMaxFileTitle = MAX_PATH;
         ofn.Flags = OFN_FILEMUSTEXIST; // | OFN_ENABLETEMPLATE | OFN_EXPLORER | OFN_ENABLEHOOK;
 
-		char inipath[1024] = ".";
-		if (ServiceExists(MS_FOLDERS_GET_PATH) && hMyAvatarsFolder != 0)
-			CallService(MS_FOLDERS_GET_PATH, (WPARAM) hMyAvatarsFolder, (LPARAM) inipath);
+		char inipath[1024];
+		FoldersGetCustomPath(hMyAvatarsFolder, inipath, sizeof(inipath), ".");
 
 		ofn.lpstrInitialDir = inipath;
 
@@ -1665,23 +1682,11 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 	// Folders plugin support
 	if (ServiceExists(MS_FOLDERS_REGISTER_PATH))
 	{
-		FOLDERSDATA fd;
+		hMyAvatarsFolder = (HANDLE) FoldersRegisterCustomPathT(TranslateT("Avatars"), TranslateT("My Avatars"), 
+													  PROFILE_PATH "\\" CURRENT_PROFILE "\\MyAvatars");
 
-		fd.cbSize = sizeof(fd);
-		strncpy(fd.szSection, Translate("Avatars"), sizeof(fd.szSection)); 
-		fd.szSection[sizeof(fd.szSection)-1] = '\0';
-		strncpy(fd.szName, Translate("My Avatars"), sizeof(fd.szName));
-		fd.szName[sizeof(fd.szName)-1] = '\0';
-
-		hMyAvatarsFolder = (int) CallService(MS_FOLDERS_REGISTER_PATH, (WPARAM) PROFILE_PATH "\\" CURRENT_PROFILE "\\MyAvatars", (LPARAM) &fd);
-
-		strncpy(fd.szSection, Translate("Avatars"), sizeof(fd.szSection));
-		fd.szSection[sizeof(fd.szSection)-1] = '\0';
-		strncpy(fd.szName, Translate("Protocol Avatars Cache"), sizeof(fd.szName));
-		fd.szName[sizeof(fd.szName)-1] = '\0';
-
-		// TODO Default should be FOLDER_AVATARS
-		hProtocolAvatarsFolder = (int) CallService(MS_FOLDERS_REGISTER_PATH, (WPARAM) PROFILE_PATH, (LPARAM) &fd);
+		hProtocolAvatarsFolder = (HANDLE) FoldersRegisterCustomPathT(TranslateT("Avatars"), TranslateT("Protocol Avatars Cache"), 
+													  FOLDER_AVATARS);
 	}
 
     CLISTMENUITEM mi;
