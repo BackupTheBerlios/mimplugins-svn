@@ -6,6 +6,7 @@
 using namespace Gdiplus;
 
 INT GetEncoderClsid(const WCHAR* format, CLSID* pClsid);  // helper function
+extern int _DebugPopup(HANDLE hContact, const char *fmt, ...);
 
 // Correct alpha from bitmaps loaded without it (it cames with 0 and should be 255)
 void CorrectBitmap32Alpha(HBITMAP hBitmap)
@@ -58,7 +59,9 @@ void CorrectBitmap32Alpha(HBITMAP hBitmap)
 
 HBITMAP LoadAnyImage(char *szFilename)
 {
-	HBITMAP hBmp = (HBITMAP)CallService(MS_UTILS_LOADBITMAP, 0, (LPARAM)szFilename);
+	HBITMAP hBmp;
+
+	hBmp = (HBITMAP)CallService(MS_UTILS_LOADBITMAP, 0, (LPARAM)szFilename);
 	CorrectBitmap32Alpha(hBmp);
 	return hBmp;
 }

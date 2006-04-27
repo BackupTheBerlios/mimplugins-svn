@@ -443,9 +443,11 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 
 					EnterCriticalSection(&cachecs);
                     ProtectAvatar((WPARAM)hContact, 0);
-					if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
-						DeleteFileA(dbv.pszVal);
-						DBFreeVariant(&dbv);
+					if(MessageBox(0, TranslateT("Delete picture file from disk (may be necessary to force a reload, but will delete local pictures)?"), TranslateT("Reset contact picture"), MB_YESNO) == IDYES) {
+						if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
+							DeleteFileA(dbv.pszVal);
+							DBFreeVariant(&dbv);
+						}
 					}
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
                     DBDeleteContactSetting(hContact, szProto, "AvatarHash");
