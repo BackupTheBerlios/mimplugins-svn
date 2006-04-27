@@ -1,6 +1,16 @@
 
         Version history:
 
+
+0.0.1.22 - 2006/04/26
+
+		+ service to protocol report it has changed my avatar
+		* fix for new folder service API
+		+ changed default Protocol Avatars Cache and now try to get avatars from 
+		  folder service and in db path
+		+ open set my avatar dialog in thumbnail view and only one at a time
+		+ open set contact avatar dialog in thumbnail view 
+
 0.0.1.21 - 2006/03/26
 
 		* fixes for image transparency

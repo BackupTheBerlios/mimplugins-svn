@@ -56,6 +56,13 @@ char *g_szMetaName = NULL;
 HANDLE *avatarUpdateQueue = NULL;
 DWORD dwPendingAvatarJobs = 0;
 
+#ifndef SHVIEW_THUMBNAIL
+# define SHVIEW_THUMBNAIL 0x702D
+#endif
+
+// Stores the id of the dialog
+long hwndSetMyAvatar = 0;
+
 int ChangeAvatar(HANDLE hContact);
 
 PLUGININFO pluginInfo = {
@@ -65,7 +72,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 1, 21), 
+	PLUGIN_MAKE_VERSION(0, 0, 1, 22), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -951,7 +958,7 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
 				}
 
 				// Now try profile folder
-				if (strcmpi(inipath, g_szDBPath)) {
+				if (_strcmpi(inipath, g_szDBPath)) {
 					strcpy(inipath, g_szDBPath);
 
 					_snprintf(szTestFile, MAX_PATH, "%s\\MSN\\%s avatar.*", inipath, szProto);
@@ -1171,29 +1178,61 @@ int ProtectAvatar(WPARAM wParam, LPARAM lParam)
 /*
  * for subclassing the open file dialog...
  */
-
+struct OpenFileSubclassData {
+	BYTE *locking_request;
+	BYTE setView;
+};
 static BOOL CALLBACK OpenFileSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    OPENFILENAMEA *ofn = NULL;
-
-    ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
-    
     switch(msg) {
-        case WM_INITDIALOG: {
-            BYTE *locking_request;
+        case WM_INITDIALOG: 
+		{
             SetWindowLong(hwnd, GWL_USERDATA, (LONG)lParam);
-            ofn = (OPENFILENAMEA *)lParam;
-            locking_request = (BYTE *)ofn->lCustData;
-            CheckDlgButton(hwnd, IDC_PROTECTAVATAR, *locking_request);
+            OPENFILENAMEA *ofn = (OPENFILENAMEA *)lParam;
+
+			OpenFileSubclassData *data = (OpenFileSubclassData *) malloc(sizeof(OpenFileSubclassData));
+            data->locking_request = (BYTE *)ofn->lCustData;
+			data->setView = TRUE;
+
+			ofn->lCustData = (LPARAM) data;
+
+            CheckDlgButton(hwnd, IDC_PROTECTAVATAR, *(data->locking_request));
             break;
         }
         case WM_COMMAND:
-            if(LOWORD(wParam) == IDC_PROTECTAVATAR) {
-                BYTE *locking_request = (BYTE *)ofn->lCustData;
-                *locking_request = IsDlgButtonChecked(hwnd, IDC_PROTECTAVATAR) ? TRUE : FALSE;
+		{
+            if(LOWORD(wParam) == IDC_PROTECTAVATAR) 
+			{
+				OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
+                OpenFileSubclassData *data= (OpenFileSubclassData *)ofn->lCustData;
+                *(data->locking_request) = IsDlgButtonChecked(hwnd, IDC_PROTECTAVATAR) ? TRUE : FALSE;
             }
             break;
-    }
+		}
+		case WM_NOTIFY:
+		{
+			OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
+			OpenFileSubclassData *data = (OpenFileSubclassData *)ofn->lCustData;
+			if (data->setView)
+			{
+				HWND hwndParent = GetParent(hwnd);
+				HWND hwndLv = FindWindowEx(hwndParent, NULL, _T("SHELLDLL_DefView"), NULL) ;
+				if (hwndLv != NULL) 
+				{
+					SendMessage(hwndLv, WM_COMMAND, SHVIEW_THUMBNAIL, 0);
+					data->setView = FALSE;
+				}
+			}
+			break;
+		}
+		case WM_DESTROY:
+		{
+			OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
+			free((OpenFileSubclassData *) ofn->lCustData);
+			break;
+		}
+	}
+
     return FALSE;
 }
 
@@ -1221,14 +1260,21 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
     
     if(lParam == 0) {
         OPENFILENAMEA ofn = {0};
+		char filter[256];
 
-        ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
+		filter[0] = '\0';
+		CallService(MS_UTILS_GETBITMAPFILTERSTRINGS, sizeof(filter), (LPARAM) filter);
+
+		if (IsWinVer2000Plus())
+			ofn.lStructSize = sizeof(ofn);
+		else
+			ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
         ofn.hwndOwner = 0;
         ofn.lpstrFile = FileName;
-		ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp;*.png\0\0";
+		ofn.lpstrFilter = filter;
         ofn.nMaxFile = MAX_PATH;
         ofn.nMaxFileTitle = MAX_PATH;
-        ofn.Flags = OFN_FILEMUSTEXIST | OFN_ENABLETEMPLATE | OFN_EXPLORER | OFN_ENABLEHOOK;
+        ofn.Flags = OFN_FILEMUSTEXIST | OFN_ENABLETEMPLATE | OFN_EXPLORER | OFN_ENABLESIZING | OFN_ENABLEHOOK;
         ofn.lpstrInitialDir = ".";
         *FileName = '\0';
         ofn.lpstrDefExt="";
@@ -1293,7 +1339,46 @@ int CanSetMyAvatar(WPARAM wParam, LPARAM lParam)
 			|| ProtoServiceExists(protocol, MSN_PS_SETMYAVATAR); // TODO remove this when MSN change this
 }
 
+/*
+ * Callback to set thumbnaill view to open dialog
+ */
+UINT_PTR CALLBACK OFNHookProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch(msg)
+	{
+		case WM_INITDIALOG:
+		{
+			InterlockedExchange(&hwndSetMyAvatar, (LONG) hwnd);
 
+            SetWindowLong(hwnd, GWL_USERDATA, (LONG)lParam);
+            OPENFILENAMEA *ofn = (OPENFILENAMEA *)lParam;
+			ofn->lCustData = TRUE;
+			break;
+		}
+		case WM_NOTIFY:
+		{
+			OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
+			if (ofn->lCustData)
+			{
+				HWND hwndParent = GetParent(hwnd);
+				HWND hwndLv = FindWindowEx(hwndParent, NULL, _T("SHELLDLL_DefView"), NULL) ;
+				if (hwndLv != NULL) 
+				{
+					SendMessage(hwndLv, WM_COMMAND, SHVIEW_THUMBNAIL, 0);
+					ofn->lCustData = FALSE;
+				}
+			}
+			break;
+		}
+		case WM_DESTROY:
+		{
+			InterlockedExchange(&hwndSetMyAvatar, 0);
+			break;
+		}
+	}
+
+	return 0;
+}
 
 /*
  * set an avatar for a protocol (service function)
@@ -1313,21 +1398,36 @@ int SetMyAvatar(WPARAM wParam, LPARAM lParam)
 	if (protocol != NULL && !CanSetMyAvatar((WPARAM) protocol, 0))
 		return -1;
 
+	if (hwndSetMyAvatar != 0)
+	{
+		SetForegroundWindow((HWND) hwndSetMyAvatar);
+		SetFocus((HWND) hwndSetMyAvatar);
+ 		ShowWindow((HWND) hwndSetMyAvatar, SW_SHOW);
+		return -2;
+	}
+
     if(lParam == 0) {
         OPENFILENAMEA ofn = {0};
-
-        ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
-        ofn.hwndOwner = 0;
-        ofn.lpstrFile = FileName;
-        ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp;*.png\0\0";
-        ofn.nMaxFile = MAX_PATH;
-        ofn.nMaxFileTitle = MAX_PATH;
-        ofn.Flags = OFN_FILEMUSTEXIST; // | OFN_ENABLETEMPLATE | OFN_EXPLORER | OFN_ENABLEHOOK;
-
+		char filter[256];
 		char inipath[1024];
+
+		filter[0] = '\0';
+		CallService(MS_UTILS_GETBITMAPFILTERSTRINGS, sizeof(filter), (LPARAM) filter);
+
 		FoldersGetCustomPath(hMyAvatarsFolder, inipath, sizeof(inipath), ".");
 
+		if (IsWinVer2000Plus())
+			ofn.lStructSize = sizeof(ofn);
+		else
+			ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
+        ofn.hwndOwner = 0;
+        ofn.lpstrFile = FileName;
+        ofn.lpstrFilter = filter;
+        ofn.nMaxFile = MAX_PATH;
+        ofn.nMaxFileTitle = MAX_PATH;
+        ofn.Flags = OFN_FILEMUSTEXIST | OFN_EXPLORER | OFN_ENABLESIZING | OFN_ENABLEHOOK;
 		ofn.lpstrInitialDir = inipath;
+		ofn.lpfnHook = OFNHookProc;
 
         *FileName = '\0';
         ofn.lpstrDefExt="";
@@ -1679,13 +1779,16 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     static char *szFLUpdateurl = "http://www.miranda-im.org/download/feed.php?dlfile=2361";
     static char *szPrefix = "avs ";
 
+	// Start thread
+	hAvatarThread = (HANDLE)_beginthread(AvatarUpdateThread, 0, NULL);
+
 	// Folders plugin support
 	if (ServiceExists(MS_FOLDERS_REGISTER_PATH))
 	{
-		hMyAvatarsFolder = (HANDLE) FoldersRegisterCustomPathT(TranslateT("Avatars"), TranslateT("My Avatars"), 
+		hMyAvatarsFolder = (HANDLE) FoldersRegisterCustomPath(Translate("Avatars"), Translate("My Avatars"), 
 													  PROFILE_PATH "\\" CURRENT_PROFILE "\\MyAvatars");
 
-		hProtocolAvatarsFolder = (HANDLE) FoldersRegisterCustomPathT(TranslateT("Avatars"), TranslateT("Protocol Avatars Cache"), 
+		hProtocolAvatarsFolder = (HANDLE) FoldersRegisterCustomPath(Translate("Avatars"), Translate("Protocol Avatars Cache"), 
 													  FOLDER_AVATARS);
 	}
 
@@ -1793,6 +1896,28 @@ static void ReloadMyAvatar(LPVOID lpParam)
 	_endthread();
 }
 
+static int ReportMyAvatarChanged(WPARAM wParam, LPARAM lParam)
+{
+	if (wParam == NULL)
+		return -1;
+
+	char *proto = (char *) wParam;
+
+	int i;
+	for(i = 0; i < g_protocount; i++) {
+		if(!strcmp(g_MyAvatars[i].szProtoname, proto) && lstrlenA(proto) == lstrlenA(g_MyAvatars[i].szProtoname)) {
+			LPVOID lpParam = 0;
+
+			lpParam = (void *)malloc(lstrlenA(g_MyAvatars[i].szProtoname) + 2);
+			strcpy((char *)lpParam, g_MyAvatars[i].szProtoname);
+			_beginthread(ReloadMyAvatar, 0, lpParam);
+			return 0;
+		}
+	}
+
+	return -2;
+}
+
 static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 {
     char *szProto;
@@ -1803,20 +1928,7 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 
 	if(wParam == 0) {
 		if(!strcmp(cws->szSetting, "AvatarFile") || !strcmp(cws->szSetting, "PictObject") || !strcmp(cws->szSetting, "AvatarHash")) {
-			if(cws->szModule) {
-				int i;
-
-				for(i = 0; i < g_protocount; i++) {
-					if(!strcmp(g_MyAvatars[i].szProtoname, cws->szModule) && lstrlenA(cws->szModule) == lstrlenA(g_MyAvatars[i].szProtoname)) {
-						LPVOID lpParam = 0;
-
-						lpParam = (void *)malloc(lstrlenA(g_MyAvatars[i].szProtoname) + 2);
-						strcpy((char *)lpParam, g_MyAvatars[i].szProtoname);
-						_beginthread(ReloadMyAvatar, 0, lpParam);
-						return 0;
-					}
-				}
-			}
+			ReportMyAvatarChanged((WPARAM) cws->szModule, 0);
 		}
 		return 0;
 	}
@@ -1898,6 +2010,7 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
     DestroyServiceFunction(MS_AV_CONTACTOPTIONS);
     DestroyServiceFunction(MS_AV_DRAWAVATAR);
 	DestroyServiceFunction(MS_AV_GETMYAVATAR);
+	DestroyServiceFunction(MS_AV_REPORTMYAVATARCHANGED);
 
     DestroyHookableEvent(hEventChanged);
 	DestroyHookableEvent(hMyAvatarChanged);
@@ -2117,6 +2230,7 @@ static int LoadAvatarModule()
     CreateServiceFunction(MS_AV_CONTACTOPTIONS, ContactOptions);
     CreateServiceFunction(MS_AV_DRAWAVATAR, DrawAvatarPicture);
 	CreateServiceFunction(MS_AV_GETMYAVATAR, GetMyAvatar);
+	CreateServiceFunction(MS_AV_REPORTMYAVATARCHANGED, ReportMyAvatarChanged);
     hEventChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
 	hMyAvatarChanged = CreateHookableEvent(ME_AV_MYAVATARCHANGED);
 	AllocCacheBlock();
@@ -2131,7 +2245,8 @@ static int LoadAvatarModule()
 
     CallService(MS_DB_GETPROFILEPATH, MAX_PATH, (LPARAM)g_szDBPath);
 
-	hAvatarThread = (HANDLE)_beginthread(AvatarUpdateThread, 0, NULL);
+	hAvatarThread = 0;
+	//hAvatarThread = (HANDLE)_beginthread(AvatarUpdateThread, 0, NULL);
 	//hAvatarThread = CreateThread(NULL, 16000, AvatarUpdateThread, NULL, 0, &dwAvatarThreadID);
     return 0;
 }

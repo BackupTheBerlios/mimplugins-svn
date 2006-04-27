@@ -65,9 +65,13 @@ static void SetProtoPic(char *szProto)
 {
     char FileName[MAX_PATH];
     OPENFILENAMEA ofn={0};
+	char filter[256];
+
+	filter[0] = '\0';
+	CallService(MS_UTILS_GETBITMAPFILTERSTRINGS, sizeof(filter), (LPARAM) filter);
 
     ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
-    ofn.lpstrFilter = "Image files\0*.gif;*.jpg;*.bmp;*.png\0\0";
+    ofn.lpstrFilter = filter;
     ofn.hwndOwner=0;
     ofn.lpstrFile = FileName;
     ofn.nMaxFile = MAX_PATH;
