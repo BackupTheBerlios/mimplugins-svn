@@ -457,14 +457,17 @@ CloseGlyph=close.ico
 MinimizeGlyph=minimize.ico
 MaximizeGlyph=maximize.ico
 SbarHeight=20
-FontColor=000000
+FontColor=0000BB
 Version=1
 Signature=101
 FrameLessMode=1
-CompositedWindow=0
 TabSkinning=1
 LightShadow=F4F4F1
 DarkShadow=B0ACA0
+TabTextNormal=CCCC00
+TabTextActive=0000BB
+TabTextUnread=BB0000
+TabTextHottrack=00bb00
 
 ; client area metrics
 ;

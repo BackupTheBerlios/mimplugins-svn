@@ -1465,16 +1465,16 @@ static void SkinCalcFrameWidth()
 
 
 static struct {char *szIniKey, *szIniName; char *szSetting; unsigned int size; int defaultval;} _tagSettings[] = {
-    "Global", "SbarHeight", "sbarheight", 1, 22,
-    "ClientArea", "Left", "tborder_outer_left", 1, 0,
-    "ClientArea", "Right", "tborder_outer_right", 1, 0,
-    "ClientArea", "Top", "tborder_outer_top", 1, 0,
-    "ClientArea", "Bottom", "tborder_outer_bottom", 1, 0,
-    "ClientArea", "Inner", "tborder", 1, 0,
-    "Global", "TabTextNormal", "tab_txt_normal", 4, 0,
-    "Global", "TabTextActive", "tab_txt_active", 4, 0,
-    "Global", "TabTextUnread", "tab_txt_unread", 4, 0,
-    "Global", "TabTextHottrack", "tab_txt_hottrack", 4, 0,
+    "Global", "SbarHeight", "S_sbarheight", 1, 22,
+    "ClientArea", "Left", "S_tborder_outer_left", 1, 0,
+    "ClientArea", "Right", "S_tborder_outer_right", 1, 0,
+    "ClientArea", "Top", "S_tborder_outer_top", 1, 0,
+    "ClientArea", "Bottom", "S_tborder_outer_bottom", 1, 0,
+    "ClientArea", "Inner", "S_tborder", 1, 0,
+    "Global", "TabTextNormal", "S_tab_txt_normal", 5, 0,
+    "Global", "TabTextActive", "S_tab_txt_active", 5, 0,
+    "Global", "TabTextUnread", "S_tab_txt_unread", 5, 0,
+    "Global", "TabTextHottrack", "S_tab_txt_hottrack", 5, 0,
     NULL, NULL, NULL, 0, 0
 };
 
@@ -1528,6 +1528,10 @@ static void LoadSkinItems(char *file)
                 break;
             case 2:
                 DBWriteContactSettingWord(NULL, SRMSGMOD_T, _tagSettings[i].szSetting, (WORD)data);
+                break;
+            case 5:
+                GetPrivateProfileStringA(_tagSettings[i].szIniKey, _tagSettings[i].szIniName, "000000", buffer, 10, file);
+                DBWriteContactSettingDword(NULL, SRMSGMOD_T, _tagSettings[i].szSetting, HexStringToLong(buffer));
                 break;
         }
         i++;

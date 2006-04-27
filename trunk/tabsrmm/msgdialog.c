@@ -1039,6 +1039,7 @@ LRESULT CALLBACK SplitterSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
     return CallWindowProc(OldSplitterProc, hwnd, msg, wParam, lParam);
 }
 
+/*
 static int MessageDialogResizeIP(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * urc)
 {
     struct MessageWindowData *dat = (struct MessageWindowData *) lParam;
@@ -1098,9 +1099,12 @@ static int MessageDialogResizeIP(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL 
     CopyRect(&urc->rcItem, &rc);
     return 0;
 }
+*/
+
 /*
  * resizer proc for the "new" layout.
  */
+
 
 static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * urc)
 {
@@ -2515,7 +2519,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 urd.hwndDlg = hwndDlg;
                 urd.lParam = (LPARAM) dat;
                 urd.lpTemplate = MAKEINTRESOURCEA(IDD_MSGSPLITNEW);
-                urd.pfnResizer = dat->dwEventIsShown & MWF_SHOW_RESIZEIPONLY ? MessageDialogResizeIP : MessageDialogResize;
+                urd.pfnResizer = /* dat->dwEventIsShown & MWF_SHOW_RESIZEIPONLY ? MessageDialogResizeIP : */ MessageDialogResize;
 
                 if (dat->uMinHeight > 0 && HIWORD(lParam) >= dat->uMinHeight) {
                     if (dat->splitterY > HIWORD(lParam) - MINLOGHEIGHT) {
