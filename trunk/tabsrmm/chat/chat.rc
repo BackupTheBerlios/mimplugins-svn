@@ -163,7 +163,7 @@ BEGIN
     EDITTEXT        IDC_LIMIT,248,219,38,14,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "Spin1",IDC_CHAT_SPIN3,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS | UDS_NOTHOUSANDS | UDS_HOTTRACK,281,219,11,14
     GROUPBOX        "Fonts 'n Colors",IDC_STATIC,1,0,294,120
-    GROUPBOX        "Log Options",IDC_STATIC,1,121,294,118
+    GROUPBOX        "Group chat log formatting",IDC_STATIC,1,121,294,118
     LTEXT           "Log background",IDC_STATIC,180,14,81,10
     LTEXT           "Message background",IDC_STATIC,180,28,81,10
     LTEXT           "Userlist background",IDC_STATIC,180,43,81,10

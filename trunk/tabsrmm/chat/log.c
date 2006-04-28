@@ -468,8 +468,47 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
 			{
 				char pszTemp[300];
 				char * p1;
+                STATUSINFO *ti;
+                char pszIndicator[2] = "\0\0";
+                
+                if(g_Settings.ClassicIndicators) {
+                    USERINFO *ui = streamData->si->pUsers;
+                    
+                    while(ui) {
+                        if(!strcmp(ui->pszNick, lin->pszNick)) {
+                            ti = TM_FindStatus(streamData->si->pStatuses, TM_WordToString(streamData->si->pStatuses, ui->Status));
+                            if(ti && (int)ti->hIcon < streamData->si->iStatusCount) {
+                                int id = streamData->si->iStatusCount - (int)ti->hIcon - 1;
+                                switch(id) {
+                                    case 1:
+                                        pszIndicator[0] = '+';
+                                        break;
+                                    case 2:
+                                        pszIndicator[0] = '%';
+                                        break;
+                                    case 3:
+                                        pszIndicator[0] = '@';
+                                        break;
+                                    case 4:
+                                        pszIndicator[0] = '!';
+                                        break;
+                                    case 5:
+                                        pszIndicator[0] = '*';
+                                        break;
+                                    default:
+                                        pszIndicator[0] = 0;
+                                }
+                            }
+                            break;
+                        }
+                        ui = ui->next;
+                    }
+                }
+                Log_Append(&buffer, &bufferEnd, &bufferAlloced, "%s ", Log_SetStyle(lin->bIsMe ? 2 : 1, lin->bIsMe ? 2 : 1));
 
-				Log_Append(&buffer, &bufferEnd, &bufferAlloced, "%s ", Log_SetStyle(lin->bIsMe ? 2 : 1, lin->bIsMe ? 2 : 1));
+                if(pszIndicator[0])
+                    Log_Append(&buffer, &bufferEnd, &bufferAlloced, "%s", pszIndicator);
+                
 				lstrcpynA(pszTemp, lin->bIsMe ? g_Settings.pszOutgoingNick : g_Settings.pszIncomingNick, 299);
 				p1 = strstr(pszTemp, "%n");
 				if(p1)
@@ -607,6 +646,7 @@ void Log_StreamInEvent(HWND hwndDlg,  LOGINFO* lin, SESSION_INFO* si, BOOL bRedr
 						 )))
 		{
 			SMADD_RICHEDIT3 sm = {0};
+            FINDTEXTEXA fi;
 
 //			newsel.cpMin = newsel.cpMax - lstrlenA(lin->pszText) - 10;
 			newsel.cpMin = sel.cpMin;
@@ -620,6 +660,22 @@ void Log_StreamInEvent(HWND hwndDlg,  LOGINFO* lin, SESSION_INFO* si, BOOL bRedr
 			sm.disableRedraw = TRUE;
             sm.hContact = si->hContact;
 			CallService(MS_SMILEYADD_REPLACESMILEYS, 0, (LPARAM)&sm);
+
+            if(!lin->bIsMe) {
+                fi.chrg.cpMin = sel.cpMin;
+                fi.chrg.cpMax = -1;
+                fi.lpstrText = lin->pszNick;
+
+                if(SendMessageA(hwndRich, EM_FINDTEXTEX, FR_DOWN, (LPARAM)&fi) > -1) {
+                    CHARFORMAT2 cf2 = {0};
+
+                    SendMessage(hwndRich, EM_EXSETSEL, 0, (LPARAM)&fi.chrgText);
+                    cf2.cbSize = sizeof(cf2);
+                    cf2.dwMask = CFM_LINK;
+                    cf2.dwEffects = CFE_LINK;
+                    SendMessage(hwndRich, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf2);
+                }
+            }
 		}
 
 		// scroll log to bottom if the log was previously scrolled to bottom, else restore old position

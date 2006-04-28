@@ -139,7 +139,8 @@ static struct branch_t branch2[] = {
 	{_T("Limit user names in the message log to 20 characters"), "LogLimitNames", 0,1, NULL},
 	{_T("Add \':\' to auto-completed user names"), "AddColonToAutoComplete", 0, 1, NULL},
 	{_T("Strip colors from messages in the log"), "StripFormatting", 0, 0, NULL},
-	{_T("Enable the \'event filter\' for new rooms"), "FilterEnabled", 0,0, NULL}
+	{_T("Enable the \'event filter\' for new rooms"), "FilterEnabled", 0,0, NULL},
+    {_T("Use IRC style status indicators in the nicklist (@, %, + etc.)"), "ClassicIndicators", 0,1, NULL}
 };
 static struct branch_t branch3[] = {
 	{_T("Show topic changes"), "FilterFlags", GC_EVENT_TOPIC, 0, NULL},
@@ -1327,7 +1328,8 @@ void LoadGlobalSettings(void)
 	g_Settings.iPopupTimeout = DBGetContactSettingWord(NULL, "Chat", "PopupTimeout", 3);
 	g_Settings.crPUBkgColour = DBGetContactSettingDword(NULL, "Chat", "PopupColorBG", GetSysColor(COLOR_WINDOW));
 	g_Settings.crPUTextColour = DBGetContactSettingDword(NULL, "Chat", "PopupColorText", 0);
-	
+	g_Settings.ClassicIndicators = DBGetContactSettingByte(NULL, "Chat", "ClassicIndicators", 1);
+    
 	InitSetting(&g_Settings.pszTimeStamp, "HeaderTime", "[%H:%M]"); 
 	InitSetting(&g_Settings.pszTimeStampLog, "LogTimestamp", "[%d %b %y %H:%M]"); 
 	InitSetting(&g_Settings.pszIncomingNick, "HeaderIncoming", "%n:"); 

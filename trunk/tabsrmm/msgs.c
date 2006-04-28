@@ -1191,7 +1191,6 @@ tzdone:
             return 1;
         return 0;
     }
-
     OleInitialize(NULL);
     InitREOleCallback();
     ZeroMemory((void *)&myGlobals, sizeof(myGlobals));

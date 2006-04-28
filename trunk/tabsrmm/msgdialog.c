@@ -5161,7 +5161,7 @@ verify:
                         }
                         else if(dat->xStatus > 0 && dat->xStatus <= 32) {
                             WCHAR xStatusDescW[100];
-                            MultiByteToWideChar(CP_ACP, 0, xStatusDescr[dat->xStatus - 1], -1, xStatusDescW, 90);
+                            MultiByteToWideChar(myGlobals.m_LangPackCP, 0, xStatusDescr[dat->xStatus - 1], -1, xStatusDescW, 90);
                             _sntprintf(szTitle, safe_sizeof(szTitle), _T("Extended status for %s: %s"), dat->szNickname, xStatusDescW);
                             szTitle[safe_sizeof(szTitle) - 1] = 0;
                         }
@@ -5178,7 +5178,7 @@ verify:
                     case IDC_PANELSTATUS: 
                     {
                         WCHAR szwStatus[100];
-                        MultiByteToWideChar(CP_ACP, 0, dat->szStatus, -1, szwStatus, 90);
+                        MultiByteToWideChar(myGlobals.m_LangPackCP, 0, dat->szStatus, -1, szwStatus, 90);
                         _sntprintf(szTitle, safe_sizeof(szTitle), _T("Status message for %s (%s)"), dat->szNickname, szwStatus);
                         szTitle[safe_sizeof(szTitle) - 1] = 0;
                         break;

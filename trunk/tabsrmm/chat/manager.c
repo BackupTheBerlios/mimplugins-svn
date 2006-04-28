@@ -259,21 +259,42 @@ HICON SM_GetStatusIcon(SESSION_INFO * si, USERINFO * ui)
 	ti = TM_FindStatus(si->pStatuses, TM_WordToString(si->pStatuses, ui->Status));
 	if (ti)
 	{
-		if((int)ti->hIcon < STATUSICONCOUNT)
+        if((int)ti->hIcon < STATUSICONCOUNT)
 		{
 			int id = si->iStatusCount - (int)ti->hIcon - 1;
-			if(id == 0)
-				return hIcons[ICON_STATUS0];
-			if(id == 1)
-				return hIcons[ICON_STATUS1];
-			if(id == 2)
-				return hIcons[ICON_STATUS2];
-			if(id == 3)
-				return hIcons[ICON_STATUS3];
-			if(id == 4)
-				return hIcons[ICON_STATUS4];
-			if(id == 5)
-				return hIcons[ICON_STATUS5];
+
+            if(g_Settings.ClassicIndicators) {                 // textual mode descriptions...
+                switch(id) {
+                    case 0:
+                        return (HICON)0xffffff00;
+                    case 1:
+                        return (HICON)((int)'+' | 0xffffff00);
+                    case 2:
+                        return (HICON)((int)'%' | 0xffffff00);
+                    case 3:
+                        return (HICON)((int)'@' | 0xffffff00);
+                    case 4:
+                        return (HICON)((int)'!' | 0xffffff00);
+                    case 5:
+                        return (HICON)((int)'*' | 0xffffff00);
+                    default:
+                        return (HICON)0xffffff00;
+                }
+            }
+            else {
+                if(id == 0)
+                    return hIcons[ICON_STATUS0];
+                if(id == 1)
+                    return hIcons[ICON_STATUS1];
+                if(id == 2)
+                    return hIcons[ICON_STATUS2];
+                if(id == 3)
+                    return hIcons[ICON_STATUS3];
+                if(id == 4)
+                    return hIcons[ICON_STATUS4];
+                if(id == 5)
+                    return hIcons[ICON_STATUS5];
+            }
 		}
 		else
 			return ti->hIcon;
@@ -334,7 +355,7 @@ BOOL SM_AddEvent(char *pszID, char * pszModule, GCEVENT * gce, BOOL bIsHighlight
 			LOGINFO * li = LM_AddEvent(&pTemp->pLog, &pTemp->pLogEnd);
 			pTemp->iEventCount += 1;
 
-			li->iType = gce->pDest->iType;
+            li->iType = gce->pDest->iType;
 			if(gce->pszNick )
 			{
 				li->pszNick = (char*)malloc(lstrlenA(gce->pszNick) + 1); 
@@ -359,7 +380,6 @@ BOOL SM_AddEvent(char *pszID, char * pszModule, GCEVENT * gce, BOOL bIsHighlight
 			li->bIsMe = gce->bIsMe;
 			li->time = gce->time;
 			li->bIsHighlighted = bIsHighlighted;
-			
 			
 			if (g_Settings.iEventLimit > 0 && pTemp->iEventCount > g_Settings.iEventLimit + 20)
 			{

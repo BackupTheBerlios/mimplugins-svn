@@ -341,6 +341,7 @@ struct GlobalLogSettings_t {
 	COLORREF	crUserListHeadingsColor;
 	COLORREF	crPUTextColour;
 	COLORREF	crPUBkgColour;
+    BYTE        ClassicIndicators;
 };
 extern struct GlobalLogSettings_t g_Settings;
 
