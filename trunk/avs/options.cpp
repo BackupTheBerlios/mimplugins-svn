@@ -461,8 +461,16 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                     break;
                 }
                 case IDC_DELETE:
+				{
+					DBVARIANT dbv = {0};
 					EnterCriticalSection(&cachecs);
                     ProtectAvatar((WPARAM)hContact, 0);
+					if(MessageBox(0, TranslateT("Delete picture file from disk (may be necessary to force a reload, but will delete local pictures)?"), TranslateT("Reset contact picture"), MB_YESNO) == IDYES) {
+						if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
+							DeleteFileA(dbv.pszVal);
+							DBFreeVariant(&dbv);
+						}
+					}
                     DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0);
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
@@ -471,6 +479,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                     DeleteAvatar(hContact);
 					LeaveCriticalSection(&cachecs);
                     break;
+				}
             }
             break;
         case WM_DRAWITEM:
