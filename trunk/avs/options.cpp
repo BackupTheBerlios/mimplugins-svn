@@ -449,7 +449,9 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 							DBFreeVariant(&dbv);
 						}
 					}
+                    DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0);
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
                     DBDeleteContactSetting(hContact, szProto, "AvatarHash");
                     DBDeleteContactSetting(hContact, szProto, "AvatarSaved");
 					DeleteAvatar(hContact);
