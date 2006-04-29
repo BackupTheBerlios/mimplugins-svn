@@ -72,7 +72,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 1, 22), 
+	PLUGIN_MAKE_VERSION(0, 0, 1, 24), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -215,63 +215,6 @@ int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode)
 	}
     return 0;
 }
-
-
-HBITMAP StretchBitmap(const HBITMAP hBitmap, LONG width, LONG height, bool makeSquare)
-{
-	if ( makeSquare )
-		width = height = min( width, height );
-
-	BITMAPINFO bmStretch = { 0 }; 
-	bmStretch.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	bmStretch.bmiHeader.biWidth = width;
-	bmStretch.bmiHeader.biHeight = height;
-	bmStretch.bmiHeader.biPlanes = 1;
-	bmStretch.bmiHeader.biBitCount = 32;
-
-	UINT* ptPixels;
-	HBITMAP hStretchedBitmap = CreateDIBSection( NULL, &bmStretch, DIB_RGB_COLORS, ( void** )&ptPixels, NULL, 0);
-	if ( hStretchedBitmap == NULL ) {
-		return NULL;
-	}
-
-	BITMAP bmp;
-	HDC hDC = CreateCompatibleDC( NULL );
-	HBITMAP hOldBitmap1 = ( HBITMAP )SelectObject( hDC, hBitmap );
-	GetObject( hBitmap, sizeof( BITMAP ), &bmp );
-
-	HDC hBmpDC = CreateCompatibleDC( hDC );
-	HBITMAP hOldBitmap2 = ( HBITMAP )SelectObject( hBmpDC, hStretchedBitmap );
-	int x, y, dx, dy;
-
-	if (makeSquare) {
-		if ( bmp.bmWidth > bmp.bmHeight ) {
-			dx = dy = bmp.bmHeight;
-			x = ( bmp.bmWidth - bmp.bmHeight )/2;
-			y = 0;
-		}
-		else {
-			dx = dy = bmp.bmWidth;
-			x = 0;
-			y = ( bmp.bmHeight - bmp.bmWidth )/2;
-		}
-	} else {
-		x = y = 0;
-		dx = bmp.bmWidth;
-		dy = bmp.bmHeight;
-	}
-
-	SetStretchBltMode( hBmpDC, HALFTONE );
-	StretchBlt( hBmpDC, 0, 0, width, height, hDC, x, y, dx, dy, SRCCOPY );
-
-	SelectObject( hDC, hOldBitmap1 );
-	DeleteDC( hDC );
-
-	SelectObject( hBmpDC, hOldBitmap2 );
-	DeleteDC( hBmpDC );
-	return hStretchedBitmap;
-}
-
 
 static BOOL ColorsAreTheSame(int colorDiff, BYTE *px1, BYTE *px2)
 {
@@ -1010,7 +953,7 @@ done:
         return -1;
     }
 
-	ace->hbmPic = LoadAnyImage(szFilename);
+	ace->hbmPic = (HBITMAP) BmpFilterLoadBitmap32(NULL, (LPARAM)szFilename);
     if(ace->hbmPic != 0) {
         BITMAP bminfo;
 
@@ -1459,7 +1402,7 @@ int SetMyAvatar(WPARAM wParam, LPARAM lParam)
         
     // file exists...
 
-	HBITMAP hBmp = LoadAnyImage(szFinalName);
+	HBITMAP hBmp = (HBITMAP) BmpFilterLoadBitmap32(NULL, (LPARAM)szFinalName);
     if (hBmp == 0)
 		return -4;
 
@@ -1524,51 +1467,14 @@ int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 		if (CallProtoService(protocol, PS_GETMYAVATARIMAGEPROPORTION, 0, 0) == PIP_SQUARE)
 			square = true;
 
-	BITMAP bminfo;
-	GetObject(hBmp, sizeof(bminfo), &bminfo);
+	ResizeBitmap rb;
+	rb.size = sizeof(ResizeBitmap);
+	rb.hBmp = hBmp;
+	rb.max_height = (height <= 0 ? 300 : height);
+	rb.max_width = (width <= 0 ? 300 : width);
+	rb.fit = square ? RESIZEBITMAP_MAKE_SQUARE : RESIZEBITMAP_KEEP_PROPORTIONS;
 
-	if (width == -1) width = min(300, bminfo.bmWidth);
-	if (height == -1) height = min(300, bminfo.bmHeight);
-
-	if (square)
-		width = height = min(width, height);
-
-	// Make proportional
-	if (width < bminfo.bmWidth || height < bminfo.bmHeight)
-	{
-		if (square)
-		{
-			if (height * bminfo.bmWidth / bminfo.bmHeight >= width)
-				width = height * bminfo.bmWidth / bminfo.bmHeight;
-			else
-				height = width * bminfo.bmHeight / bminfo.bmWidth;
-		}
-		else
-		{
-			if (height * bminfo.bmWidth / bminfo.bmHeight <= width)
-				width = height * bminfo.bmWidth / bminfo.bmHeight;
-			else
-				height = width * bminfo.bmHeight / bminfo.bmWidth;
-		}
-	} else {
-		width = bminfo.bmWidth;
-		height = bminfo.bmHeight;
-
-		if (square)
-			width = height = min(width, height);
-	}
-
-	// Has to stretch?
-	HBITMAP hBmpProto;
-	if (width != bminfo.bmWidth || height != bminfo.bmHeight 
-		|| (square && width != height))
-	{
-		hBmpProto = StretchBitmap(hBmp, width, height, square);
-	}
-	else
-	{
-		hBmpProto = hBmp;
-	}
+	HBITMAP hBmpProto = (HBITMAP) BmpFilterResizeBitmap((WPARAM)&rb, 0);
 
 	// Save to a temporary file
 	char temp_file[MAX_PATH];
@@ -1589,39 +1495,42 @@ int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	bool saved = false;
 
 	// What format?
-	if (ServiceExists(MS_DIB2PNG) // Png is default
+	if (BmpFilterCanSaveBitmap(0, PA_FORMAT_PNG) // Png is default
 		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
 			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_PNG)))
 	{
 		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".png");
-		if (!SavePNG(hBmpProto, image_file_name))
+		if (!BmpFilterSaveBitmap((WPARAM)hBmpProto, (LPARAM)image_file_name))
 			saved = true;
 	}
 	
 	if (!saved  // Jpeg is second
+		&& BmpFilterCanSaveBitmap(0, PA_FORMAT_JPEG)
 		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
 			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_JPEG)))
 	{
 		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".jpg");
-		if (!SaveJPEG(hBmpProto, image_file_name))
+		if (!BmpFilterSaveBitmap((WPARAM)hBmpProto, (LPARAM)image_file_name))
 			saved = true;
 	}
 	
 	if (!saved  // Gif
+		&& BmpFilterCanSaveBitmap(0, PA_FORMAT_GIF)
 		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
 			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_GIF)))
 	{
 		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".gif");
-		if (!SaveGIF(hBmpProto, image_file_name))
+		if (!BmpFilterSaveBitmap((WPARAM)hBmpProto, (LPARAM)image_file_name))
 			saved = true;
 	}
 	
 	if (!saved   // Bitmap
+		&& BmpFilterCanSaveBitmap(0, PA_FORMAT_BMP)
 		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
 			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_BMP)))
 	{
 		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".bmp");
-		if (!SaveBMP(hBmpProto, image_file_name))
+		if (!BmpFilterSaveBitmap((WPARAM)hBmpProto, (LPARAM)image_file_name))
 			saved = true;
 	}
 	
@@ -1640,7 +1549,8 @@ int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 
 	DeleteFileA(temp_file);
 
-	if (hBmpProto != hBmp) DeleteObject(hBmpProto);
+	if (hBmpProto != hBmp) 
+		DeleteObject(hBmpProto);
 
 	return saved ? ret : -3;
 }
@@ -2011,6 +1921,10 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
     DestroyServiceFunction(MS_AV_DRAWAVATAR);
 	DestroyServiceFunction(MS_AV_GETMYAVATAR);
 	DestroyServiceFunction(MS_AV_REPORTMYAVATARCHANGED);
+	DestroyServiceFunction(MS_AV_LOADBITMAP32);
+	DestroyServiceFunction(MS_AV_SAVEBITMAP);
+	DestroyServiceFunction(MS_AV_CANSAVEBITMAP);
+	DestroyServiceFunction(MS_AV_RESIZEBITMAP);
 
     DestroyHookableEvent(hEventChanged);
 	DestroyHookableEvent(hMyAvatarChanged);
@@ -2216,7 +2130,6 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
 static int LoadAvatarModule()
 {
 //    HMODULE hModule;
-
 	HookEvent(ME_OPT_INITIALISE, OptInit);
     HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
     hContactSettingChanged = HookEvent(ME_DB_CONTACT_SETTINGCHANGED, ContactSettingChanged);
@@ -2231,6 +2144,10 @@ static int LoadAvatarModule()
     CreateServiceFunction(MS_AV_DRAWAVATAR, DrawAvatarPicture);
 	CreateServiceFunction(MS_AV_GETMYAVATAR, GetMyAvatar);
 	CreateServiceFunction(MS_AV_REPORTMYAVATARCHANGED, ReportMyAvatarChanged);
+	CreateServiceFunction(MS_AV_LOADBITMAP32, BmpFilterLoadBitmap32);
+	CreateServiceFunction(MS_AV_SAVEBITMAP, BmpFilterSaveBitmap);
+	CreateServiceFunction(MS_AV_CANSAVEBITMAP, BmpFilterCanSaveBitmap);
+	CreateServiceFunction(MS_AV_RESIZEBITMAP, BmpFilterResizeBitmap);
     hEventChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
 	hMyAvatarChanged = CreateHookableEvent(ME_AV_MYAVATARCHANGED);
 	AllocCacheBlock();
@@ -2276,11 +2193,15 @@ extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)
 {
     pluginLink = link;
     
+	LoadGdiPlus();
+
     return(LoadAvatarModule());
 }
 
 extern "C" int __declspec(dllexport) Unload(void)
 {
+	FreeGdiPlus();
+
     return ShutdownProc(0, 0);
     //return 0;
 }

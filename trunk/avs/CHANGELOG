@@ -1,6 +1,14 @@
 
         Version history:
 
+0.0.1.24 - 2006/04/29
+
+		* Loads GDI+ dynamically. With this the dll should load in Win98.
+
+0.0.1.23 - 2006/04/28
+
+		+ Services to load/resize/save images (Pescuma)
+		+ When doing a <reset> ask if the picture should be deleted from disk. (Nightwish)
 
 0.0.1.22 - 2006/04/26
 
