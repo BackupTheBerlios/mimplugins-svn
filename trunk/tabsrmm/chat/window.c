@@ -2392,6 +2392,7 @@ LABEL_SHOWWINDOW:
 					smaddInfo.xPosition = rc.left+3;
 					smaddInfo.yPosition = rc.top-1;
                     smaddInfo.hContact = si->hContact;
+                    smaddInfo.hwndParent = dat->pContainer->hwnd;
 					if(myGlobals.g_SmileyAddAvail)
 						CallService(MS_SMILEYADD_SHOWSELECTION, 0, (LPARAM) &smaddInfo);
 

@@ -63,6 +63,37 @@ static int EventToIndex(LOGINFO * lin)
 	}
 	return 0;
 }
+static BYTE EventToSymbol(LOGINFO *lin)
+{
+    switch(lin->iType) {
+        case GC_EVENT_MESSAGE:
+            if(lin->bIsMe)
+                return 0x37;
+            else
+                return 0x38;
+        case GC_EVENT_JOIN:
+            return 0x34;
+        case GC_EVENT_PART:
+            return 0x33;
+        case GC_EVENT_QUIT:
+            return 0x39;
+        case GC_EVENT_NICK:
+            return 0x71;
+        case GC_EVENT_KICK:
+            return 0x72;
+        case GC_EVENT_NOTICE:
+            return 0x28;
+        case GC_EVENT_INFORMATION:
+            return 0x69;
+        case GC_EVENT_ADDSTATUS:
+            return 0x35;
+        case GC_EVENT_REMOVESTATUS:
+            return 0x36;
+        case GC_EVENT_ACTION:
+            return 0x60;
+    }
+    return 0x73;
+}
 static int EventToIcon(LOGINFO * lin)
 {
 	switch(lin->iType)
@@ -94,7 +125,7 @@ static char *Log_SetStyle(int style, int fontindex)
 {
     static char szStyle[128];
     mir_snprintf(szStyle, sizeof(szStyle), "\\f%u\\cf%u\\ul0\\highlight0\\b%d\\i%d\\fs%u", style, style+1, aFonts[fontindex].lf.lfWeight >= FW_BOLD ? 1 : 0, aFonts[fontindex].lf.lfItalic, 2 * abs(aFonts[fontindex].lf.lfHeight) * 74 / logPixelSY);
-   return szStyle;
+    return szStyle;
 }
 
 static void Log_Append(char **buffer, int *cbBufferEnd, int *cbBufferAlloced, const char *fmt, ...)
@@ -409,19 +440,23 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
 		if(streamData->si->iType != GCW_CHATROOM || !streamData->si->bFilterEnabled || (streamData->si->iLogFilterFlags&lin->iType) != 0)
 		{
 			// create new line, and set font and color
-			Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\par%s ", Log_SetStyle(0, 0));
+			Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\par\\sl%d%s ", 1000, Log_SetStyle(0, 0));
 
 			// Insert icon
-			if (lin->iType&g_Settings.dwIconFlags || lin->bIsHighlighted&&g_Settings.dwIconFlags&GC_EVENT_HIGHLIGHT)
-			{
-				int iIndex = (lin->bIsHighlighted&&g_Settings.dwIconFlags&GC_EVENT_HIGHLIGHT) ? ICON_HIGHLIGHT : EventToIcon(lin);
-				Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\f0\\fs14");
-				while (bufferAlloced - bufferEnd < logIconBmpSize[0])
-					bufferAlloced += 4096;
-				buffer = (char *) realloc(buffer, bufferAlloced);
-				CopyMemory(buffer + bufferEnd, pLogIconBmpBits[iIndex], logIconBmpSize[iIndex]);
-				bufferEnd += logIconBmpSize[iIndex];
-			}
+            if (g_Settings.LogSymbols)                // use symbols
+                Log_Append(&buffer, &bufferEnd, &bufferAlloced, "%s %c", Log_SetStyle(17, 17), EventToSymbol(lin));
+            else {
+                if (lin->iType&g_Settings.dwIconFlags || lin->bIsHighlighted&&g_Settings.dwIconFlags&GC_EVENT_HIGHLIGHT)
+                {
+                    int iIndex = (lin->bIsHighlighted&&g_Settings.dwIconFlags&GC_EVENT_HIGHLIGHT) ? ICON_HIGHLIGHT : EventToIcon(lin);
+                    Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\f0\\fs14");
+                    while (bufferAlloced - bufferEnd < logIconBmpSize[0])
+                        bufferAlloced += 4096;
+                    buffer = (char *) realloc(buffer, bufferAlloced);
+                    CopyMemory(buffer + bufferEnd, pLogIconBmpBits[iIndex], logIconBmpSize[iIndex]);
+                    bufferEnd += logIconBmpSize[iIndex];
+                }
+            }
 
 			if(g_Settings.TimeStampEventColour)
 			{
@@ -739,31 +774,45 @@ char * Log_CreateRtfHeader(MODULEINFO * mi)
 
 	// font table
     Log_Append(&buffer, &bufferEnd, &bufferAlloced, "{\\rtf1\\ansi\\deff0{\\fonttbl");
-	for (i = 0; i < 17 ; i++)
+	for (i = 0; i < OPTIONS_FONTCOUNT ; i++)
 	{
 		Log_Append(&buffer, &bufferEnd, &bufferAlloced, RTF_FORMAT, i, aFonts[i].lf.lfCharSet, aFonts[i].lf.lfFaceName);
 	}
 
 	// colour table
 	Log_Append(&buffer, &bufferEnd, &bufferAlloced, "}{\\colortbl ;");
-	for (i = 0; i < 17; i++)
+	for (i = 0; i < OPTIONS_FONTCOUNT; i++)
 	{
 		Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(aFonts[i].color), GetGValue(aFonts[i].color), GetBValue(aFonts[i].color));
 	}
+
 	for(i = 0; i < mi->nColorCount; i++)
 	{
 		Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(mi->crColors[i]), GetGValue(mi->crColors[i]), GetBValue(mi->crColors[i]));
 	}
 
 	// new paragraph
-	Log_Append(&buffer, &bufferEnd, &bufferAlloced, "}\\pard");
+	Log_Append(&buffer, &bufferEnd, &bufferAlloced, "}\\pard\\sl%d", 1000);
 
 	// set tabs and indents
 	{ 
 		int iIndent = 0;
 
-		if(g_Settings.dwIconFlags)
-		{
+        if(g_Settings.LogSymbols) {
+            char szString[2];
+            LOGFONT lf;
+            HFONT hFont;
+            int iText;
+            
+            szString[1] = 0;
+            szString[0] = 0x28;
+            LoadMsgDlgFont(17, &lf, NULL, "ChatFonts");
+            hFont = CreateFontIndirect(&lf);
+            iText = GetTextPixelSize(szString, hFont, TRUE) + 5;
+            DeleteObject(hFont);
+            iIndent += (iText * 1440)/logPixelSX;
+            Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\tx%u", iIndent);
+        } else if(g_Settings.dwIconFlags) {
 			iIndent += (14*1440)/logPixelSX;
 			Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\tx%u", iIndent);
 		}
@@ -809,19 +858,22 @@ void LoadMsgLogBitmaps(void)
 	bih.biWidth = 10; //GetSystemMetrics(SM_CXSMICON);
 	widthBytes = ((bih.biWidth * bih.biBitCount + 31) >> 5) * 4;
 	rc.top = rc.left = 0;
-	rc.right = bih.biWidth;
-	rc.bottom = bih.biHeight;
+	rc.right = 16; //bih.biWidth;
+	rc.bottom = 16; //bih.biHeight;
 	hdc = GetDC(NULL);
 	hBmp = CreateCompatibleBitmap(hdc, bih.biWidth, bih.biHeight);
 	hdcMem = CreateCompatibleDC(hdc);
+
 	pBmpBits = (PBYTE) malloc(widthBytes * bih.biHeight);
 	for (i = 0; i < sizeof(pLogIconBmpBits) / sizeof(pLogIconBmpBits[0]); i++) {
 		hIcon = hIcons[i];
 		pLogIconBmpBits[i] = (PBYTE) malloc(RTFPICTHEADERMAXSIZE + (bih.biSize + widthBytes * bih.biHeight) * 2);
 		rtfHeaderSize = sprintf(pLogIconBmpBits[i], "{\\pict\\dibitmap0\\wbmbitspixel%u\\wbmplanes1\\wbmwidthbytes%u\\picw%u\\pich%u ", bih.biBitCount, widthBytes, bih.biWidth, bih.biHeight);
 		hoBmp = (HBITMAP) SelectObject(hdcMem, hBmp);
-		FillRect(hdcMem, &rc, hBkgBrush);
-		DrawIconEx(hdcMem, 0, 0, hIcon, bih.biWidth, bih.biHeight, 0, NULL, DI_NORMAL);
+
+        FillRect(hdcMem, &rc, hBkgBrush);
+		DrawIconEx(hdcMem, 0, 0, hIcon, 10, 10, 0, NULL, DI_NORMAL);
+        
 		SelectObject(hdcMem, hoBmp);
 		GetDIBits(hdc, hBmp, 0, bih.biHeight, pBmpBits, (BITMAPINFO *) & bih, DIB_RGB_COLORS);
 		{

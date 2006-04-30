@@ -70,6 +70,7 @@ static struct FontOptionsList CHAT_fontOptionsList[] = {
 	{_T("User disables status for ..."), RGB(150, 70, 70), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
 	{_T("Action message"), RGB(160, 90, 160), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
 	{_T("Highlighted message"), RGB(180, 150, 80), _T("Verdana"), DEFAULT_CHARSET, 0, -13},
+    {_T("Chat log symbols (Webdings)"), RGB(170, 170, 170), _T("Verdana"), DEFAULT_CHARSET, 0, -12},
 	{_T("User list members (Online)"), RGB(0,0, 0), _T("Verdana"), DEFAULT_CHARSET, 0, -12},
 	{_T("User list members (away)"), RGB(170, 170, 170), _T("Verdana"), DEFAULT_CHARSET, 0, -12},
 };
@@ -140,7 +141,8 @@ static struct branch_t branch2[] = {
 	{_T("Add \':\' to auto-completed user names"), "AddColonToAutoComplete", 0, 1, NULL},
 	{_T("Strip colors from messages in the log"), "StripFormatting", 0, 0, NULL},
 	{_T("Enable the \'event filter\' for new rooms"), "FilterEnabled", 0,0, NULL},
-    {_T("Use IRC style status indicators in the nicklist (@, %, + etc.)"), "ClassicIndicators", 0,1, NULL}
+    {_T("Use IRC style status indicators in the nicklist (@, %, + etc.)"), "ClassicIndicators", 0,1, NULL},
+    {_T("Use text symbols instead of icons in the chat log (faster)"), "LogSymbols", 0,0, NULL}
 };
 static struct branch_t branch3[] = {
 	{_T("Show topic changes"), "FilterFlags", GC_EVENT_TOPIC, 0, NULL},
@@ -232,12 +234,18 @@ void LoadMsgDlgFont(int i, LOGFONT *lf, COLORREF* colour, char *szMod)
         lf->lfQuality = DEFAULT_QUALITY;
         lf->lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
         wsprintfA(str, "Font%d", i);
-        if (DBGetContactSettingTString(NULL, szMod, str, &dbv)) {
-            lstrcpy(lf->lfFaceName, fontOptionsList[i].szDefFace);
+        if(i == 17 && !strcmp(szMod, "ChatFonts")) {
+            lf->lfCharSet = SYMBOL_CHARSET;
+            lstrcpyn(lf->lfFaceName, _T("Webdings"), SIZEOF(lf->lfFaceName));
         }
         else {
-            lstrcpyn(lf->lfFaceName, dbv.ptszVal, SIZEOF(lf->lfFaceName));
-            DBFreeVariant(&dbv);
+            if (DBGetContactSettingTString(NULL, szMod, str, &dbv)) {
+                lstrcpy(lf->lfFaceName, fontOptionsList[i].szDefFace);
+            }
+            else {
+                lstrcpyn(lf->lfFaceName, dbv.ptszVal, SIZEOF(lf->lfFaceName));
+                DBFreeVariant(&dbv);
+            }
         }
     }
 }
@@ -792,12 +800,21 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 	{
 		DRAWITEMSTRUCT* dis = (DRAWITEMSTRUCT *) lParam;
 		HFONT hFont, hoFont;
+        BOOL fontDelete = FALSE;
 		TCHAR* pszText;
 		int iItem = dis->itemData - 1;
-		hFont = CreateFont(fontOptionsList[iItem].size, 0, 0, 0,
-			fontOptionsList[iItem].style & FONTF_BOLD ? FW_BOLD : FW_NORMAL,
-			fontOptionsList[iItem].style & FONTF_ITALIC ? 1 : 0, 0, 0, fontOptionsList[iItem].charset, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, fontOptionsList[iItem].szFace);
-		hoFont = (HFONT) SelectObject(dis->hDC, hFont);
+        
+        if(iItem != 17 || fontOptionsList != CHAT_fontOptionsList) {
+            fontDelete = TRUE;
+            hFont = CreateFont(fontOptionsList[iItem].size, 0, 0, 0,
+                fontOptionsList[iItem].style & FONTF_BOLD ? FW_BOLD : FW_NORMAL,
+                fontOptionsList[iItem].style & FONTF_ITALIC ? 1 : 0, 0, 0, fontOptionsList[iItem].charset, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, fontOptionsList[iItem].szFace);
+        }
+        else 
+            hFont = GetStockObject(DEFAULT_GUI_FONT);
+
+        hoFont = (HFONT) SelectObject(dis->hDC, hFont);
+        
 		SetBkMode(dis->hDC, TRANSPARENT);
 		if(fontOptionsList == CHAT_fontOptionsList && (iItem == 18 || iItem == 19))
 			FillRect(dis->hDC, &dis->rcItem, hListColourBrush);
@@ -812,8 +829,9 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 		SetTextColor(dis->hDC, fontOptionsList[iItem].colour);
 		pszText = TranslateTS(fontOptionsList[iItem].szDescr);
 		TextOut(dis->hDC, dis->rcItem.left, dis->rcItem.top, pszText, lstrlen(pszText));
-		SelectObject(dis->hDC, hoFont);
-		DeleteObject(hFont);
+        SelectObject(dis->hDC, hoFont);
+        if(fontDelete)
+            DeleteObject(hFont);
 		return TRUE;
 	}
 	
@@ -1316,7 +1334,7 @@ void LoadGlobalSettings(void)
 	g_Settings.FlashWindow = (BOOL)DBGetContactSettingByte(NULL, "Chat", "FlashWindow", 0);
     g_Settings.FlashWindowHightlight = (BOOL)DBGetContactSettingByte(NULL, "Chat", "FlashWindowHighlight", 0);
 	g_Settings.HighlightEnabled = (BOOL)DBGetContactSettingByte(NULL, "Chat", "HighlightEnabled", 1);
-	g_Settings.crUserListColor = (BOOL)DBGetContactSettingDword(NULL, "ChatFonts", "Font17Col", RGB(0,0,0));
+	g_Settings.crUserListColor = (BOOL)DBGetContactSettingDword(NULL, "ChatFonts", "Font18Col", RGB(0,0,0));
 	g_Settings.crUserListBGColor = (BOOL)DBGetContactSettingDword(NULL, "Chat", "ColorNicklistBG", GetSysColor(COLOR_WINDOW));
 	g_Settings.crUserListHeadingsColor = (BOOL)DBGetContactSettingDword(NULL, "ChatFonts", "Font18Col", RGB(170,170,170));
 	g_Settings.crLogBackground = (BOOL)DBGetContactSettingDword(NULL, "Chat", "ColorLogBG", GetSysColor(COLOR_WINDOW));
@@ -1329,6 +1347,7 @@ void LoadGlobalSettings(void)
 	g_Settings.crPUBkgColour = DBGetContactSettingDword(NULL, "Chat", "PopupColorBG", GetSysColor(COLOR_WINDOW));
 	g_Settings.crPUTextColour = DBGetContactSettingDword(NULL, "Chat", "PopupColorText", 0);
 	g_Settings.ClassicIndicators = DBGetContactSettingByte(NULL, "Chat", "ClassicIndicators", 1);
+    g_Settings.LogSymbols = DBGetContactSettingByte(NULL, "Chat", "LogSymbols", 0);
     
 	InitSetting(&g_Settings.pszTimeStamp, "HeaderTime", "[%H:%M]"); 
 	InitSetting(&g_Settings.pszTimeStampLog, "LogTimestamp", "[%d %b %y %H:%M]"); 
@@ -1356,12 +1375,12 @@ void LoadGlobalSettings(void)
 
 	if(g_Settings.UserListFont)
 		DeleteObject(g_Settings.UserListFont);
-	LoadMsgDlgFont(17, &lf, NULL, "ChatFonts");
+	LoadMsgDlgFont(18, &lf, NULL, "ChatFonts");
 	g_Settings.UserListFont = CreateFontIndirect(&lf);
 	
 	if(g_Settings.UserListHeadingsFont)
 		DeleteObject(g_Settings.UserListHeadingsFont);
-	LoadMsgDlgFont(18, &lf, NULL, "ChatFonts");
+	LoadMsgDlgFont(19, &lf, NULL, "ChatFonts");
 	g_Settings.UserListHeadingsFont = CreateFontIndirect(&lf);
 }
 

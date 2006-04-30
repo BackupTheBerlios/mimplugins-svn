@@ -38,6 +38,7 @@ struct GlobalLogSettings_t g_Settings;
 char *			pszActiveWndID = 0;
 char *			pszActiveWndModule = 0;
 int             g_chat_integration_enabled = 0;
+int             g_chat_fully_initialized = 0;
 
 int Chat_Load(PLUGINLINK *link)
 {
