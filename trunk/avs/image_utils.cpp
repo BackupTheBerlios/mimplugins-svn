@@ -412,7 +412,7 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 		char* pszExt = szFilename+filenameLen-4;
 		if ( !lstrcmpiA( pszExt,".bmp" ) || !lstrcmpiA( pszExt, ".rle" )) {
 			// LoadImage can do this much faster
-			hBmpCopy = (HBITMAP) LoadImageA( GetModuleHandle(NULL), szFilename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION );
+			hBmpCopy = (HBITMAP) LoadImageA( GetModuleHandle(NULL), szFilename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
 			CorrectBitmap32Alpha(hBmpCopy);
 			return (int) hBmpCopy;
 		}
@@ -498,46 +498,6 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 
 	CorrectBitmap32Alpha(hBmpCopy);
 	return (int)hBmpCopy;
-/*
-	OleInitialize(NULL);
-	MultiByteToWideChar(CP_ACP,0,szFilename,-1,pszwFilename,MAX_PATH);
-	if(S_OK!=OleLoadPicturePath(pszwFilename,NULL,0,0,IID_IPicture,(PVOID*)&pic)) {
-		OleUninitialize();
-		return (int)(HBITMAP)NULL;
-	}
-	pic->get_Type(&picType);
-	if(picType!=PICTYPE_BITMAP) {
-		pic->Release();
-		OleUninitialize();
-		return (int)(HBITMAP)NULL;
-	}
-
-	// Get picture size
-	hdcMem = CreateCompatibleDC(NULL);
-
-    pic->get_Width(&width);
-    pic->get_Height(&height);
-	sz.cx = width;
-	sz.cy = height;
-    SetHIMETRICtoDP(hdcMem, &sz);
-
-	// Create a 32 bpp transparent bitmap
-	hBmpCopy = CreateBitmap32(sz.cx, sz.cy);
-	MakeBmpTransparent(hBmpCopy);
-	hOldBitmap = (HBITMAP) SelectObject(hdcMem, hBmpCopy);
-
-	// Draw image over it
-	pic->Render(hdcMem, 0, 0, sz.cx, sz.cy, 0, 0, width, height, NULL);
-
-	// Return it
-	SelectObject(hdcMem, hOldBitmap);
-	DeleteDC(hdcMem);
-	pic->Release();
-	OleUninitialize();
-
-	CorrectBitmap32Alpha(hBmpCopy);
-	return (int)hBmpCopy;
-	*/
 }
 
 

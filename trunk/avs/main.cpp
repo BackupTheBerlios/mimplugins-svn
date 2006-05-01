@@ -1952,10 +1952,11 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 		pNode = pNode->pNextNode;
     }
 
-	for(int i = 0; i < g_curBlock; i++)
+	int i;
+	for(i = 0; i < g_curBlock; i++)
 		free(g_cacheBlocks[i]);
 
-	for(int i = 0; i < g_protocount; i++) {
+	for(i = 0; i < g_protocount; i++) {
         if(g_ProtoPictures[i].hbmPic != 0)
             DeleteObject(g_ProtoPictures[i].hbmPic);
 		if(g_MyAvatars[i].hbmPic != 0)
