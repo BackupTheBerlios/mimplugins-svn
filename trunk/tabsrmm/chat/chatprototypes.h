@@ -63,7 +63,7 @@ BOOL				SM_ChangeNick(char *pszID, char * pszModule, GCEVENT * gce);
 BOOL				SM_RemoveUser(char *pszID, char * pszModule, char * pszUID);
 BOOL				SM_SetOffline(char *pszID, char * pszModule);
 BOOL				SM_SetTabbedWindowHwnd(SESSION_INFO * si, HWND hwnd);
-HICON				SM_GetStatusIcon(SESSION_INFO * si, USERINFO * ui);
+HICON				SM_GetStatusIcon(SESSION_INFO * si, USERINFO * ui, char *szIndicator);
 BOOL				SM_SetStatus(char *pszID, char * pszModule, int wStatus);
 BOOL				SM_SetStatusEx(char *pszID, char * pszModule, char * pszText);
 BOOL				SM_SendUserMessage(char *pszID, char * pszModule, char * pszText);

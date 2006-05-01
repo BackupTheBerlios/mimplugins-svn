@@ -142,7 +142,9 @@ static struct branch_t branch2[] = {
 	{_T("Strip colors from messages in the log"), "StripFormatting", 0, 0, NULL},
 	{_T("Enable the \'event filter\' for new rooms"), "FilterEnabled", 0,0, NULL},
     {_T("Use IRC style status indicators in the nicklist (@, %, + etc.)"), "ClassicIndicators", 0,1, NULL},
-    {_T("Use text symbols instead of icons in the chat log (faster)"), "LogSymbols", 0,0, NULL}
+    {_T("Use text symbols instead of icons in the chat log (faster)"), "LogSymbols", 0,0, NULL},
+    {_T("Make nicknames clickable hyperlinks"), "ClickableNicks", 0,0, NULL},
+    {_T("Colorize nicknames (not when using clickable nicknames)"), "ColorizeNicks", 0,0, NULL}
 };
 static struct branch_t branch3[] = {
 	{_T("Show topic changes"), "FilterFlags", GC_EVENT_TOPIC, 0, NULL},
@@ -633,15 +635,8 @@ BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam
                             SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch5, sizeof(branch5) / sizeof(branch5[0]));
                             if(myGlobals.g_PopupAvail)
                                 SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch6, sizeof(branch6) / sizeof(branch6[0]));
-                            g_Settings.dwIconFlags = DBGetContactSettingDword(NULL, "Chat", "IconFlags", 0x0000);
-                            g_Settings.dwTrayIconFlags = DBGetContactSettingDword(NULL, "Chat", "TrayIconFlags", 0x1000);
-                            g_Settings.dwPopupFlags = DBGetContactSettingDword(NULL, "Chat", "PopupFlags", 0x0000);
-                            g_Settings.StripFormat = (BOOL)DBGetContactSettingByte(NULL, "Chat", "TrimFormatting", 0);
-                            g_Settings.TrayIconInactiveOnly = (BOOL)DBGetContactSettingByte(NULL, "Chat", "TrayIconInactiveOnly", 1);
-                            g_Settings.PopUpInactiveOnly = (BOOL)DBGetContactSettingByte(NULL, "Chat", "PopUpInactiveOnly", 1);
-
-                            g_Settings.LogIndentEnabled = (DBGetContactSettingByte(NULL, "Chat", "LogIndentEnabled", 1) != 0)?TRUE:FALSE;
                             MM_FontsChanged();
+                            LoadGlobalSettings();
                             SM_BroadcastMessage(NULL, GC_SETWNDPROPS, 0, 0, TRUE);
                         }
                         DBWriteContactSettingByte(NULL, SRMSGMOD_T, "enable_chat", IsDlgButtonChecked(hwndDlg, IDC_CHAT_ENABLE) ? 1 : 0);
@@ -767,7 +762,16 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
         SendDlgItemMessage(hwndDlg, IDC_FONTCATEGORY, CB_INSERTSTRING, -1, (LPARAM)TranslateT("Group chat fonts"));
         SendDlgItemMessage(hwndDlg, IDC_FONTCATEGORY, CB_INSERTSTRING, -1, (LPARAM)TranslateT("Info panel and misc fonts"));
 
+        SendDlgItemMessage(hwndDlg, IDC_NICKCOLORS, CB_INSERTSTRING, -1, (LPARAM)TranslateT("Channel operators"));
+        SendDlgItemMessage(hwndDlg, IDC_NICKCOLORS, CB_INSERTSTRING, -1, (LPARAM)TranslateT("Half operators"));
+        SendDlgItemMessage(hwndDlg, IDC_NICKCOLORS, CB_INSERTSTRING, -1, (LPARAM)TranslateT("Voiced"));
+        SendDlgItemMessage(hwndDlg, IDC_NICKCOLORS, CB_INSERTSTRING, -1, (LPARAM)TranslateT("Extended mode 1"));
+        SendDlgItemMessage(hwndDlg, IDC_NICKCOLORS, CB_INSERTSTRING, -1, (LPARAM)TranslateT("Extended mode 2"));
+
+        SendDlgItemMessage(hwndDlg, IDC_NICKCOLOR, CPM_SETCOLOUR, 0, g_Settings.nickColors[0]);
+        
         SendDlgItemMessage(hwndDlg, IDC_FONTCATEGORY, CB_SETCURSEL, 0, 0);
+        SendDlgItemMessage(hwndDlg, IDC_NICKCOLORS, CB_SETCURSEL, 0, 0);
 
         fontOptionsList = IM_fontOptionsList;
 		fontCount = MSGDLGFONTCOUNT;
@@ -850,7 +854,8 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 	case WM_COMMAND:
 		if(LOWORD(wParam) == IDC_FONTCATEGORY && HIWORD(wParam) == CBN_SELCHANGE) {
 			int sel = SendDlgItemMessage(hwndDlg, IDC_FONTCATEGORY, CB_GETCURSEL, 0, 0);
-			SendDlgItemMessage(hwndDlg, IDC_CHAT_FONTLIST, LB_RESETCONTENT, 0, 0);
+
+            SendDlgItemMessage(hwndDlg, IDC_CHAT_FONTLIST, LB_RESETCONTENT, 0, 0);
 			switch(sel) {
 				case 0:
 					fontOptionsList = IM_fontOptionsList;
@@ -868,6 +873,13 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 			LoadFontsToList(hwndDlg);
 			break;
 		}
+        else if(LOWORD(wParam) == IDC_NICKCOLORS && HIWORD(wParam) == CBN_SELCHANGE) {
+            int iSel = SendDlgItemMessage(hwndDlg, IDC_NICKCOLORS, CB_GETCURSEL, 0, 0);
+
+            if(iSel >= 0 && iSel < 5)
+                SendDlgItemMessage(hwndDlg, IDC_NICKCOLOR, CPM_SETCOLOUR, 0, g_Settings.nickColors[iSel]);
+            break;
+        }
 		if(	(LOWORD(wParam)		  == IDC_INSTAMP
 				|| LOWORD(wParam) == IDC_OUTSTAMP
 				|| LOWORD(wParam) == IDC_TIMESTAMP
@@ -879,6 +891,13 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 				&& (HIWORD(wParam)!=EN_CHANGE || (HWND)lParam!=GetFocus()))	return 0;
 
 		switch (LOWORD(wParam)) {
+        case IDC_NICKCOLOR:
+        {
+            int iSel = (int)SendDlgItemMessage(hwndDlg, IDC_NICKCOLORS, CB_GETCURSEL, 0, 0);
+            if(iSel >= 0 && iSel < 5)
+                g_Settings.nickColors[iSel] = SendDlgItemMessage(hwndDlg, IDC_NICKCOLOR, CPM_GETCOLOUR, 0, 0);
+            break;
+        }
 		case IDC_MESSAGEBKG:
 			DeleteObject(hMessageColourBrush);
 			hMessageColourBrush = CreateSolidBrush(SendDlgItemMessage(hwndDlg, IDC_MESSAGEBKG, CPM_GETCOLOUR, 0, 0));
@@ -1020,7 +1039,7 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 			int iLen;
 			char * pszText = NULL;
 			char * p2 = NULL;
-
+            
             if(g_chat_integration_enabled) {
                 iLen = GetWindowTextLength(GetDlgItem(hwndDlg, IDC_HIGHLIGHTWORDS));
                 if ( iLen > 0 ) {
@@ -1146,12 +1165,18 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
                 LOGFONT lf;
                 HFONT hFont;
                 int iText;
+                int i;
+                char szBuf[40];
                 
                 LoadLogFonts();
                 FreeMsgLogBitmaps();
                 LoadMsgLogBitmaps();
 
-
+                for(i = 0; i < 5; i++) {
+                    mir_snprintf(szBuf, 20, "NickColor%d", i);
+                    DBWriteContactSettingDword(NULL, "Chat", szBuf, g_Settings.nickColors[i]);
+                }
+                
                 LoadMsgDlgFont(0, &lf, NULL, "ChatFonts");
                 hFont = CreateFontIndirect(&lf);
                 iText = GetTextPixelSize(MakeTimeStamp(g_Settings.pszTimeStamp, time(NULL)),hFont, TRUE);
@@ -1162,6 +1187,7 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
 
                 MM_FontsChanged();						
                 MM_FixColors();
+                LoadGlobalSettings();
                 SM_BroadcastMessage(NULL, GC_SETWNDPROPS, 0, 0, TRUE);
             }
             
@@ -1318,7 +1344,9 @@ int Chat_OptionsInitialize(WPARAM wParam, LPARAM lParam)
 void LoadGlobalSettings(void)
 {
 	LOGFONT lf;
-
+    int i;
+    char szBuf[40];
+    
 	g_Settings.LogLimitNames = DBGetContactSettingByte(NULL, "Chat", "LogLimitNames", 1);
 	g_Settings.ShowTime = DBGetContactSettingByte(NULL, "Chat", "ShowTimeStamp", 1);
 	g_Settings.SoundsFocus = DBGetContactSettingByte(NULL, "Chat", "SoundsFocus", 0);
@@ -1348,6 +1376,8 @@ void LoadGlobalSettings(void)
 	g_Settings.crPUTextColour = DBGetContactSettingDword(NULL, "Chat", "PopupColorText", 0);
 	g_Settings.ClassicIndicators = DBGetContactSettingByte(NULL, "Chat", "ClassicIndicators", 1);
     g_Settings.LogSymbols = DBGetContactSettingByte(NULL, "Chat", "LogSymbols", 0);
+    g_Settings.ClickableNicks = DBGetContactSettingByte(NULL, "Chat", "ClickableNicks", 0);
+    g_Settings.ColorizeNicks = DBGetContactSettingByte(NULL, "Chat", "ColorizeNicks", 0);
     
 	InitSetting(&g_Settings.pszTimeStamp, "HeaderTime", "[%H:%M]"); 
 	InitSetting(&g_Settings.pszTimeStampLog, "LogTimestamp", "[%d %b %y %H:%M]"); 
@@ -1382,6 +1412,11 @@ void LoadGlobalSettings(void)
 		DeleteObject(g_Settings.UserListHeadingsFont);
 	LoadMsgDlgFont(19, &lf, NULL, "ChatFonts");
 	g_Settings.UserListHeadingsFont = CreateFontIndirect(&lf);
+
+    for(i = 0; i < 5; i++) {
+        mir_snprintf(szBuf, 20, "NickColor%d", i);
+        g_Settings.nickColors[i] = DBGetContactSettingDword(NULL, "Chat", szBuf, g_Settings.crUserListColor);
+    }
 }
 
 static void FreeGlobalSettings(void)

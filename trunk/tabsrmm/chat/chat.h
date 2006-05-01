@@ -343,6 +343,9 @@ struct GlobalLogSettings_t {
 	COLORREF	crPUBkgColour;
     BYTE        ClassicIndicators;
     BYTE        LogSymbols;
+    BYTE        ClickableNicks;
+    BYTE        ColorizeNicks;
+    COLORREF    nickColors[6];
 };
 extern struct GlobalLogSettings_t g_Settings;
 

@@ -506,7 +506,7 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
                 STATUSINFO *ti;
                 char pszIndicator[2] = "\0\0";
                 
-                if(g_Settings.ClassicIndicators) {
+                if(g_Settings.ClassicIndicators || g_Settings.ColorizeNicks) {
                     USERINFO *ui = streamData->si->pUsers;
                     
                     while(ui) {
@@ -541,7 +541,7 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
                 }
                 Log_Append(&buffer, &bufferEnd, &bufferAlloced, "%s ", Log_SetStyle(lin->bIsMe ? 2 : 1, lin->bIsMe ? 2 : 1));
 
-                if(pszIndicator[0])
+                if(g_Settings.ClassicIndicators)
                     Log_Append(&buffer, &bufferEnd, &bufferAlloced, "%s", pszIndicator);
                 
 				lstrcpynA(pszTemp, lin->bIsMe ? g_Settings.pszOutgoingNick : g_Settings.pszIncomingNick, 299);
@@ -549,7 +549,12 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
 				if(p1)
 					p1[1] = 's';
 				
-				Log_AppendRTF(streamData, &buffer, &bufferEnd, &bufferAlloced, pszTemp, lin->pszNick);
+                if(g_Settings.ClickableNicks || g_Settings.ColorizeNicks) {
+                    if(!lin->bIsMe)
+                        Log_Append(&buffer, &bufferEnd, &bufferAlloced, "~~++#%c", pszIndicator[0] ? pszIndicator[0] : '-');
+                }
+                
+                Log_AppendRTF(streamData, &buffer, &bufferEnd, &bufferAlloced, pszTemp, lin->pszNick);
 				Log_Append(&buffer, &bufferEnd, &bufferAlloced, " ");
 			}
 
@@ -696,19 +701,62 @@ void Log_StreamInEvent(HWND hwndDlg,  LOGINFO* lin, SESSION_INFO* si, BOOL bRedr
             sm.hContact = si->hContact;
 			CallService(MS_SMILEYADD_REPLACESMILEYS, 0, (LPARAM)&sm);
 
-            if(!lin->bIsMe) {
-                fi.chrg.cpMin = sel.cpMin;
+            if(g_Settings.ClickableNicks || g_Settings.ColorizeNicks) {
+                char szTRange[3];
+                TEXTRANGEA tr = {0};
+                CHARFORMAT2 cf2 = {0};
+                FINDTEXTEXA fi2;
+                
+                fi2.lpstrText = " ";
+                tr.lpstrText = szTRange;
+                fi.chrg.cpMin = bRedraw ? 0 : sel.cpMin;
                 fi.chrg.cpMax = -1;
-                fi.lpstrText = lin->pszNick;
+                fi.lpstrText = "~~++#";
+                cf2.cbSize = sizeof(cf2);
 
-                if(SendMessageA(hwndRich, EM_FINDTEXTEX, FR_DOWN, (LPARAM)&fi) > -1) {
-                    CHARFORMAT2 cf2 = {0};
-
+                while(SendMessageA(hwndRich, EM_FINDTEXTEX, FR_DOWN, (LPARAM)&fi) > -1) {
+                    tr.chrg.cpMin = fi.chrgText.cpMax;
+                    tr.chrg.cpMax = fi.chrgText.cpMax + 1;
+                    SendMessageA(hwndRich, EM_GETTEXTRANGE, 0, (LPARAM)&tr);
+                    fi.chrgText.cpMax++;
                     SendMessage(hwndRich, EM_EXSETSEL, 0, (LPARAM)&fi.chrgText);
-                    cf2.cbSize = sizeof(cf2);
-                    cf2.dwMask = CFM_LINK;
-                    cf2.dwEffects = CFE_LINK;
-                    SendMessage(hwndRich, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf2);
+                    SendMessage(hwndRich, EM_REPLACESEL, TRUE, (LPARAM)_T(""));
+                    fi2.chrg.cpMin = fi.chrgText.cpMin;
+                    fi2.chrg.cpMax = -1;
+
+                    if(SendMessageA(hwndRich, EM_FINDTEXTEX, FR_DOWN, (LPARAM)&fi2) > -1) {
+                        fi2.chrgText.cpMin = fi.chrgText.cpMin;
+                        fi2.chrgText.cpMax--;
+                        SendMessage(hwndRich, EM_EXSETSEL, 0, (LPARAM)&fi2.chrgText);
+                        if(g_Settings.ColorizeNicks) {
+                            cf2.dwMask = CFM_COLOR;
+                            switch(szTRange[0]) {
+                                case '@':
+                                    cf2.crTextColor = g_Settings.nickColors[0];
+                                    break;
+                                case '+':
+                                    cf2.crTextColor = g_Settings.nickColors[1];
+                                    break;
+                                case '%':
+                                    cf2.crTextColor = g_Settings.nickColors[2];
+                                    break;
+                                case '!':
+                                    cf2.crTextColor = g_Settings.nickColors[3];
+                                    break;
+                                case '*':
+                                    cf2.crTextColor = g_Settings.nickColors[3];
+                                    break;
+                            }
+                            if(szTRange[0] != '-')
+                                SendMessage(hwndRich, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf2);
+                        }
+                        else {
+                            cf2.dwMask = CFM_LINK;
+                            cf2.dwEffects = CFE_LINK;
+                            SendMessage(hwndRich, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf2);
+                        }
+                    }
+                    fi.chrg.cpMin += 10;
                 }
             }
 		}

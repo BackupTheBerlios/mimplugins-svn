@@ -76,6 +76,9 @@ static BOOL IsStringValidLink(char *pszText)
     if(lstrlenA(pszText) < 5)
         return FALSE;
     
+    if(tolower(pszText[0]) == 'w' && tolower(pszText[1]) == 'w' && tolower(pszText[2]) == 'w' && pszText[3] == '.' && isalnum(pszText[4]))
+        return TRUE;
+    
     return(strstr(pszText, "://") == NULL ? FALSE : TRUE);
 }
 
@@ -1441,7 +1444,6 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 		case GC_SETWNDPROPS:
 		{
 			HICON hIcon;
-			LoadGlobalSettings();
 			InitButtons(hwndDlg, si);
 
 			hIcon = si->wStatus==ID_STATUS_ONLINE?MM_FindModule(si->pszModule)->hOnlineIcon:MM_FindModule(si->pszModule)->hOfflineIcon;
@@ -1698,6 +1700,8 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 				int index = dis->itemID;
 				//USERINFO * ui = SM_GetUserFromIndex(si->pszID, si->pszModule, index);
                 USERINFO * ui = UM_FindUserFromIndex(si->pUsers, index);
+                char szIndicator = 0;
+                
 				if(ui)
 				{
 
@@ -1709,7 +1713,7 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 						offset = 0;
 					else
 						offset = height/2 - 4;
-					hIcon = SM_GetStatusIcon(si, ui);
+					hIcon = SM_GetStatusIcon(si, ui, &szIndicator);
 					hFont = ui->iStatusEx == 0?g_Settings.UserListFont:g_Settings.UserListHeadingsFont;
 					hoFont = (HFONT) SelectObject(dis->hDC, hFont);
 					SetBkMode(dis->hDC, TRANSPARENT);
@@ -1728,14 +1732,37 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 						FrameRect(dis->hDC, &dis->rcItem, hListBkgBrush);
 					*/
 
-                    SetTextColor(dis->hDC, ui->iStatusEx == 0?g_Settings.crUserListColor:g_Settings.crUserListHeadingsColor);
+                    if(g_Settings.ColorizeNicks && szIndicator != 0) {
+                        COLORREF clr;
+                        
+                        switch(szIndicator) {
+                            case '@':
+                                clr = g_Settings.nickColors[0];
+                                break;
+                            case '%':
+                                clr = g_Settings.nickColors[1];
+                                break;
+                            case '+':
+                                clr = g_Settings.nickColors[2];
+                                break;
+                            case '!':
+                                clr = g_Settings.nickColors[3];
+                                break;
+                            case '*':
+                                clr = g_Settings.nickColors[4];
+                                break;
+                        }
+                        SetTextColor(dis->hDC, clr);
+                    }
+                    else 
+                        SetTextColor(dis->hDC, ui->iStatusEx == 0?g_Settings.crUserListColor:g_Settings.crUserListHeadingsColor);
                     
-                    if(((int)hIcon & 0xffffff00) == 0xffffff00) {
+                    if(g_Settings.ClassicIndicators) {
                         char szTemp[3];
                         SIZE szUmode;
                         
                         szTemp[1] = 0;
-                        szTemp[0] = (char)((int)hIcon & 0x000000ff);
+                        szTemp[0] = szIndicator;
                         if(szTemp[0]) {
                             GetTextExtentPoint32A(dis->hDC, szTemp, 1, &szUmode);
                             x_offset = szUmode.cx + 4;
@@ -2156,7 +2183,6 @@ LABEL_SHOWWINDOW:
 								lstrcatA(szURL, pszWord);
 								CallService(MS_UTILS_OPENURL, 1, (LPARAM) szURL);
 							}
-
 							PostMessage(hwndDlg, WM_MOUSEACTIVATE, 0, 0 );
 						}break;
                      case ID_SEARCH_WIKIPEDIA:
@@ -2184,7 +2210,8 @@ LABEL_SHOWWINDOW:
 				switch (((ENLINK *) lParam)->msg) 
 				{
 					case WM_RBUTTONDOWN:
-					case WM_LBUTTONUP:
+                    case WM_LBUTTONUP:
+                    case WM_LBUTTONDBLCLK:
 					{
 						TEXTRANGEA tr;
 						CHARRANGE sel;
@@ -2197,7 +2224,7 @@ LABEL_SHOWWINDOW:
 						tr.lpstrText = malloc(tr.chrg.cpMax - tr.chrg.cpMin + 1);
 						SendMessage(pNmhdr->hwndFrom, EM_GETTEXTRANGE, 0, (LPARAM) & tr);
 
-                        isLink = IsStringValidLink(tr.lpstrText);
+                        isLink = g_Settings.ClickableNicks ? IsStringValidLink(tr.lpstrText) : TRUE;
                         
                         if(isLink) {
                             if (((ENLINK *) lParam)->msg == WM_RBUTTONDOWN) 
@@ -2237,12 +2264,22 @@ LABEL_SHOWWINDOW:
                                 free(tr.lpstrText);
                                 return TRUE;
                             } 
-                            else  
+                            else if(((ENLINK *) lParam)->msg == WM_LBUTTONUP) 
                             {
                                 CallService(MS_UTILS_OPENURL, 1, (LPARAM) tr.lpstrText);
                                 SetFocus(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE));
                             }
 
+                        }
+                        else {                      // clicked a nick name
+                            USERINFO *ui = si->pUsers;
+
+                            while(ui) {
+                                if(!strcmp(ui->pszNick, tr.lpstrText)) {
+                                    break;
+                                }
+                                ui = ui->next;
+                            }
                         }
 						free(tr.lpstrText);
 						break;

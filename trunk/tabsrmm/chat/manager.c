@@ -250,50 +250,44 @@ BOOL SM_SetStatusEx(char *pszID, char * pszModule, char * pszText)
 	}
 	return TRUE;
 }
-HICON SM_GetStatusIcon(SESSION_INFO * si, USERINFO * ui)
+HICON SM_GetStatusIcon(SESSION_INFO * si, USERINFO * ui, char *szIndicator)
 {
 	STATUSINFO * ti;
 	if(!ui || !si)
 		return NULL;
 
-	ti = TM_FindStatus(si->pStatuses, TM_WordToString(si->pStatuses, ui->Status));
+    *szIndicator = 0;
+    
+    ti = TM_FindStatus(si->pStatuses, TM_WordToString(si->pStatuses, ui->Status));
 	if (ti)
 	{
         if((int)ti->hIcon < STATUSICONCOUNT)
 		{
 			int id = si->iStatusCount - (int)ti->hIcon - 1;
 
-            if(g_Settings.ClassicIndicators) {                 // textual mode descriptions...
-                switch(id) {
-                    case 0:
-                        return (HICON)0xffffff00;
-                    case 1:
-                        return (HICON)((int)'+' | 0xffffff00);
-                    case 2:
-                        return (HICON)((int)'%' | 0xffffff00);
-                    case 3:
-                        return (HICON)((int)'@' | 0xffffff00);
-                    case 4:
-                        return (HICON)((int)'!' | 0xffffff00);
-                    case 5:
-                        return (HICON)((int)'*' | 0xffffff00);
-                    default:
-                        return (HICON)0xffffff00;
-                }
+            if(id == 0) {
+                *szIndicator = 0;
+                return hIcons[ICON_STATUS0];
             }
-            else {
-                if(id == 0)
-                    return hIcons[ICON_STATUS0];
-                if(id == 1)
-                    return hIcons[ICON_STATUS1];
-                if(id == 2)
-                    return hIcons[ICON_STATUS2];
-                if(id == 3)
-                    return hIcons[ICON_STATUS3];
-                if(id == 4)
-                    return hIcons[ICON_STATUS4];
-                if(id == 5)
-                    return hIcons[ICON_STATUS5];
+            if(id == 1) {
+                *szIndicator = '+';
+                return hIcons[ICON_STATUS1];
+            }
+            if(id == 2) {
+                *szIndicator = '%';
+                return hIcons[ICON_STATUS2];
+            }
+            if(id == 3) {
+                *szIndicator = '@';
+                return hIcons[ICON_STATUS3];
+            }
+            if(id == 4) {
+                *szIndicator = '!';
+                return hIcons[ICON_STATUS4];
+            }
+            if(id == 5) {
+                *szIndicator = '*';
+                return hIcons[ICON_STATUS5];
             }
 		}
 		else
