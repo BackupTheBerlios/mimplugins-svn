@@ -795,9 +795,6 @@ default_process:
 					Parentsi->iBG = index;
 				}		
 				if(u == BST_UNCHECKED && cf.crBackColor != crB) {
-#ifdef _DEBUG
-                    _DebugTraceA("checking back button - %x, %x", crB, cf.crBackColor);
-#endif                    
                     CheckDlgButton(hwndParent, IDC_BKGCOLOR, BST_CHECKED);
                 }
 				else if(u == BST_CHECKED && cf.crBackColor == crB)

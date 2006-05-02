@@ -259,6 +259,7 @@ typedef struct {
 	BOOL	bStripFormat;
 	BOOL	bRedraw;
 	SESSION_INFO * si;
+    int     crCount;
 } LOGSTREAMDATA;
 
 
@@ -307,7 +308,7 @@ struct GlobalLogSettings_t {
 	BOOL		LogIndentEnabled;
 	BOOL		StripFormat;
 	BOOL		SoundsFocus;
-	BOOL		PopUpInactiveOnly;
+	BOOL		SkipWhenNoWindow;
 	BOOL		TrayIconInactiveOnly;
 	BOOL		AddColonToAutoComplete;
 	BOOL		LogLimitNames;

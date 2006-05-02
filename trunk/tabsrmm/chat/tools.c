@@ -27,6 +27,7 @@ extern HANDLE		hBuildMenuEvent ;
 extern HANDLE		hSendEvent;
 extern SESSION_INFO g_TabSession;
 extern MYGLOBALS	myGlobals;
+extern NEN_OPTIONS  nen_options;
 
 int GetRichTextLength(HWND hwnd)
 {
@@ -240,13 +241,74 @@ static BOOL DoTrayIcon(SESSION_INFO * si, GCEVENT * gce)
 	}
 	return FALSE;
 }
-static BOOL DoPopup(SESSION_INFO * si, GCEVENT * gce)
+static BOOL DoPopup(SESSION_INFO * si, GCEVENT * gce, struct MessageWindowData *dat)
 {
 	int iEvent = gce->pDest->iType;
-
+    struct ContainerWindowData *pContainer = dat ? dat->pContainer : NULL;
+    char *szProto = dat ? dat->szProto : si->pszModule;
+    
 	if (iEvent&g_Settings.dwPopupFlags)
 	{
-		switch (iEvent)
+
+        if(nen_options.iDisable || (dat == 0 && g_Settings.SkipWhenNoWindow))                          // no popups at all. Period
+            return 0;
+        /*
+         * check the status mode against the status mask
+         */
+
+        if(nen_options.bSimpleMode) {
+            switch(nen_options.bSimpleMode) {
+                case 1:
+                    goto passed;
+                case 3:
+                    if(dat == 0)            // window not open
+                        goto passed;
+                    else
+                        return 0;
+                case 2:
+                    if(dat == 0)
+                        goto passed;
+                    if(pContainer != NULL) {
+                        if(IsIconic(pContainer->hwnd) || GetForegroundWindow() != pContainer->hwnd)
+                            goto passed;
+                    }
+                    return 0;
+                default:
+                    return 0;
+            }
+        }
+
+        if(nen_options.dwStatusMask != -1) {
+            DWORD dwStatus = 0;
+            if(szProto != NULL) {
+                dwStatus = (DWORD)CallProtoService(szProto, PS_GETSTATUS, 0, 0);
+                if(!(dwStatus == 0 || dwStatus <= ID_STATUS_OFFLINE || ((1<<(dwStatus - ID_STATUS_ONLINE)) & nen_options.dwStatusMask)))              // should never happen, but...
+                    return 0;
+            }
+        }
+        if(dat && pContainer != 0) {                // message window is open, need to check the container config if we want to see a popup nonetheless
+            if(nen_options.bWindowCheck)                   // no popups at all for open windows... no exceptions
+                return 0;
+            if (pContainer->dwFlags & CNT_DONTREPORT && (IsIconic(pContainer->hwnd) || pContainer->bInTray))        // in tray counts as "minimised"
+                    goto passed;
+            if (pContainer->dwFlags & CNT_DONTREPORTUNFOCUSED) {
+                if (!IsIconic(pContainer->hwnd) && GetForegroundWindow() != pContainer->hwnd && GetActiveWindow() != pContainer->hwnd)
+                    goto passed;
+            }
+            if (pContainer->dwFlags & CNT_ALWAYSREPORTINACTIVE) {
+                if((GetForegroundWindow() == pContainer->hwnd || GetActiveWindow() == pContainer->hwnd) && pContainer->hwndActive == si->hWnd)
+                    return 0;
+                else {
+                    if(pContainer->hwndActive == si->hWnd && pContainer->dwFlags & CNT_STICKY)
+                        return 0;
+                    else
+                        goto passed;
+                }
+            }
+            return 0;
+        }
+passed:
+        switch (iEvent)
 		{			
 		case GC_EVENT_MESSAGE|GC_EVENT_HIGHLIGHT :
 			ShowPopup(si->hContact, si, LoadSkinnedIcon(SKINICON_EVENT_MESSAGE), si->pszModule, si->pszName, aFonts[16].color, Translate("%s says: %s"), (char *)gce->pszNick, RemoveFormatting((char *)gce->pszText)); 
@@ -342,8 +404,8 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 			DBDeleteContactSetting(si->hContact, "CList", "Hidden");
 		if(bInactive)
 			DoTrayIcon(si, gce);
-		if(bInactive || !g_Settings.PopUpInactiveOnly)
-			DoPopup(si, gce);
+		if(dat || !g_Settings.SkipWhenNoWindow)
+			DoPopup(si, gce, dat);
 		if(bInactive && g_TabSession.hWnd)
 			SendMessage(g_TabSession.hWnd, GC_SETMESSAGEHIGHLIGHT, 0, (LPARAM) si);
         if(g_Settings.FlashWindowHightlight && bInactive) {
@@ -361,8 +423,8 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 	// stupid thing to not create multiple popups for a QUIT event for instance
 	if(bManyFix == 0) {
 		// do popups
-		if(bInactive || !g_Settings.PopUpInactiveOnly)
-			DoPopup(si, gce);
+		if(dat || !g_Settings.SkipWhenNoWindow)
+			DoPopup(si, gce, dat);
 
 		// do sounds and flashing
 		switch (iEvent) {

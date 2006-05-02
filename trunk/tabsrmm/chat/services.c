@@ -695,9 +695,6 @@ void ShowRoom(SESSION_INFO * si, WPARAM wp, BOOL bSetForeground)
 	if(!si)
 		return;
 
-#ifdef _DEBUG
-    _DebugTraceA("show room: %s, %x, %x", si->pszName, si->hWnd, si->pContainer);
-#endif    
 	if (si->hWnd == NULL) {
         TCHAR szName[CONTAINER_NAMELEN + 2];
         struct ContainerWindowData *pContainer = si->pContainer;

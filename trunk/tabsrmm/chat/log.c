@@ -418,7 +418,7 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
  	char *buffer, *header;
     int bufferAlloced, bufferEnd, i, me = 0;
 	LOGINFO * lin = streamData->lin;
-
+    MODULEINFO *mi = MM_FindModule(streamData->si->pszModule);
 	// guesstimate amount of memory for the RTF
     bufferEnd = 0;
 	bufferAlloced = streamData->bRedraw ? 1024 * (streamData->si->iEventCount+2) : 2048;
@@ -428,7 +428,9 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
 
 
 	// ### RTF HEADER
-	header = MM_FindModule(streamData->si->pszModule)->pszHeader;
+	header = mi->pszHeader;
+    streamData->crCount = mi->nColorCount;
+        
 	if(header)
 		Log_Append(&buffer, &bufferEnd, &bufferAlloced, header);
 
@@ -505,6 +507,7 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
 				char * p1;
                 STATUSINFO *ti;
                 char pszIndicator[2] = "\0\0";
+                int  crNickIndex = 0;
                 
                 if(g_Settings.ClassicIndicators || g_Settings.ColorizeNicks) {
                     USERINFO *ui = streamData->si->pUsers;
@@ -517,18 +520,23 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
                                 switch(id) {
                                     case 1:
                                         pszIndicator[0] = '+';
+                                        crNickIndex = 2;
                                         break;
                                     case 2:
                                         pszIndicator[0] = '%';
+                                        crNickIndex = 1;
                                         break;
                                     case 3:
                                         pszIndicator[0] = '@';
+                                        crNickIndex = 0;
                                         break;
                                     case 4:
                                         pszIndicator[0] = '!';
+                                        crNickIndex = 3;
                                         break;
                                     case 5:
                                         pszIndicator[0] = '*';
+                                        crNickIndex = 4;
                                         break;
                                     default:
                                         pszIndicator[0] = 0;
@@ -549,9 +557,11 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
 				if(p1)
 					p1[1] = 's';
 				
-                if(g_Settings.ClickableNicks || g_Settings.ColorizeNicks) {
-                    if(!lin->bIsMe)
-                        Log_Append(&buffer, &bufferEnd, &bufferAlloced, "~~++#%c", pszIndicator[0] ? pszIndicator[0] : '-');
+                if(!lin->bIsMe) {
+                    if(g_Settings.ClickableNicks)
+                        Log_Append(&buffer, &bufferEnd, &bufferAlloced, "~~++#");
+                    if(g_Settings.ColorizeNicks && pszIndicator[0])
+                        Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\cf%u", OPTIONS_FONTCOUNT + streamData->crCount + crNickIndex + 1);
                 }
                 
                 Log_AppendRTF(streamData, &buffer, &bufferEnd, &bufferAlloced, pszTemp, lin->pszNick);
@@ -692,33 +702,20 @@ void Log_StreamInEvent(HWND hwndDlg,  LOGINFO* lin, SESSION_INFO* si, BOOL bRedr
 			newsel.cpMin = sel.cpMin;
 			if(newsel.cpMin < 0)
 				newsel.cpMin = 0;
-			ZeroMemory(&sm, sizeof(sm));
-			sm.cbSize = sizeof(sm);
-			sm.hwndRichEditControl = hwndRich;
-			sm.Protocolname = si->pszModule;
-			sm.rangeToReplace = bRedraw?NULL:&newsel;
-			sm.disableRedraw = TRUE;
-            sm.hContact = si->hContact;
-			CallService(MS_SMILEYADD_REPLACESMILEYS, 0, (LPARAM)&sm);
 
-            if(g_Settings.ClickableNicks || g_Settings.ColorizeNicks) {
+
+            if(g_Settings.ClickableNicks) {
                 char szTRange[3];
-                TEXTRANGEA tr = {0};
                 CHARFORMAT2 cf2 = {0};
                 FINDTEXTEXA fi2;
-                
+
                 fi2.lpstrText = " ";
-                tr.lpstrText = szTRange;
                 fi.chrg.cpMin = bRedraw ? 0 : sel.cpMin;
                 fi.chrg.cpMax = -1;
                 fi.lpstrText = "~~++#";
                 cf2.cbSize = sizeof(cf2);
 
                 while(SendMessageA(hwndRich, EM_FINDTEXTEX, FR_DOWN, (LPARAM)&fi) > -1) {
-                    tr.chrg.cpMin = fi.chrgText.cpMax;
-                    tr.chrg.cpMax = fi.chrgText.cpMax + 1;
-                    SendMessageA(hwndRich, EM_GETTEXTRANGE, 0, (LPARAM)&tr);
-                    fi.chrgText.cpMax++;
                     SendMessage(hwndRich, EM_EXSETSEL, 0, (LPARAM)&fi.chrgText);
                     SendMessage(hwndRich, EM_REPLACESEL, TRUE, (LPARAM)_T(""));
                     fi2.chrg.cpMin = fi.chrgText.cpMin;
@@ -728,37 +725,23 @@ void Log_StreamInEvent(HWND hwndDlg,  LOGINFO* lin, SESSION_INFO* si, BOOL bRedr
                         fi2.chrgText.cpMin = fi.chrgText.cpMin;
                         fi2.chrgText.cpMax--;
                         SendMessage(hwndRich, EM_EXSETSEL, 0, (LPARAM)&fi2.chrgText);
-                        if(g_Settings.ColorizeNicks) {
-                            cf2.dwMask = CFM_COLOR;
-                            switch(szTRange[0]) {
-                                case '@':
-                                    cf2.crTextColor = g_Settings.nickColors[0];
-                                    break;
-                                case '+':
-                                    cf2.crTextColor = g_Settings.nickColors[1];
-                                    break;
-                                case '%':
-                                    cf2.crTextColor = g_Settings.nickColors[2];
-                                    break;
-                                case '!':
-                                    cf2.crTextColor = g_Settings.nickColors[3];
-                                    break;
-                                case '*':
-                                    cf2.crTextColor = g_Settings.nickColors[3];
-                                    break;
-                            }
-                            if(szTRange[0] != '-')
-                                SendMessage(hwndRich, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf2);
-                        }
-                        else {
-                            cf2.dwMask = CFM_LINK;
-                            cf2.dwEffects = CFE_LINK;
-                            SendMessage(hwndRich, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf2);
-                        }
+                        cf2.dwMask = CFM_LINK;
+                        cf2.dwEffects = CFE_LINK;
+                        SendMessage(hwndRich, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf2);
                     }
-                    fi.chrg.cpMin += 10;
+                    fi.chrg.cpMin = fi.chrgText.cpMax;
                 }
             }
+            
+			ZeroMemory(&sm, sizeof(sm));
+			sm.cbSize = sizeof(sm);
+			sm.hwndRichEditControl = hwndRich;
+			sm.Protocolname = si->pszModule;
+			sm.rangeToReplace = bRedraw?NULL:&newsel;
+			sm.disableRedraw = TRUE;
+            sm.hContact = si->hContact;
+			CallService(MS_SMILEYADD_REPLACESMILEYS, 0, (LPARAM)&sm);
+
 		}
 
 		// scroll log to bottom if the log was previously scrolled to bottom, else restore old position
@@ -823,23 +806,21 @@ char * Log_CreateRtfHeader(MODULEINFO * mi)
 	// font table
     Log_Append(&buffer, &bufferEnd, &bufferAlloced, "{\\rtf1\\ansi\\deff0{\\fonttbl");
 	for (i = 0; i < OPTIONS_FONTCOUNT ; i++)
-	{
 		Log_Append(&buffer, &bufferEnd, &bufferAlloced, RTF_FORMAT, i, aFonts[i].lf.lfCharSet, aFonts[i].lf.lfFaceName);
-	}
 
 	// colour table
 	Log_Append(&buffer, &bufferEnd, &bufferAlloced, "}{\\colortbl ;");
-	for (i = 0; i < OPTIONS_FONTCOUNT; i++)
-	{
+
+    for (i = 0; i < OPTIONS_FONTCOUNT; i++)
 		Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(aFonts[i].color), GetGValue(aFonts[i].color), GetBValue(aFonts[i].color));
-	}
 
 	for(i = 0; i < mi->nColorCount; i++)
-	{
 		Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(mi->crColors[i]), GetGValue(mi->crColors[i]), GetBValue(mi->crColors[i]));
-	}
 
-	// new paragraph
+    for(i = 0; i < 5; i++)
+        Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(g_Settings.nickColors[i]), GetGValue(g_Settings.nickColors[i]), GetBValue(g_Settings.nickColors[i]));
+    
+    // new paragraph
 	Log_Append(&buffer, &bufferEnd, &bufferAlloced, "}\\pard\\sl%d", 1000);
 
 	// set tabs and indents

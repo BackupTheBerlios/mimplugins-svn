@@ -32,6 +32,8 @@ extern HANDLE			hMessageWindowList;
 extern MYGLOBALS		myGlobals;
 extern HMODULE          g_hIconDLL;
 
+extern HIMAGELIST       CreateStateImageList();
+
 HANDLE			g_hOptions = NULL;
 
 #define FONTF_BOLD   1
@@ -191,7 +193,7 @@ static struct branch_t branch5[] = {
 };
 
 static struct branch_t branch6[] = {
-	{_T("Show pop-ups only when the chat room is not active"), "PopUpInactiveOnly", 0, 1, NULL},
+	{_T("Skip all popups when no channel window is opened"), "SkipWhenNoWindow", 0, 0, NULL},
 	{_T("Show pop-up for topic changes"), "PopupFlags", GC_EVENT_TOPIC, 0, NULL},
 	{_T("Show pop-up for users joining"), "PopupFlags", GC_EVENT_JOIN, 0, NULL},
 	{_T("Show pop-up for users disconnecting"), "PopupFlags", GC_EVENT_QUIT, 0, NULL},
@@ -260,8 +262,8 @@ static HTREEITEM InsertBranch(HWND hwndTree, TCHAR* pszDescr, BOOL bExpanded)
 	tvis.hInsertAfter=TVI_LAST;
 	tvis.item.mask=TVIF_TEXT|TVIF_STATE;
 	tvis.item.pszText=TranslateTS(pszDescr);
-	tvis.item.stateMask=bExpanded?TVIS_STATEIMAGEMASK|TVIS_EXPANDED:TVIS_STATEIMAGEMASK;
-	tvis.item.state=bExpanded?INDEXTOSTATEIMAGEMASK(1)|TVIS_EXPANDED:INDEXTOSTATEIMAGEMASK(1);
+	tvis.item.stateMask=(bExpanded?TVIS_STATEIMAGEMASK|TVIS_EXPANDED:TVIS_STATEIMAGEMASK) | TVIS_BOLD;
+	tvis.item.state=(bExpanded?INDEXTOSTATEIMAGEMASK(1)|TVIS_EXPANDED:INDEXTOSTATEIMAGEMASK(1)) | TVIS_BOLD;
 	return TreeView_InsertItem(hwndTree, &tvis);
 }
 
@@ -281,9 +283,9 @@ static void FillBranch(HWND hwndTree, HTREEITEM hParent, struct branch_t *branch
 		tvis.item.pszText = TranslateTS(branch[i].szDescr);
 		tvis.item.stateMask = TVIS_STATEIMAGEMASK;
 		if (branch[i].iMode)
-			iState = ((DBGetContactSettingDword(NULL, "Chat", branch[i].szDBName, defaultval)&branch[i].iMode)&branch[i].iMode)!=0?2:1;
+			iState = ((DBGetContactSettingDword(NULL, "Chat", branch[i].szDBName, defaultval)&branch[i].iMode)&branch[i].iMode)!=0?3:2;
 		else
-			iState = DBGetContactSettingByte(NULL, "Chat", branch[i].szDBName, branch[i].bDefault)!=0?2:1;
+			iState = DBGetContactSettingByte(NULL, "Chat", branch[i].szDBName, branch[i].bDefault)!=0?3:2;
 		tvis.item.state=INDEXTOSTATEIMAGEMASK(iState);
 		branch[i].hItem = TreeView_InsertItem(hwndTree, &tvis);
 	}
@@ -299,7 +301,7 @@ static void SaveBranch(HWND hwndTree, struct branch_t *branch, int nValues)
 	for(i=0;i<nValues;i++) {
 		tvi.hItem = branch[i].hItem;
 		TreeView_GetItem(hwndTree,&tvi);
-		bChecked = ((tvi.state&TVIS_STATEIMAGEMASK)>>12==1)?0:1;
+		bChecked = ((tvi.state&TVIS_STATEIMAGEMASK)>>12==2)?0:1;
 		if(branch[i].iMode)
 		{
 			if (bChecked)
@@ -328,13 +330,13 @@ static void CheckHeading(HWND hwndTree, HTREEITEM hHeading)
 		if(tvi.hItem != branch1[0].hItem && tvi.hItem != branch1[1].hItem )
 		{
 			TreeView_GetItem(hwndTree,&tvi);
-			if(((tvi.state&TVIS_STATEIMAGEMASK)>>12==1)) 
+			if(((tvi.state&TVIS_STATEIMAGEMASK)>>12==2)) 
 				bChecked = FALSE;
 		}
 		tvi.hItem=TreeView_GetNextSibling(hwndTree,tvi.hItem);
 	}
 	tvi.stateMask = TVIS_STATEIMAGEMASK;
-	tvi.state=INDEXTOSTATEIMAGEMASK(bChecked?2:1);
+	tvi.state=INDEXTOSTATEIMAGEMASK(bChecked?3:2);
 	tvi.hItem = hHeading;
 	TreeView_SetItem(hwndTree,&tvi);
 }
@@ -349,12 +351,14 @@ static void CheckBranches(HWND hwndTree, HTREEITEM hHeading)
 	tvi.mask=TVIF_HANDLE|TVIF_STATE;
 	tvi.hItem = hHeading;
 	TreeView_GetItem(hwndTree,&tvi);
-	if(((tvi.state&TVIS_STATEIMAGEMASK)>>12==2)) 
+	if(((tvi.state&TVIS_STATEIMAGEMASK)>>12==3) || ((tvi.state&TVIS_STATEIMAGEMASK)>>12==1))
 		bChecked = FALSE;
-	tvi.hItem=TreeView_GetNextItem(hwndTree, hHeading, TVGN_CHILD);
 	tvi.stateMask = TVIS_STATEIMAGEMASK;
-	while(tvi.hItem) {
-		tvi.state=INDEXTOSTATEIMAGEMASK(bChecked?2:1);
+    tvi.state=INDEXTOSTATEIMAGEMASK(bChecked?2:1);
+    TreeView_SetItem(hwndTree,&tvi);		
+    tvi.hItem=TreeView_GetNextItem(hwndTree, hHeading, TVGN_CHILD);
+    while(tvi.hItem) {
+		tvi.state=INDEXTOSTATEIMAGEMASK(bChecked?3:2);
 		if(tvi.hItem != branch1[0].hItem && tvi.hItem != branch1[1].hItem )
 			TreeView_SetItem(hwndTree,&tvi);		
 		tvi.hItem=TreeView_GetNextSibling(hwndTree,tvi.hItem);
@@ -506,10 +510,14 @@ BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam
 	case WM_INITDIALOG:
 	{
 		char * pszGroup = NULL;
-
+        HIMAGELIST himlOptions;
+        
         TranslateDialogDefault(hwndDlg);
         if(g_chat_integration_enabled) {
             SetWindowLong(GetDlgItem(hwndDlg,IDC_CHECKBOXES),GWL_STYLE,GetWindowLong(GetDlgItem(hwndDlg,IDC_CHECKBOXES),GWL_STYLE)|TVS_NOHSCROLL|TVS_CHECKBOXES);
+            himlOptions = (HIMAGELIST)SendDlgItemMessage(hwndDlg, IDC_CHECKBOXES, TVM_SETIMAGELIST, TVSIL_STATE, (LPARAM)CreateStateImageList());
+            if(himlOptions)
+                ImageList_Destroy(himlOptions);
             SendDlgItemMessage(hwndDlg,IDC_CHAT_SPIN2,UDM_SETRANGE,0,MAKELONG(255,10));
             SendDlgItemMessage(hwndDlg,IDC_CHAT_SPIN2,UDM_SETPOS,0,MAKELONG(DBGetContactSettingByte(NULL,"Chat","NicklistRowDist",12),0));
             hListHeading1 = InsertBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), TranslateT("Appearance and functionality of chat room windows"), DBGetContactSettingByte(NULL, "Chat", "Branch1Exp", 0)?TRUE:FALSE);
@@ -574,12 +582,14 @@ BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam
 						tvi.mask=TVIF_HANDLE|TVIF_STATE;
 						tvi.hItem=hti.hItem;
 						TreeView_GetItem(((LPNMHDR)lParam)->hwndFrom,&tvi);
-						if(tvi.hItem == branch1[0].hItem && INDEXTOSTATEIMAGEMASK(1)==tvi.state)
+                        /*
+						if(tvi.hItem == branch1[0].hItem && INDEXTOSTATEIMAGEMASK(3)==tvi.state)
 							TreeView_SetItemState(((LPNMHDR)lParam)->hwndFrom, branch1[1].hItem, INDEXTOSTATEIMAGEMASK(1),  TVIS_STATEIMAGEMASK);
-						if(tvi.hItem == branch1[1].hItem && INDEXTOSTATEIMAGEMASK(1)==tvi.state)
+						if(tvi.hItem == branch1[1].hItem && INDEXTOSTATEIMAGEMASK(3)==tvi.state)
 							TreeView_SetItemState(((LPNMHDR)lParam)->hwndFrom, branch1[0].hItem, INDEXTOSTATEIMAGEMASK(1),  TVIS_STATEIMAGEMASK);
-						
-						if (tvi.hItem == hListHeading1)
+                        */
+
+                        if (tvi.hItem == hListHeading1)
 							CheckBranches(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading1);
 						else if (tvi.hItem == hListHeading2)
 							CheckBranches(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading2);
@@ -591,8 +601,11 @@ BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam
 							CheckBranches(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading5);
 						else if (tvi.hItem == hListHeading6)
 							CheckBranches(GetDlgItem(hwndDlg, IDC_CHECKBOXES), hListHeading6);
-						else
-							PostMessage(hwndDlg, OPT_FIXHEADINGS, 0, 0);
+						else {
+                            if(tvi.state == INDEXTOSTATEIMAGEMASK(3))
+                                TreeView_SetItemState(((LPNMHDR)lParam)->hwndFrom, tvi.hItem, INDEXTOSTATEIMAGEMASK(1), TVIS_STATEIMAGEMASK);
+                            PostMessage(hwndDlg, OPT_FIXHEADINGS, 0, 0);
+                        }
 						SendMessage(GetParent(hwndDlg), PSM_CHANGED, 0, 0);
 					}
 
@@ -1364,11 +1377,11 @@ void LoadGlobalSettings(void)
 	g_Settings.HighlightEnabled = (BOOL)DBGetContactSettingByte(NULL, "Chat", "HighlightEnabled", 1);
 	g_Settings.crUserListColor = (BOOL)DBGetContactSettingDword(NULL, "ChatFonts", "Font18Col", RGB(0,0,0));
 	g_Settings.crUserListBGColor = (BOOL)DBGetContactSettingDword(NULL, "Chat", "ColorNicklistBG", GetSysColor(COLOR_WINDOW));
-	g_Settings.crUserListHeadingsColor = (BOOL)DBGetContactSettingDword(NULL, "ChatFonts", "Font18Col", RGB(170,170,170));
+	g_Settings.crUserListHeadingsColor = (BOOL)DBGetContactSettingDword(NULL, "ChatFonts", "Font19Col", RGB(170,170,170));
 	g_Settings.crLogBackground = (BOOL)DBGetContactSettingDword(NULL, "Chat", "ColorLogBG", GetSysColor(COLOR_WINDOW));
 	g_Settings.StripFormat = (BOOL)DBGetContactSettingByte(NULL, "Chat", "StripFormatting", 0);
 	g_Settings.TrayIconInactiveOnly = (BOOL)DBGetContactSettingByte(NULL, "Chat", "TrayIconInactiveOnly", 1);
-	g_Settings.PopUpInactiveOnly = (BOOL)DBGetContactSettingByte(NULL, "Chat", "PopUpInactiveOnly", 1);
+	g_Settings.SkipWhenNoWindow = (BOOL)DBGetContactSettingByte(NULL, "Chat", "SkipWhenNoWindow", 0);
 	g_Settings.AddColonToAutoComplete = (BOOL)DBGetContactSettingByte(NULL, "Chat", "AddColonToAutoComplete", 1);
 	g_Settings.iPopupStyle = DBGetContactSettingByte(NULL, "Chat", "PopupStyle", 1);
 	g_Settings.iPopupTimeout = DBGetContactSettingWord(NULL, "Chat", "PopupTimeout", 3);
