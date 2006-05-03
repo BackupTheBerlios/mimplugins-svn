@@ -1910,7 +1910,6 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 
     EnterCriticalSection(&cachecs);
 	g_shutDown = TRUE;
-    LeaveCriticalSection(&cachecs);
 
 	DestroyServiceFunction(MS_AV_GETAVATARBITMAP);
     DestroyServiceFunction(MS_AV_PROTECTAVATAR);
@@ -1932,7 +1931,9 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 	hMyAvatarChanged = 0;
     UnhookEvent(hContactSettingChanged);
     UnhookEvent(hProtoAckHook);
-    
+
+    LeaveCriticalSection(&cachecs);
+
 	bAvatarThreadRunning = FALSE;
     ResumeThread(hAvatarThread);
 
