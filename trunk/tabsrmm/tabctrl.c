@@ -239,13 +239,12 @@ static void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nH
         
         if(dat->dwFlags & MWF_ERRORSTATE)
             hIcon = myGlobals.g_iconErr;
-        else if(dat->mayFlashTab) {
+        else if(dat->mayFlashTab)
             hIcon = dat->iFlashIcon;
-            if(dat->si && dat->iFlashIcon != myGlobals.g_IconMsgEvent)
-                iSize = 10;
-        }
 		else {
-			if(dat->hTabIcon == dat->hTabStatusIcon && dat->hXStatusIcon)
+            if(dat->si && dat->iFlashIcon)
+                hIcon = dat->iFlashIcon;
+			else if(dat->hTabIcon == dat->hTabStatusIcon && dat->hXStatusIcon)
 				hIcon = dat->hXStatusIcon;
 			else
 				hIcon = dat->hTabIcon;
@@ -264,8 +263,9 @@ static void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nH
 
         // draw the overlay for chat tabs
         
-        if(dat->bType == SESSIONTYPE_CHAT && dat->iFlashIcon && dat->mayFlashTab == FALSE)
+        /*if(dat->bType == SESSIONTYPE_CHAT && dat->iFlashIcon && dat->mayFlashTab == FALSE)
             DrawIconEx (dc, rcItem->left + tabdat->m_xpad - 1, rcItem->top + 1, dat->iFlashIcon, 10, 10, 0, NULL, DI_NORMAL | DI_COMPAT); 
+        */
         
         rcItem->left += (iSize + 2 + tabdat->m_xpad);
         

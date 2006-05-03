@@ -408,10 +408,9 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 			DoPopup(si, gce, dat);
 		if(bInactive && g_TabSession.hWnd)
 			SendMessage(g_TabSession.hWnd, GC_SETMESSAGEHIGHLIGHT, 0, (LPARAM) si);
-        if(g_Settings.FlashWindowHightlight && bInactive) {
+        if(g_Settings.FlashWindowHightlight && bInactive)
             bMustFlash = TRUE;
-            bMustAutoswitch = TRUE;
-        }
+        bMustAutoswitch = TRUE;
         hNotifyIcon = hIcons[ICON_HIGHLIGHT];
         goto flash_and_switch;
 	}
@@ -523,7 +522,8 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
     }
     if(iEvent == GC_EVENT_MESSAGE) {
         bMustAutoswitch = TRUE;
-        bMustFlash = TRUE;
+        if(g_Settings.FlashWindow)
+            bMustFlash = TRUE;
         hNotifyIcon = hIcons[ICON_MESSAGE];
     }
     
@@ -533,7 +533,14 @@ flash_and_switch:
             HWND hwndTab = GetParent(si->hWnd);
 
             if(IsIconic(dat->pContainer->hwnd) || dat->pContainer->hwndActive != si->hWnd) {
-                dat->iFlashIcon = hNotifyIcon;
+                
+                if(hNotifyIcon == hIcons[ICON_HIGHLIGHT])
+                   dat->iFlashIcon = hNotifyIcon;
+                else {
+                    if(dat->iFlashIcon != hIcons[ICON_HIGHLIGHT] && dat->iFlashIcon != hIcons[ICON_MESSAGE])
+                        dat->iFlashIcon = hNotifyIcon;
+                }
+                        
                 if(bMustFlash) {
                     SetTimer(si->hWnd, TIMERID_FLASHWND, TIMEOUT_FLASHWND, NULL);
                     dat->mayFlashTab = TRUE;

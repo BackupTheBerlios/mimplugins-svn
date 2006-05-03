@@ -37,7 +37,6 @@ extern HANDLE		hSendEvent;
 extern HICON		hIcons[30];
 extern struct		CREOleCallback reOleCallback;
 extern HMENU		g_hMenu;
-extern TABLIST *	g_TabList;
 
 extern WNDPROC OldSplitterProc;
 static WNDPROC OldMessageProc;
@@ -1312,7 +1311,7 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
             TranslateDialogDefault(hwndDlg);
 			SetWindowLong(hwndDlg,GWL_USERDATA,(LONG)dat);
 			dat->bType = SESSIONTYPE_CHAT;
-            
+            dat->isIRC = SM_IsIRC(si);
             newData->item.lParam = (LPARAM) hwndDlg;
             TabCtrl_SetItem(hwndTab, newData->iTabID, &newData->item);
             dat->iTabID = newData->iTabID;
@@ -1766,7 +1765,7 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
                             TextOutA(dis->hDC, 2, dis->rcItem.top, szTemp, 1);
                         }
                         else
-                            x_offset = 2;
+                            x_offset = 10;
                     }
                     else {
                         x_offset = 14;
@@ -2441,9 +2440,8 @@ LABEL_SHOWWINDOW:
 					if(!IsWindowEnabled(GetDlgItem(hwndDlg,IDC_CHAT_HISTORY))) 
 						break;
 
-					if (ServiceExists("MSP/HTMLlog/ViewLog")) {
+					if (ServiceExists("MSP/HTMLlog/ViewLog") && strstr(si->pszModule, "IRC"))
 						CallService ("MSP/HTMLlog/ViewLog",(WPARAM)si->pszModule,(LPARAM)si->pszName);
-					}
 					else if (pInfo) {
 						mir_snprintf(szName, MAX_PATH,"%s",pInfo->pszModDispName?pInfo->pszModDispName:si->pszModule);
 						ValidateFilename(szName);

@@ -249,20 +249,9 @@ void WriteStatsOnClose(HWND hwndDlg, struct MessageWindowData *dat)
 int MsgWindowUpdateMenu(HWND hwndDlg, struct MessageWindowData *dat, HMENU submenu, int menuID)
 {
     if(menuID == MENU_TABCONTEXT) {
-        int iLeave = MF_GRAYED;
+        SESSION_INFO *si = dat->si;
+        int iLeave = dat->isIRC ? MF_ENABLED : MF_GRAYED;
         
-        if(dat && dat->bType == SESSIONTYPE_CHAT) {
-            SESSION_INFO *si = (SESSION_INFO *)dat->si;
-
-            if(si) {
-                char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)si->hContact, 0);
-                char szSvc[128];
-
-                mir_snprintf(szSvc, 128, "%s/Menu2ChannelMenu", szProto);
-                if(ServiceExists(szSvc))
-                    iLeave = MF_ENABLED;
-            }
-        }
         EnableMenuItem(submenu, ID_TABMENU_SWITCHTONEXTTAB, dat->pContainer->iChilds > 1 ? MF_ENABLED : MF_GRAYED);
         EnableMenuItem(submenu, ID_TABMENU_SWITCHTOPREVIOUSTAB, dat->pContainer->iChilds > 1 ? MF_ENABLED : MF_GRAYED);
         EnableMenuItem(submenu, ID_TABMENU_ATTACHTOCONTAINER, DBGetContactSettingByte(NULL, SRMSGMOD_T, "useclistgroups", 0) || DBGetContactSettingByte(NULL, SRMSGMOD_T, "singlewinmode", 0) ? MF_GRAYED : MF_ENABLED);
@@ -1705,6 +1694,10 @@ void GetDataDir()
     CreateDirectoryA(pszDataPath, NULL);
     strncpy(myGlobals.szDataPath, pszDataPath, MAX_PATH);
     myGlobals.szDataPath[MAX_PATH] = 0;
+    mir_snprintf(pszDataPath, MAX_PATH, "%sskins\\", myGlobals.szDataPath);
+    CreateDirectoryA(pszDataPath, NULL);
+    mir_snprintf(pszDataPath, MAX_PATH, "%sthemes\\", myGlobals.szDataPath);
+    CreateDirectoryA(pszDataPath, NULL);
 }
 
 void LoadOwnAvatar(HWND hwndDlg, struct MessageWindowData *dat)

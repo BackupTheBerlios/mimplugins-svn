@@ -705,7 +705,6 @@ void Log_StreamInEvent(HWND hwndDlg,  LOGINFO* lin, SESSION_INFO* si, BOOL bRedr
 
 
             if(g_Settings.ClickableNicks) {
-                char szTRange[3];
                 CHARFORMAT2 cf2 = {0};
                 FINDTEXTEXA fi2;
 
@@ -837,12 +836,12 @@ char * Log_CreateRtfHeader(MODULEINFO * mi)
             szString[0] = 0x28;
             LoadMsgDlgFont(17, &lf, NULL, "ChatFonts");
             hFont = CreateFontIndirect(&lf);
-            iText = GetTextPixelSize(szString, hFont, TRUE) + 5;
+            iText = GetTextPixelSize(szString, hFont, TRUE) + 3;
             DeleteObject(hFont);
             iIndent += (iText * 1440)/logPixelSX;
             Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\tx%u", iIndent);
         } else if(g_Settings.dwIconFlags) {
-			iIndent += (14*1440)/logPixelSX;
+			iIndent += ((g_Settings.ScaleIcons ? 14 : 20) * 1440)/logPixelSX;
 			Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\tx%u", iIndent);
 		}
 		if(g_Settings.ShowTime)
@@ -877,18 +876,19 @@ void LoadMsgLogBitmaps(void)
 	HBRUSH hBkgBrush;
 	int rtfHeaderSize;
 	PBYTE pBmpBits;
-
+    int iIconSize = g_Settings.ScaleIcons ? 12 : 16;
+    
 	hBkgBrush = CreateSolidBrush(DBGetContactSettingDword(NULL, "Chat", "ColorLogBG", GetSysColor(COLOR_WINDOW)));
 	bih.biSize = sizeof(bih);
 	bih.biBitCount = 24;
 	bih.biCompression = BI_RGB;
-	bih.biHeight = 10; //GetSystemMetrics(SM_CYSMICON);
+	bih.biHeight = iIconSize;
 	bih.biPlanes = 1;
-	bih.biWidth = 10; //GetSystemMetrics(SM_CXSMICON);
+	bih.biWidth = iIconSize;
 	widthBytes = ((bih.biWidth * bih.biBitCount + 31) >> 5) * 4;
 	rc.top = rc.left = 0;
-	rc.right = 16; //bih.biWidth;
-	rc.bottom = 16; //bih.biHeight;
+	rc.right = iIconSize;
+	rc.bottom = iIconSize;
 	hdc = GetDC(NULL);
 	hBmp = CreateCompatibleBitmap(hdc, bih.biWidth, bih.biHeight);
 	hdcMem = CreateCompatibleDC(hdc);
@@ -901,7 +901,7 @@ void LoadMsgLogBitmaps(void)
 		hoBmp = (HBITMAP) SelectObject(hdcMem, hBmp);
 
         FillRect(hdcMem, &rc, hBkgBrush);
-		DrawIconEx(hdcMem, 0, 0, hIcon, 10, 10, 0, NULL, DI_NORMAL);
+		DrawIconEx(hdcMem, 0, 1, hIcon, iIconSize, iIconSize, 0, NULL, DI_NORMAL);
         
 		SelectObject(hdcMem, hoBmp);
 		GetDIBits(hdc, hBmp, 0, bih.biHeight, pBmpBits, (BITMAPINFO *) & bih, DIB_RGB_COLORS);

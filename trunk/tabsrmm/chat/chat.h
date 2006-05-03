@@ -232,7 +232,7 @@ typedef struct SESSION_INFO_TYPE
 	int				iWidth;
 	int				iHeight;
 	int				iStatusCount;
-
+    
 	WORD			wStatus;
 	WORD			wState;
 	WORD			wCommandsNum;
@@ -346,6 +346,7 @@ struct GlobalLogSettings_t {
     BYTE        LogSymbols;
     BYTE        ClickableNicks;
     BYTE        ColorizeNicks;
+    BYTE        ScaleIcons;
     COLORREF    nickColors[6];
 };
 extern struct GlobalLogSettings_t g_Settings;

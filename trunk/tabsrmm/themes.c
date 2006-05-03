@@ -463,15 +463,20 @@ char *GetThemeFileName(int iMode)
 {
     static char szFilename[MAX_PATH];
     OPENFILENAMEA ofn={0};
+    char szInitialDir[MAX_PATH];
 
+    mir_snprintf(szInitialDir, MAX_PATH, "%sthemes\\", myGlobals.szDataPath);
+    
+    szFilename[0] = 0;
+    
     ofn.lpstrFilter = "tabSRMM themes\0*.tabsrmm\0\0";
     ofn.lStructSize= OPENFILENAME_SIZE_VERSION_400;
     ofn.hwndOwner=0;
     ofn.lpstrFile = szFilename;
-    ofn.lpstrInitialDir = ".";
+    ofn.lpstrInitialDir = szInitialDir;
     ofn.nMaxFile = MAX_PATH;
     ofn.nMaxFileTitle = MAX_PATH;
-    ofn.Flags = OFN_HIDEREADONLY;
+    ofn.Flags = OFN_HIDEREADONLY | OFN_DONTADDTORECENT;
     ofn.lpstrDefExt = "tabsrmm";
     if(!iMode) {
         if (GetOpenFileNameA(&ofn))

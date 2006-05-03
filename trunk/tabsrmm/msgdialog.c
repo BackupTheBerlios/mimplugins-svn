@@ -2233,10 +2233,6 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 #if defined(_UNICODE)
                             MultiByteToWideChar(CP_ACP, 0, buffer, iLen, (LPWSTR)&buffer[iLen], (450 - iLen) / sizeof(wchar_t));
                             dbei.cbBlob = iLen * (sizeof(TCHAR) + 1);
-#if defined(_DEBUG)
-							_DebugTraceA("status change ANSI: %s", buffer);
-							_DebugTraceW(L"status change UNICODE: %s", (LPWSTR)&buffer[iLen]);
-#endif
 #else
 							dbei.cbBlob = iLen;
 #endif

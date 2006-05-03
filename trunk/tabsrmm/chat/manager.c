@@ -30,7 +30,6 @@ extern struct MM_INTERFACE		mmi ;
 #define	STATUSICONCOUNT 6
 
 SESSION_INFO * m_WndList = 0;
-TABLIST * g_TabList = 0;
 MODULEINFO *m_ModList = 0;
 
 void SetActiveSession(char * pszID, char * pszModule)
@@ -971,6 +970,15 @@ int	SM_GetCount(char * pszModule)
 	return count;
 }
 
+int SM_IsIRC(SESSION_INFO *si)
+{
+    char szServiceName[512];
+
+    mir_snprintf(szServiceName, 512, "%s/GetIrcData", si->pszModule);
+
+    return(ServiceExists(szServiceName));
+}
+
 SESSION_INFO *	SM_FindSessionByHWND(HWND hWnd)
 {
     SESSION_INFO *pTemp = m_WndList;
@@ -1190,59 +1198,6 @@ BOOL MM_RemoveAll (void)
 	m_ModList = NULL;
 	return TRUE;
 }
-
-
-
-//---------------------------------------------------
-//		Tab list manager functions
-//
-//		Necessary to keep track of what tabs should 
-//		be restored
-//---------------------------------------------------
-
-BOOL TabM_AddTab(char * pszID, char * pszModule)
-{
-	TABLIST *node = NULL;
-	if(!pszID || !pszModule)
-		return FALSE;
-
-	node = (TABLIST*) malloc(sizeof(TABLIST));
-	ZeroMemory(node, sizeof(TABLIST));
-
-	node->pszID = (char *) malloc(lstrlenA(pszID) + 1);
-	lstrcpyA(node->pszID, pszID);
-
-	node->pszModule = (char *) malloc(lstrlenA(pszModule) + 1);
-	lstrcpyA(node->pszModule, pszModule);
-
-	if (g_TabList == NULL) // list is empty
-	{
-		g_TabList = node;
-		node->next = NULL;
-	}
-	else
-	{
-		node->next = g_TabList;
-		g_TabList = node;
-	}
-	return TRUE;
-		
-}
-
-BOOL TabM_RemoveAll (void)
-{
-	while (g_TabList != NULL) 
-    {
-		TABLIST * pLast = g_TabList->next;
-		free (g_TabList->pszModule);
-		free(g_TabList->pszID);
-		free (g_TabList);
-		g_TabList = pLast;
-    }
-	g_TabList = NULL;
-	return TRUE;
-}
-
 
 //---------------------------------------------------
 //		Status manager functions

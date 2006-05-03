@@ -135,7 +135,6 @@ int PreShutdown(WPARAM wParam,LPARAM lParam)
 
 	SM_RemoveAll();
 	MM_RemoveAll();
-	TabM_RemoveAll();
 	return 0;
 }
 

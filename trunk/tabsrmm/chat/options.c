@@ -146,7 +146,8 @@ static struct branch_t branch2[] = {
     {_T("Use IRC style status indicators in the nicklist (@, %, + etc.)"), "ClassicIndicators", 0,1, NULL},
     {_T("Use text symbols instead of icons in the chat log (faster)"), "LogSymbols", 0,0, NULL},
     {_T("Make nicknames clickable hyperlinks"), "ClickableNicks", 0,0, NULL},
-    {_T("Colorize nicknames (not when using clickable nicknames)"), "ColorizeNicks", 0,0, NULL}
+    {_T("Colorize nicknames (not when using clickable nicknames)"), "ColorizeNicks", 0,0, NULL},
+    {_T("Scale down icons to 10x10 pixels in the chat log"), "ScaleIcons", 0,1, NULL}
 };
 static struct branch_t branch3[] = {
 	{_T("Show topic changes"), "FilterFlags", GC_EVENT_TOPIC, 0, NULL},
@@ -398,29 +399,30 @@ static struct _tagicons { char *szDesc; char *szName; int id; UINT size;} _icons
 	"Icon overlay", "chat_overlay", IDI_OVERLAY, 16,
     "Show nicklist", "chat_shownicklist", IDI_SHOWNICKLIST, 16,
     "Hide nicklist", "chat_hidenicklist", IDI_HIDENICKLIST, 16,
-	"Status 1 (10x10)", "chat_status0", IDI_STATUS0, 10,
-	"Status 2 (10x10)", "chat_status1", IDI_STATUS1, 10,
-	"Status 3 (10x10)", "chat_status2", IDI_STATUS2, 10,
-	"Status 4 (10x10)", "chat_status3", IDI_STATUS3, 10,
-	"Status 5 (10x10)", "chat_status4", IDI_STATUS4, 10,
-	"Status 6 (10x10)", "chat_status5", IDI_STATUS5, 10,
+
+    "Status 1 (10x10)", "chat_status0", IDI_STATUS0, 16,
+	"Status 2 (10x10)", "chat_status1", IDI_STATUS1, 16,
+	"Status 3 (10x10)", "chat_status2", IDI_STATUS2, 16,
+	"Status 4 (10x10)", "chat_status3", IDI_STATUS3, 16,
+	"Status 5 (10x10)", "chat_status4", IDI_STATUS4, 16,
+	"Status 6 (10x10)", "chat_status5", IDI_STATUS5, 16,
 	NULL, NULL, -1, 0
 };
 static struct _tag1icons { char *szDesc; char *szName; int id; UINT size;} _logicons[] = {
-	"Message in (10x10)", "chat_log_message_in", IDI_MESSAGE, 10,
-	"Message out (10x10)", "chat_log_message_out", IDI_MESSAGEOUT, 10,
-	"Action (10x10)", "chat_log_action", IDI_ACTION, 10,
-	"Add Status (10x10)", "chat_log_addstatus", IDI_ADDSTATUS, 10,
-	"Remove Status (10x10)", "chat_log_removestatus", IDI_REMSTATUS, 10,
-	"Join (10x10)", "chat_log_join", IDI_JOIN, 10,
-	"Leave (10x10)", "chat_log_part", IDI_PART, 10,
-	"Quit (10x10)", "chat_log_quit", IDI_QUIT, 10,
-	"Kick (10x10)", "chat_log_kick", IDI_KICK, 10,
-	"Notice (10x10)", "chat_log_notice", IDI_NOTICE, 10,
-	"Nickchange (10x10)", "chat_log_nick", IDI_NICK, 10,
-	"Topic (10x10)", "chat_log_topic", IDI_TOPIC, 10,
-	"Highlight (10x10)", "chat_log_highlight", IDI_HIGHLIGHT, 10,
-	"Information (10x10)", "chat_log_info", IDI_INFO, 10,
+	"Message in (10x10)", "chat_log_message_in", IDI_MESSAGE, 16,
+	"Message out (10x10)", "chat_log_message_out", IDI_MESSAGEOUT, 16,
+	"Action (10x10)", "chat_log_action", IDI_ACTION, 16,
+	"Add Status (10x10)", "chat_log_addstatus", IDI_ADDSTATUS, 16,
+	"Remove Status (10x10)", "chat_log_removestatus", IDI_REMSTATUS, 16,
+	"Join (10x10)", "chat_log_join", IDI_JOIN, 16,
+	"Leave (10x10)", "chat_log_part", IDI_PART, 16,
+	"Quit (10x10)", "chat_log_quit", IDI_QUIT, 16,
+	"Kick (10x10)", "chat_log_kick", IDI_KICK, 16,
+	"Notice (10x10)", "chat_log_notice", IDI_NOTICE, 16,
+	"Nickchange (10x10)", "chat_log_nick", IDI_NICK, 16,
+	"Topic (10x10)", "chat_log_topic", IDI_TOPIC, 16,
+	"Highlight (10x10)", "chat_log_highlight", IDI_HIGHLIGHT, 16,
+	"Information (10x10)", "chat_log_info", IDI_INFO, 16,
 	NULL, NULL, 0, 0
 };
 // add icons to the skinning module
@@ -648,8 +650,10 @@ BOOL CALLBACK DlgProcOptions1(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam
                             SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch5, sizeof(branch5) / sizeof(branch5[0]));
                             if(myGlobals.g_PopupAvail)
                                 SaveBranch(GetDlgItem(hwndDlg, IDC_CHECKBOXES), branch6, sizeof(branch6) / sizeof(branch6[0]));
-                            MM_FontsChanged();
                             LoadGlobalSettings();
+                            MM_FontsChanged();
+                            FreeMsgLogBitmaps();
+                            LoadMsgLogBitmaps();
                             SM_BroadcastMessage(NULL, GC_SETWNDPROPS, 0, 0, TRUE);
                         }
                         DBWriteContactSettingByte(NULL, SRMSGMOD_T, "enable_chat", IsDlgButtonChecked(hwndDlg, IDC_CHAT_ENABLE) ? 1 : 0);
@@ -1198,9 +1202,9 @@ static BOOL CALLBACK DlgProcOptions2(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM
                 g_Settings.LogTextIndent = g_Settings.LogTextIndent*12/10;
                 g_Settings.LogIndentEnabled = (DBGetContactSettingByte(NULL, "Chat", "LogIndentEnabled", 1) != 0)?TRUE:FALSE;
 
+                LoadGlobalSettings();
                 MM_FontsChanged();						
                 MM_FixColors();
-                LoadGlobalSettings();
                 SM_BroadcastMessage(NULL, GC_SETWNDPROPS, 0, 0, TRUE);
             }
             
@@ -1391,6 +1395,7 @@ void LoadGlobalSettings(void)
     g_Settings.LogSymbols = DBGetContactSettingByte(NULL, "Chat", "LogSymbols", 0);
     g_Settings.ClickableNicks = DBGetContactSettingByte(NULL, "Chat", "ClickableNicks", 0);
     g_Settings.ColorizeNicks = DBGetContactSettingByte(NULL, "Chat", "ColorizeNicks", 0);
+    g_Settings.ScaleIcons = DBGetContactSettingByte(NULL, "Chat", "ScaleIcons", 1);
     
 	InitSetting(&g_Settings.pszTimeStamp, "HeaderTime", "[%H:%M]"); 
 	InitSetting(&g_Settings.pszTimeStampLog, "LogTimestamp", "[%d %b %y %H:%M]"); 

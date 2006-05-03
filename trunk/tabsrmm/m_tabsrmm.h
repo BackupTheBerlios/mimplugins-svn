@@ -365,6 +365,7 @@ struct MessageWindowData {
 	BYTE needIEViewScroll;
 	HANDLE hTheme;
 	BYTE bFlatMsgLog;
+    BYTE isIRC;
     PVOID si;
 };
 
