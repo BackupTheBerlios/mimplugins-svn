@@ -296,14 +296,10 @@ static BOOL DoPopup(SESSION_INFO * si, GCEVENT * gce, struct MessageWindowData *
                     goto passed;
             }
             if (pContainer->dwFlags & CNT_ALWAYSREPORTINACTIVE) {
-                if((GetForegroundWindow() == pContainer->hwnd || GetActiveWindow() == pContainer->hwnd) && pContainer->hwndActive == si->hWnd)
+                if(pContainer->hwndActive == si->hWnd)
                     return 0;
-                else {
-                    if(pContainer->hwndActive == si->hWnd && pContainer->dwFlags & CNT_STICKY)
-                        return 0;
-                    else
-                        goto passed;
-                }
+                else
+                    goto passed;
             }
             return 0;
         }

@@ -147,7 +147,9 @@ static struct branch_t branch2[] = {
     {_T("Use text symbols instead of icons in the chat log (faster)"), "LogSymbols", 0,0, NULL},
     {_T("Make nicknames clickable hyperlinks"), "ClickableNicks", 0,0, NULL},
     {_T("Colorize nicknames (not when using clickable nicknames)"), "ColorizeNicks", 0,0, NULL},
-    {_T("Scale down icons to 10x10 pixels in the chat log"), "ScaleIcons", 0,1, NULL}
+    {_T("Scale down icons to 10x10 pixels in the chat log"), "ScaleIcons", 0,1, NULL},
+    {_T("Draw dividers to mark inactivity"), "UseDividers", 0,1, NULL},
+    {_T("Use the containers popup configuration to place dividers"), "DividersUsePopupConfig", 0,1, NULL}
 };
 static struct branch_t branch3[] = {
 	{_T("Show topic changes"), "FilterFlags", GC_EVENT_TOPIC, 0, NULL},
@@ -1396,6 +1398,8 @@ void LoadGlobalSettings(void)
     g_Settings.ClickableNicks = DBGetContactSettingByte(NULL, "Chat", "ClickableNicks", 0);
     g_Settings.ColorizeNicks = DBGetContactSettingByte(NULL, "Chat", "ColorizeNicks", 0);
     g_Settings.ScaleIcons = DBGetContactSettingByte(NULL, "Chat", "ScaleIcons", 1);
+    g_Settings.UseDividers = DBGetContactSettingByte(NULL, "Chat", "UseDividers", 1);
+    g_Settings.DividersUsePopupConfig = DBGetContactSettingByte(NULL, "Chat", "DividersUsePopupConfig", 1);
     
 	InitSetting(&g_Settings.pszTimeStamp, "HeaderTime", "[%H:%M]"); 
 	InitSetting(&g_Settings.pszTimeStampLog, "LogTimestamp", "[%d %b %y %H:%M]"); 
