@@ -611,7 +611,7 @@ default_process:
 			}			
 			if (wParam == 0x57 && isCtrl && !isAlt) // ctrl-w (close window)
 			{
-				PostMessage(hwndParent, WM_CLOSE, 0, 0);
+				PostMessage(hwndParent, WM_CLOSE, 0, 1);
 				return TRUE;
 		
 			}			
@@ -998,7 +998,7 @@ static LRESULT CALLBACK LogSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 	case WM_KEYDOWN:
 			if (wParam == 0x57 && GetKeyState(VK_CONTROL) & 0x8000) // ctrl-w (close window)
 			{
-				PostMessage(hwndParent, WM_CLOSE, 0, 0);
+				PostMessage(hwndParent, WM_CLOSE, 0, 1);
 				return TRUE;
 		
 			}
@@ -1077,7 +1077,7 @@ static LRESULT CALLBACK NicklistSubclassProc(HWND hwnd, UINT msg, WPARAM wParam,
 	case WM_KEYDOWN:
 			if (wParam == 0x57 && GetKeyState(VK_CONTROL) & 0x8000) // ctrl-w (close window)
 			{
-				PostMessage(hwndParent, WM_CLOSE, 0, 0);
+				PostMessage(hwndParent, WM_CLOSE, 0, 1);
 				return TRUE;		
 			}
 /*
@@ -1721,7 +1721,7 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 					SetBkMode(dis->hDC, TRANSPARENT);
 
 					if (dis->itemAction == ODA_FOCUS && dis->itemState & ODS_SELECTED)
-						FillRect(dis->hDC, &dis->rcItem, GetSysColorBrush(COLOR_HIGHLIGHT));
+						FillRect(dis->hDC, &dis->rcItem, g_Settings.SelectionBGBrush);
 					else //if(dis->itemState & ODS_INACTIVE)
 						FillRect(dis->hDC, &dis->rcItem, hListBkgBrush);
 
@@ -2495,7 +2495,7 @@ LABEL_SHOWWINDOW:
 				}break;
 			case IDC_CHAT_CLOSE:
 				{
-					SendMessage(hwndDlg, WM_CLOSE, 0, 0);
+					SendMessage(hwndDlg, WM_CLOSE, 0, 1);
 				}break;
 			case IDC_CHANMGR:
 				{
@@ -2706,7 +2706,18 @@ LABEL_SHOWWINDOW:
 
 		case WM_CLOSE:
 		{
-			SendMessage(hwndDlg, GC_CLOSEWINDOW, 0, 1);
+            if(wParam == 0 && lParam == 0 && !myGlobals.m_EscapeCloses) {
+                SendMessage(dat->pContainer->hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+                return TRUE;
+            }
+            if(lParam) {
+                if (myGlobals.m_WarnOnClose) {
+                    if (MessageBoxA(dat->pContainer->hwnd, Translate("Warning"), "Miranda", MB_YESNO | MB_ICONQUESTION) == IDNO) {
+                        return TRUE;
+                    }
+                }
+            }
+            SendMessage(hwndDlg, GC_CLOSEWINDOW, 0, 1);
             break;
 		} 
         case DM_CONTAINERSELECTED:
@@ -2754,20 +2765,7 @@ LABEL_SHOWWINDOW:
             TCITEM item = {0};
             RECT rc;
             struct ContainerWindowData *pContainer = dat->pContainer;
-            // esc handles error controls if we are in error state (error controls visible)
 
-            if(wParam == 0 && lParam == 1 && !myGlobals.m_EscapeCloses) {
-                SendMessage(dat->pContainer->hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
-                return TRUE;
-            }
-
-            if(!lParam) {
-                if (myGlobals.m_WarnOnClose) {
-                    if (MessageBoxA(dat->pContainer->hwnd, Translate("Warning"), "Miranda", MB_YESNO | MB_ICONQUESTION) == IDNO) {
-                        return TRUE;
-                    }
-                }
-            }
             iTabs = TabCtrl_GetItemCount(hwndTab);
             if(iTabs == 1) {
                 PostMessage(GetParent(GetParent(hwndDlg)), WM_CLOSE, 0, 1);

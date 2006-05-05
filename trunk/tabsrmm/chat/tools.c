@@ -525,16 +525,22 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
     
 flash_and_switch:
     if(si->hWnd) {
+        BOOL bTitleIcon = FALSE;
+        
         if(dat) {
             HWND hwndTab = GetParent(si->hWnd);
 
             if(IsIconic(dat->pContainer->hwnd) || dat->pContainer->hwndActive != si->hWnd) {
                 
-                if(hNotifyIcon == hIcons[ICON_HIGHLIGHT])
-                   dat->iFlashIcon = hNotifyIcon;
+                if(hNotifyIcon == hIcons[ICON_HIGHLIGHT]) {
+                    dat->iFlashIcon = hNotifyIcon;
+                    bTitleIcon = TRUE;
+                }
                 else {
-                    if(dat->iFlashIcon != hIcons[ICON_HIGHLIGHT] && dat->iFlashIcon != hIcons[ICON_MESSAGE])
+                    if(dat->iFlashIcon != hIcons[ICON_HIGHLIGHT] && dat->iFlashIcon != hIcons[ICON_MESSAGE]) {
+                        bTitleIcon = TRUE;
                         dat->iFlashIcon = hNotifyIcon;
+                    }
                 }
                         
                 if(bMustFlash) {
@@ -573,8 +579,10 @@ flash_and_switch:
                     item.iImage = 0;
                     TabCtrl_SetItem(GetParent(si->hWnd), dat->iTabID, &item);
                 }
-                SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)hNotifyIcon);
-                dat->pContainer->dwFlags |= CNT_NEED_UPDATETITLE;
+                if(bTitleIcon) {
+                    SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)hNotifyIcon);
+                    dat->pContainer->dwFlags |= CNT_NEED_UPDATETITLE;
+                }
             }
         }
     }
