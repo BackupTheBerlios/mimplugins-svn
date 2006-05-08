@@ -525,24 +525,17 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
     
 flash_and_switch:
     if(si->hWnd) {
-        BOOL bTitleIcon = FALSE;
-        
         if(dat) {
             HWND hwndTab = GetParent(si->hWnd);
 
             if(IsIconic(dat->pContainer->hwnd) || dat->pContainer->hwndActive != si->hWnd) {
                 
-                if(hNotifyIcon == hIcons[ICON_HIGHLIGHT]) {
+                if(hNotifyIcon == hIcons[ICON_HIGHLIGHT])
                     dat->iFlashIcon = hNotifyIcon;
-                    bTitleIcon = TRUE;
-                }
                 else {
-                    if(dat->iFlashIcon != hIcons[ICON_HIGHLIGHT] && dat->iFlashIcon != hIcons[ICON_MESSAGE]) {
-                        bTitleIcon = TRUE;
+                    if(dat->iFlashIcon != hIcons[ICON_HIGHLIGHT] && dat->iFlashIcon != hIcons[ICON_MESSAGE])
                         dat->iFlashIcon = hNotifyIcon;
-                    }
                 }
-                        
                 if(bMustFlash) {
                     SetTimer(si->hWnd, TIMERID_FLASHWND, TIMEOUT_FLASHWND, NULL);
                     dat->mayFlashTab = TRUE;
@@ -570,6 +563,8 @@ flash_and_switch:
                     FlashContainer(dat->pContainer, 1, 0);
             }
             if(hNotifyIcon && bInactive) {
+                HICON hIcon;
+                
                 if(!bActiveTab && bMustFlash)
                     dat->hTabIcon = hNotifyIcon;
                 else if(!bActiveTab) {
@@ -579,7 +574,9 @@ flash_and_switch:
                     item.iImage = 0;
                     TabCtrl_SetItem(GetParent(si->hWnd), dat->iTabID, &item);
                 }
-                if(bTitleIcon) {
+                hIcon = (HICON)SendMessage(dat->pContainer->hwnd, WM_GETICON, ICON_BIG, 0);
+
+                if(hNotifyIcon == hIcons[ICON_HIGHLIGHT] || (hIcon != hIcons[ICON_MESSAGE] && hIcon != hIcons[ICON_HIGHLIGHT])) {
                     SendMessage(dat->pContainer->hwnd, DM_SETICON, ICON_BIG, (LPARAM)hNotifyIcon);
                     dat->pContainer->dwFlags |= CNT_NEED_UPDATETITLE;
                 }

@@ -39,6 +39,7 @@ static int logPixelSX;
 static char *szDivider = "\\strike----------------------------------------------------------------------------\\strike0";
 static char CHAT_rtfFontsGlobal[OPTIONS_FONTCOUNT + 2][RTFCACHELINESIZE];
 static char *CHAT_rtffonts = 0;
+static char szMicroLFeed[50];
 
 static int EventToIndex(LOGINFO * lin)
 {
@@ -448,6 +449,7 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
 	// ### RTF BODY (one iteration per event that should be streamed in)
 	while(lin)
 	{
+        BOOL needMicroLF = FALSE;
 		// filter
 		if(streamData->si->iType != GCW_CHATROOM || !streamData->si->bFilterEnabled || (streamData->si->iLogFilterFlags&lin->iType) != 0)
 		{
@@ -461,9 +463,10 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
                 Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\par\\sl-1\\highlight%d %s ", 18, szStyle_div);
                 //Log_Append(&buffer, &bufferEnd, &bufferAlloced, szDivider);
                 streamData->dat->dwFlags &= ~MWF_DIVIDERWANTED;
+                needMicroLF = TRUE;
             }
             // create new line, and set font and color
-			Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\par\\sl%d%s ", 1000, Log_SetStyle(0, 0));
+			Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\par\\sl0%s ", Log_SetStyle(0, 0));
 
 			// Insert icon
             if (g_Settings.LogSymbols)                // use symbols
@@ -599,6 +602,8 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
 
 		}
 		lin = lin->prev;
+        //if(needMicroLF)
+        //    Log_Append(&buffer, &bufferEnd, &bufferAlloced, szMicroLFeed);
 	}
 
 
@@ -949,6 +954,7 @@ void LoadMsgLogBitmaps(void)
     for(i = 0; i < OPTIONS_FONTCOUNT; i++)
         mir_snprintf(CHAT_rtfFontsGlobal[i], RTFCACHELINESIZE, "\\f%u\\cf%u\\ul0\\highlight0\\b%d\\i%d\\fs%u", i, i + 1, aFonts[i].lf.lfWeight >= FW_BOLD ? 1 : 0, aFonts[i].lf.lfItalic, 2 * abs(aFonts[i].lf.lfHeight) * 74 / logPixelSY);
     CHAT_rtffonts = &(CHAT_rtfFontsGlobal[0][0]);
+    mir_snprintf(szMicroLFeed, sizeof(szMicroLFeed), "%s\\par\\sl-1%s", Log_SetStyle(0, 0), Log_SetStyle(0, 0));
 }
 
 void FreeMsgLogBitmaps(void)

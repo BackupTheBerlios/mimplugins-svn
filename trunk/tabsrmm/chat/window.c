@@ -206,7 +206,7 @@ static int RoomWndResize(HWND hwndDlg,LPARAM lParam,UTILRESIZECONTROL *urc)
 		case IDC_CHAT_MESSAGE:
 			urc->rcItem.right = urc->dlgNewSize.cx ;
 			urc->rcItem.top = urc->dlgNewSize.cy - si->iSplitterY+3;
-			urc->rcItem.bottom = urc->dlgNewSize.cy - 1 ;
+			urc->rcItem.bottom = urc->dlgNewSize.cy; // - 1 ;
 			return RD_ANCHORX_LEFT|RD_ANCHORY_CUSTOM;
 		case IDC_SMILEY:
 		case IDC_ITALICS:
