@@ -34,8 +34,8 @@ extern MYGLOBALS	myGlobals;
 static PBYTE pLogIconBmpBits[14];
 static int logIconBmpSize[sizeof(pLogIconBmpBits) / sizeof(pLogIconBmpBits[0])];
 
-static int logPixelSY;
-static int logPixelSX;
+static int logPixelSY = 0;
+static int logPixelSX = 0;
 static char *szDivider = "\\strike----------------------------------------------------------------------------\\strike0";
 static char CHAT_rtfFontsGlobal[OPTIONS_FONTCOUNT + 2][RTFCACHELINESIZE];
 static char *CHAT_rtffonts = 0;
@@ -813,7 +813,7 @@ char * Log_CreateRtfHeader(MODULEINFO * mi)
 
 
 	//get the number of pixels per logical inch
-	{
+	if(logPixelSY == 0) {
 		HDC hdc;
 		hdc = GetDC(NULL);
 		logPixelSY = GetDeviceCaps(hdc, LOGPIXELSY);
@@ -943,6 +943,15 @@ void LoadMsgLogBitmaps(void)
 	DeleteObject(hBkgBrush);
 
     /* cache RTF font headers */
+
+    //get the number of pixels per logical inch
+    if(logPixelSY == 0) {
+        HDC hdc;
+        hdc = GetDC(NULL);
+        logPixelSY = GetDeviceCaps(hdc, LOGPIXELSY);
+        logPixelSX = GetDeviceCaps(hdc, LOGPIXELSX);
+        ReleaseDC(NULL, hdc);
+    }
 
     for(i = 0; i < OPTIONS_FONTCOUNT; i++)
         mir_snprintf(CHAT_rtfFontsGlobal[i], RTFCACHELINESIZE, "\\f%u\\cf%u\\ul0\\highlight0\\b%d\\i%d\\fs%u", i, i + 1, aFonts[i].lf.lfWeight >= FW_BOLD ? 1 : 0, aFonts[i].lf.lfItalic, 2 * abs(aFonts[i].lf.lfHeight) * 74 / logPixelSY);
