@@ -1396,7 +1396,7 @@ void UpdateTrayMenuState(struct MessageWindowData *dat, BOOL bForced)
  * if we want tray support, add the contact to the list of unread sessions in the tray menu
  */
 
-int UpdateTrayMenu(struct MessageWindowData *dat, WORD wStatus, char *szProto, char *szStatus, HANDLE hContact, BOOL fromEvent)
+int UpdateTrayMenu(struct MessageWindowData *dat, WORD wStatus, char *szProto, char *szStatus, HANDLE hContact, DWORD fromEvent)
 {
     if(myGlobals.g_hMenuTrayUnread != 0 && hContact != 0 && szProto != NULL) {
         char szMenuEntry[80];
@@ -1422,13 +1422,15 @@ int UpdateTrayMenu(struct MessageWindowData *dat, WORD wStatus, char *szProto, c
             szNick = dat->szNickname;
             GetMenuItemInfo(myGlobals.g_hMenuTrayUnread, (UINT_PTR)hContact, FALSE, &mii);
             mii.dwItemData++;
+            if(fromEvent == 2)                          // from chat...
+                mii.dwItemData |= 0x10000000;
             DeleteMenu(myGlobals.g_hMenuTrayUnread, (UINT_PTR)hContact, MF_BYCOMMAND);
 #if defined(_UNICODE)
-            mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", szProto, "%nick%", szMyStatus, mii.dwItemData);
+            mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", szProto, "%nick%", szMyStatus, mii.dwItemData & 0x0000ffff);
             szMenuEntryW = (WCHAR *)EncodeWithNickname((const char *)szMenuEntry, (const wchar_t *)szNick, dat->codePage);
             AppendMenuW(myGlobals.g_hMenuTrayUnread, MF_BYCOMMAND | MF_STRING, (UINT_PTR)hContact, szMenuEntryW);
 #else
-            mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", szProto, szNick, szMyStatus, mii.dwItemData);
+            mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", szProto, szNick, szMyStatus, mii.dwItemData & 0x0000ffff);
             AppendMenuA(myGlobals.g_hMenuTrayUnread, MF_BYCOMMAND | MF_STRING, (UINT_PTR)hContact, szMenuEntry);
 #endif            
             myGlobals.m_UnreadInTray++;
@@ -1452,20 +1454,24 @@ int UpdateTrayMenu(struct MessageWindowData *dat, WORD wStatus, char *szProto, c
                 AppendMenuA(myGlobals.g_hMenuTrayUnread, MF_BYCOMMAND | MF_STRING, (UINT_PTR)hContact, szMenuEntry);
 #endif            
                 mii.dwItemData = fromEvent ? 1 : 0;
-                myGlobals.m_UnreadInTray += mii.dwItemData;
+                myGlobals.m_UnreadInTray += (mii.dwItemData & 0x0000ffff);
+                if(fromEvent == 2)
+                    mii.dwItemData |= 0x10000000;
             }
             else {
                 GetMenuItemInfo(myGlobals.g_hMenuTrayUnread, (UINT_PTR)hContact, FALSE, &mii);
                 mii.dwItemData += (fromEvent ? 1 : 0);
                 myGlobals.m_UnreadInTray += (fromEvent ? 1 : 0);
                 mii.fMask |= MIIM_STRING;
+                if(fromEvent == 2)
+                    mii.dwItemData |= 0x10000000;
 #if defined(_UNICODE)
-                mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", szProto, "%nick%", szMyStatus, mii.dwItemData);
+                mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", szProto, "%nick%", szMyStatus, mii.dwItemData & 0x0000ffff);
                 szMenuEntryW = (WCHAR *)EncodeWithNickname(szMenuEntry, szNick, codePage);
                 mii.cch = lstrlenW(szMenuEntryW) + 1;
                 mii.dwTypeData = (LPWSTR)szMenuEntryW;
 #else
-                mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", szProto, szNick, szMyStatus, mii.dwItemData);
+                mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", szProto, szNick, szMyStatus, mii.dwItemData & 0x0000ffff);
                 mii.cch = lstrlenA(szMenuEntry) + 1;
                 mii.dwTypeData = szMenuEntry;
 #endif                

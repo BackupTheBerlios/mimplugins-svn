@@ -521,7 +521,7 @@ static int MessageEventAdded(WPARAM wParam, LPARAM lParam)
      * the contact list for flashing
      */
 nowindowcreate:    
-    UpdateTrayMenu(0, 0, dbei.szModule, NULL, (HANDLE)wParam, TRUE);
+    UpdateTrayMenu(0, 0, dbei.szModule, NULL, (HANDLE)wParam, 1);
     if(!nen_options.bTraySupport || myGlobals.m_WinVerMajor < 5) {
 	     TCHAR toolTip[256], *contactName;
         ZeroMemory(&cle, sizeof(cle));
