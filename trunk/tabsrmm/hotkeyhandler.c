@@ -87,8 +87,8 @@ void HandleMenuEntryFromhContact(int iSelection)
             goto nothing_open;
     }
     else
-nothing_open:        
-        CList_RoomDoubleclicked((WPARAM)iSelection, 0);
+nothing_open:
+        CallService(MS_CLIST_CONTACTDOUBLECLICKED, (WPARAM)iSelection, 0);
 }
 
 static void DrawMenuItem(DRAWITEMSTRUCT *dis, HICON hIcon, DWORD dwIdle)
