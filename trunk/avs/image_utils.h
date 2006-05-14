@@ -34,7 +34,7 @@ void LoadGdiPlus(void);
 void FreeGdiPlus(void);
 
 
-void CorrectBitmap32Alpha(HBITMAP hBitmap);
+void CorrectBitmap32Alpha(HBITMAP hBitmap, BOOL force);
 HBITMAP CopyBitmapTo32(HBITMAP hBitmap);
 
 

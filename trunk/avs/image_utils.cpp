@@ -43,7 +43,7 @@ Status (WINAPI *fGdipSaveImageToFile)(GpImage*, const WCHAR*, const CLSID*, cons
 void LoadGdiPlus(void)
 {
 	gdiPlusLoaded = false;
-	hGdiPlus = LoadLibrary(_T("gdiplus.dll"));
+	hGdiPlus = LoadLibraryA("gdiplus.dll");
 	if (hGdiPlus != NULL)
 	{
 		//Look up API's
@@ -139,7 +139,7 @@ void MakeBmpTransparent(HBITMAP hBitmap)
 }
 
 // Correct alpha from bitmaps loaded without it (it cames with 0 and should be 255)
-void CorrectBitmap32Alpha(HBITMAP hBitmap)
+void CorrectBitmap32Alpha(HBITMAP hBitmap, BOOL force)
 {
 	BITMAP bmp;
 	DWORD dwLen;
@@ -166,7 +166,7 @@ void CorrectBitmap32Alpha(HBITMAP hBitmap)
 
         for (x = 0; fixIt && x < bmp.bmWidth; ++x) 
 		{
-			if (px[3] != 0) 
+			if (px[3] != 0 && !force) 
 			{
 				fixIt = FALSE;
 			}
@@ -180,9 +180,7 @@ void CorrectBitmap32Alpha(HBITMAP hBitmap)
 	}
 
 	if (fixIt)
-	{
 		SetBitmapBits(hBitmap, dwLen, p);
-	}
 
 	free(p);
 }
@@ -238,7 +236,7 @@ HBITMAP CopyBitmapTo32(HBITMAP hBitmap)
 		DeleteObject(hdcOrig);
 
 		// Set alpha
-		CorrectBitmap32Alpha(hDirectBitmap);
+		CorrectBitmap32Alpha(hDirectBitmap, FALSE);
 	}
 	else
 	{
@@ -397,9 +395,6 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 	BITMAP bmpInfo;
 	WCHAR pszwFilename[MAX_PATH];
 	HDC hdc,hdcMem1,hdcMem2;
-//    OLE_XSIZE_HIMETRIC width;
-//    OLE_YSIZE_HIMETRIC height;
-//	SIZE sz;
 	short picType;
 	const char *szFile=(const char *)lParam;
 	char szFilename[MAX_PATH];
@@ -413,7 +408,7 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 		if ( !lstrcmpiA( pszExt,".bmp" ) || !lstrcmpiA( pszExt, ".rle" )) {
 			// LoadImage can do this much faster
 			hBmpCopy = (HBITMAP) LoadImageA( GetModuleHandle(NULL), szFilename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
-			CorrectBitmap32Alpha(hBmpCopy);
+			CorrectBitmap32Alpha(hBmpCopy, TRUE);
 			return (int) hBmpCopy;
 		}
 
@@ -455,16 +450,24 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 			{	HDC sDC = GetDC( NULL );
 				HBITMAP hBitmap = CreateDIBitmap( sDC, pDib, CBM_INIT, pDibBits, ( BITMAPINFO* )pDib, DIB_PAL_COLORS );
 				SelectObject( sDC, hBitmap );
-				DeleteDC( sDC );
+				ReleaseDC( NULL, sDC );
 				GlobalFree( pDib );
 
 				// Should not be here
-				CorrectBitmap32Alpha(hBitmap);
+				CorrectBitmap32Alpha(hBitmap, FALSE);
 				return (int)hBitmap;
 	}	}	}
 
 	OleInitialize(NULL);
 	MultiByteToWideChar(CP_ACP,0,szFilename,-1,pszwFilename,MAX_PATH);
+#ifndef __WINE__
+ 	MultiByteToWideChar(CP_ACP,0,szFilename,-1,pszwFilename,MAX_PATH);
+#else
+	char szFilenameAux[MAX_PATH];
+	mir_snprintf(szFilenameAux, MAX_PATH, "%s%s", "file://", szFilename);
+	MultiByteToWideChar(CP_ACP,0,szFilenameAux,-1,pszwFilename,MAX_PATH);
+#endif
+
 	if(S_OK!=OleLoadPicturePath(pszwFilename,NULL,0,0,IID_IPicture,(PVOID*)&pic)) {
 		OleUninitialize();
 		return (int)(HBITMAP)NULL;
@@ -496,7 +499,7 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 	pic->Release();
 	OleUninitialize();
 
-	CorrectBitmap32Alpha(hBmpCopy);
+	CorrectBitmap32Alpha(hBmpCopy, FALSE);
 	return (int)hBmpCopy;
 }
 
@@ -609,7 +612,7 @@ int BmpFilterResizeBitmap(WPARAM wParam,LPARAM lParam)
 		DeleteDC(hdcMem);
 		SelectObject(hdc, hOldBitmap2);
 		DeleteDC(hdc);
-		CorrectBitmap32Alpha(hStretchedBitmap);
+		CorrectBitmap32Alpha(hStretchedBitmap, FALSE);
 		return (int) hStretchedBitmap;
 	}
 }
@@ -630,7 +633,6 @@ int SaveGIF(HBITMAP hBmp, const char *szFilename)
 
 		SetTranspBkgColor(hBmp, RGB(255, 255, 255));
 
-		//Bitmap *image = new Bitmap(hBmp, NULL);
 		GpBitmap *bitmap = NULL;
 		fGdipCreateBitmapFromHBITMAP(hBmp, NULL, &bitmap);
 
@@ -640,7 +642,6 @@ int SaveGIF(HBITMAP hBmp, const char *szFilename)
 
 		WCHAR pszwFilename[MAX_PATH];
 		MultiByteToWideChar(CP_ACP,0,szFilename,-1,pszwFilename,MAX_PATH);
-		//stat = image->Save(pszwFilename, &encoderClsid, NULL);
 		stat = fGdipSaveImageToFile(bitmap, pszwFilename, &encoderClsid, NULL);
 
 		//delete image;
@@ -670,7 +671,6 @@ int SaveJPEG(HBITMAP hBmp, const char *szFilename)
 
 		SetTranspBkgColor(hBmp, RGB(255, 255, 255));
 
-		//Bitmap *image = new Bitmap(hBmp, NULL);
 		GpBitmap *bitmap = NULL;
 		fGdipCreateBitmapFromHBITMAP(hBmp, NULL, &bitmap);
 
@@ -689,7 +689,6 @@ int SaveJPEG(HBITMAP hBmp, const char *szFilename)
 		encoderParameters.Parameter[0].NumberOfValues = 1;
 		encoderParameters.Parameter[0].Value = &Quality;
 
-		//stat = image->Save(pszwFilename, &encoderClsid, &encoderParameters);
 		stat = fGdipSaveImageToFile(bitmap, pszwFilename, &encoderClsid, &encoderParameters);
 
 		//delete image;
@@ -729,6 +728,7 @@ int SavePNG(HBITMAP hBmp, const char *szFilename)
 			return -12;
 
 		memcpy( pDib, bmi, sizeof( BITMAPINFO ) + sizeof( RGBQUAD )*256 );
+		free(bmi);
 		pDibBits = (( BYTE* )pDib ) + sizeof( BITMAPINFO ) + sizeof( RGBQUAD )*256;
 
 		GetDIBits( hdc, hBmp, 0, pDib->biHeight, pDibBits, ( BITMAPINFO* )pDib, DIB_RGB_COLORS );

@@ -124,7 +124,7 @@ BOOL SaveBitmapFile( HDC hDC, HBITMAP hBmp, const char *pszFileName )
 		sizTmp = sizeof( BITMAPINFOHEADER );
 		while ( sizTmp-- )
 		{
-			*( ( ( PBYTE ) pjTmp )++ ) = *( ( pjTmpBmi )++ );
+			*( ( pjTmp )++ ) = *( ( pjTmpBmi )++ );
 		}
 	}
 

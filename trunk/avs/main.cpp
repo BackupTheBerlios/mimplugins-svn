@@ -72,7 +72,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 1, 24), 
+	PLUGIN_MAKE_VERSION(0, 0, 1, 25), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -679,7 +679,8 @@ static BOOL PreMultiply(HBITMAP hBitmap)
             }
         }
 
-        dwLen = SetBitmapBits(hBitmap, dwLen, p);
+		if (transp)
+			dwLen = SetBitmapBits(hBitmap, dwLen, p);
         free(p);
     }
 
@@ -954,6 +955,10 @@ done:
     }
 
 	ace->hbmPic = (HBITMAP) BmpFilterLoadBitmap32(NULL, (LPARAM)szFilename);
+	ace->dwFlags = 0;
+	ace->bmHeight = 0;
+	ace->bmWidth = 0;
+	ace->lpDIBSection = NULL;
     if(ace->hbmPic != 0) {
         BITMAP bminfo;
 
@@ -981,14 +986,15 @@ done:
 			}
 		}
 
-		if (( (hContact != 0 && hContact != (HANDLE)-1) || DBGetContactSettingByte(0, AVS_MODULE, "MakeMyAvatarsTransparent", 0)) &&
-			DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0) && 
-			DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 1))
-		{
-			if (MakeTransparentBkg(hContact, &ace->hbmPic))
+		if (DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0)) {
+			if (( (hContact != 0 && hContact != (HANDLE)-1) || DBGetContactSettingByte(0, AVS_MODULE, "MakeMyAvatarsTransparent", 0)) &&
+				DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 1))
 			{
-				ace->dwFlags |= AVS_CUSTOMTRANSPBKG | AVS_HASTRANSPARENCY;
-				GetObject(ace->hbmPic, sizeof(bminfo), &bminfo);
+				if (MakeTransparentBkg(hContact, &ace->hbmPic))
+				{
+					ace->dwFlags |= AVS_CUSTOMTRANSPBKG | AVS_HASTRANSPARENCY;
+					GetObject(ace->hbmPic, sizeof(bminfo), &bminfo);
+				}
 			}
 		}
 
@@ -1911,19 +1917,19 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
     EnterCriticalSection(&cachecs);
 	g_shutDown = TRUE;
 
-	DestroyServiceFunction(MS_AV_GETAVATARBITMAP);
-    DestroyServiceFunction(MS_AV_PROTECTAVATAR);
-    DestroyServiceFunction(MS_AV_SETAVATAR);
-    DestroyServiceFunction(MS_AV_SETMYAVATAR);
-    DestroyServiceFunction(MS_AV_CANSETMYAVATAR);
-    DestroyServiceFunction(MS_AV_CONTACTOPTIONS);
-    DestroyServiceFunction(MS_AV_DRAWAVATAR);
-	DestroyServiceFunction(MS_AV_GETMYAVATAR);
-	DestroyServiceFunction(MS_AV_REPORTMYAVATARCHANGED);
-	DestroyServiceFunction(MS_AV_LOADBITMAP32);
-	DestroyServiceFunction(MS_AV_SAVEBITMAP);
-	DestroyServiceFunction(MS_AV_CANSAVEBITMAP);
-	DestroyServiceFunction(MS_AV_RESIZEBITMAP);
+	DestroyServiceFunction((void *) MS_AV_GETAVATARBITMAP);
+	DestroyServiceFunction((void *) MS_AV_PROTECTAVATAR);
+	DestroyServiceFunction((void *) MS_AV_SETAVATAR);
+	DestroyServiceFunction((void *) MS_AV_SETMYAVATAR);
+	DestroyServiceFunction((void *) MS_AV_CANSETMYAVATAR);
+	DestroyServiceFunction((void *) MS_AV_CONTACTOPTIONS);
+	DestroyServiceFunction((void *) MS_AV_DRAWAVATAR);
+	DestroyServiceFunction((void *) MS_AV_GETMYAVATAR);
+	DestroyServiceFunction((void *) MS_AV_REPORTMYAVATARCHANGED);
+	DestroyServiceFunction((void *) MS_AV_LOADBITMAP32);
+	DestroyServiceFunction((void *) MS_AV_SAVEBITMAP);
+	DestroyServiceFunction((void *) MS_AV_CANSAVEBITMAP);
+	DestroyServiceFunction((void *) MS_AV_RESIZEBITMAP);
 
     DestroyHookableEvent(hEventChanged);
 	DestroyHookableEvent(hMyAvatarChanged);
