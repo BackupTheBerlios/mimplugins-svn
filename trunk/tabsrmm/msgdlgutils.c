@@ -56,6 +56,34 @@ struct RTFColorTable rtf_ctable[] = {
     NULL, 0, 0, 0
 };
 
+#ifndef SHVIEW_THUMBNAIL
+    #define SHVIEW_THUMBNAIL 0x702D
+#endif
+
+static BOOL CALLBACK OpenFileSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch(msg) {
+        case WM_INITDIALOG: 
+		{
+            SetWindowLong(hwnd, GWL_USERDATA, (LONG)lParam);
+            break;
+        }
+		case WM_NOTIFY:
+		{
+			OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
+            HWND hwndParent = GetParent(hwnd);
+			HWND hwndLv = FindWindowEx(hwndParent, NULL, _T("SHELLDLL_DefView"), NULL) ;
+
+			if (hwndLv != NULL && *((DWORD *)(ofn->lCustData))) {
+                SendMessage(hwndLv, WM_COMMAND, SHVIEW_THUMBNAIL, 0);
+                *((DWORD *)(ofn->lCustData)) = 0;
+            }
+			break;
+		}
+	}
+    return FALSE;
+}
+
 static void SaveAvatarToFile(struct MessageWindowData *dat, HBITMAP hbm, int isOwnPic)
 {
     char szFinalPath[MAX_PATH];
@@ -65,6 +93,9 @@ static void SaveAvatarToFile(struct MessageWindowData *dat, HBITMAP hbm, int isO
     OPENFILENAMEA ofn = {0};
     time_t t = time(NULL);
     struct tm *lt = localtime(&t);
+    static char *forbiddenCharacters = "%/\\'";
+    int i;
+    DWORD setView = 1;
 
     mir_snprintf(szTimestamp, 100, "%04u %02u %02u_%02u%02u", lt->tm_year + 1900, lt->tm_mon, lt->tm_mday, lt->tm_hour, lt->tm_min);
 
@@ -87,16 +118,34 @@ static void SaveAvatarToFile(struct MessageWindowData *dat, HBITMAP hbm, int isO
         mir_snprintf(szFinalFilename, MAX_PATH, "%s.bmp", szBaseName);
     }
 
+    for(i = 0; i < lstrlenA(forbiddenCharacters); i++) {
+        char *szFound = 0;
+
+        while((szFound = strchr(szFinalFilename, (int)forbiddenCharacters[i])) != NULL)
+            *szFound = '_';
+
+    }
     ofn.lpstrFilter = "Image files\0*.bmp;*.png;*.jpg;*.gif\0\0";
-    ofn.lStructSize= OPENFILENAME_SIZE_VERSION_400;
+
+    if (IsWinVer2000Plus())
+        ofn.lStructSize = sizeof(ofn);
+    else
+        ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
+
     ofn.hwndOwner=0;
     ofn.lpstrFile = szFinalFilename;
     ofn.lpstrInitialDir = szFinalPath;
     ofn.nMaxFile = MAX_PATH;
     ofn.nMaxFileTitle = MAX_PATH;
-    ofn.Flags = OFN_HIDEREADONLY | OFN_DONTADDTORECENT;
+    if(IsWinVer2000Plus()) {
+        ofn.Flags = OFN_HIDEREADONLY | OFN_EXPLORER | OFN_ENABLESIZING | OFN_ENABLEHOOK;
+        ofn.lpfnHook = (LPOFNHOOKPROC)OpenFileSubclass;
+    }
+    else
+        ofn.Flags = OFN_HIDEREADONLY;
+    ofn.lCustData = (LPARAM)&setView;
     if(GetSaveFileNameA(&ofn))
-        CallService(MS_AV_SAVEBITMAP, (WPARAM)hbm, szFinalFilename);
+        CallService(MS_AV_SAVEBITMAP, (WPARAM)hbm, (LPARAM)szFinalFilename);
 }
 
 /*
