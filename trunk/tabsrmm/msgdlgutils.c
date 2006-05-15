@@ -60,6 +60,11 @@ struct RTFColorTable rtf_ctable[] = {
     #define SHVIEW_THUMBNAIL 0x702D
 #endif
 
+/*                                                              
+ * subclassing for the save as file dialog (needed to set it to thumbnail view on Windows 2000
+ * or later                                                                
+ */
+
 static BOOL CALLBACK OpenFileSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch(msg) {
@@ -83,6 +88,12 @@ static BOOL CALLBACK OpenFileSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	}
     return FALSE;
 }
+
+/*                                                              
+ * saves a contact picture to disk
+ * takes hbm (bitmap handle) and bool isOwnPic (1 == save the picture as your own avatar)
+ * needs loadavatars plugin 0.0.1.20+
+ */
 
 static void SaveAvatarToFile(struct MessageWindowData *dat, HBITMAP hbm, int isOwnPic)
 {
@@ -123,29 +134,33 @@ static void SaveAvatarToFile(struct MessageWindowData *dat, HBITMAP hbm, int isO
 
         while((szFound = strchr(szFinalFilename, (int)forbiddenCharacters[i])) != NULL)
             *szFound = '_';
-
     }
     ofn.lpstrFilter = "Image files\0*.bmp;*.png;*.jpg;*.gif\0\0";
-
-    if (IsWinVer2000Plus())
+    if(IsWinVer2000Plus()) {
+        ofn.Flags = OFN_HIDEREADONLY | OFN_EXPLORER | OFN_ENABLESIZING | OFN_ENABLEHOOK;
+        ofn.lpfnHook = (LPOFNHOOKPROC)OpenFileSubclass;
         ofn.lStructSize = sizeof(ofn);
-    else
+    }
+    else {
         ofn.lStructSize = OPENFILENAME_SIZE_VERSION_400;
-
+        ofn.Flags = OFN_HIDEREADONLY;
+    }
     ofn.hwndOwner=0;
     ofn.lpstrFile = szFinalFilename;
     ofn.lpstrInitialDir = szFinalPath;
     ofn.nMaxFile = MAX_PATH;
     ofn.nMaxFileTitle = MAX_PATH;
-    if(IsWinVer2000Plus()) {
-        ofn.Flags = OFN_HIDEREADONLY | OFN_EXPLORER | OFN_ENABLESIZING | OFN_ENABLEHOOK;
-        ofn.lpfnHook = (LPOFNHOOKPROC)OpenFileSubclass;
-    }
-    else
-        ofn.Flags = OFN_HIDEREADONLY;
     ofn.lCustData = (LPARAM)&setView;
-    if(GetSaveFileNameA(&ofn))
+    if(GetSaveFileNameA(&ofn)) {
+        HANDLE hFile;
+
+        if((hFile = CreateFileA(szFinalFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE ) {
+            CloseHandle(hFile);
+            if(MessageBox(0, TranslateT("The file exists. Do you want to overwrite it?"), TranslateT("Save contact picture"), MB_YESNO | MB_ICONQUESTION) == IDNO)
+                return;
+        }
         CallService(MS_AV_SAVEBITMAP, (WPARAM)hbm, (LPARAM)szFinalFilename);
+    }
 }
 
 /*
@@ -2568,18 +2583,22 @@ void ConfigureSmileyButton(HWND hwndDlg, struct MessageWindowData *dat)
     HICON hButtonIcon = 0;
     int nrSmileys = 0;
     int showToolbar = dat->pContainer->dwFlags & CNT_HIDETOOLBAR ? 0 : 1;
+    int iItemID = IDC_SMILEYBTN;
+
+    if(dat && dat->bType == SESSIONTYPE_CHAT)
+        iItemID = IDC_SMILEY;
 
     if(myGlobals.g_SmileyAddAvail) {
         nrSmileys = CheckValidSmileyPack(dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->bIsMeta ? dat->hSubContact : dat->hContact, &hButtonIcon);
 
         dat->doSmileys = 1;
 
-        if(hButtonIcon == 0) {
+        if(hButtonIcon == 0 || myGlobals.m_SmileyButtonOverride) {
             dat->hSmileyIcon = 0;
-            SendDlgItemMessage(hwndDlg, IDC_SMILEYBTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM) myGlobals.g_buttonBarIcons[11]);
+            SendDlgItemMessage(hwndDlg, iItemID, BM_SETIMAGE, IMAGE_ICON, (LPARAM) myGlobals.g_buttonBarIcons[11]);
         }
         else {
-            SendDlgItemMessage(hwndDlg, IDC_SMILEYBTN, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hButtonIcon);
+            SendDlgItemMessage(hwndDlg, iItemID, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hButtonIcon);
             dat->hSmileyIcon = hButtonIcon;
         }
     }
@@ -2587,8 +2606,8 @@ void ConfigureSmileyButton(HWND hwndDlg, struct MessageWindowData *dat)
     if(nrSmileys == 0 || dat->hContact == 0)
         dat->doSmileys = 0;
 
-    ShowWindow(GetDlgItem(hwndDlg, IDC_SMILEYBTN), (dat->doSmileys && showToolbar) ? SW_SHOW : SW_HIDE);
-    EnableWindow(GetDlgItem(hwndDlg, IDC_SMILEYBTN), dat->doSmileys ? TRUE : FALSE);
+    ShowWindow(GetDlgItem(hwndDlg, iItemID), (dat->doSmileys && showToolbar) ? SW_SHOW : SW_HIDE);
+    EnableWindow(GetDlgItem(hwndDlg, iItemID), dat->doSmileys ? TRUE : FALSE);
 }
 
 HICON GetXStatusIcon(struct MessageWindowData *dat)
