@@ -325,7 +325,7 @@ UINT NcCalcRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID
         HDC hdc = GetDC(GetParent(hwnd));
 
         if(MyGetThemeBackgroundContentRect(mwdat->hTheme, hdc, 1, 1, &nccp->rgrc[0], &rcClient) == S_OK) {
-            InflateRect(&rcClient, -1, -1);
+            //InflateRect(&rcClient, -1, -1);
             CopyRect(&nccp->rgrc[0], &rcClient);
             bReturn = TRUE;
         }

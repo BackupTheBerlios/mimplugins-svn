@@ -459,11 +459,11 @@ static char* Log_CreateRTF(LOGSTREAMDATA *streamData)
                 
                 lin->dwFlags |= MWF_DIVIDERWANTED;
                 if(lin->prev || !streamData->bRedraw)
-                    Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\par\\sl-1\\highlight%d %s ", 18, szStyle_div);
+                    Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\par\\qc\\sl-1\\highlight%d %s ---------------------------------------------------------------------------------------", 18, szStyle_div);
                 streamData->dat->dwFlags &= ~MWF_DIVIDERWANTED;
             }
             // create new line, and set font and color
-			Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\par\\sl0%s ", Log_SetStyle(0, 0));
+			Log_Append(&buffer, &bufferEnd, &bufferAlloced, "\\par\\ql\\sl0%s ", Log_SetStyle(0, 0));
 
 			// Insert icon
             if (g_Settings.LogSymbols)                // use symbols
