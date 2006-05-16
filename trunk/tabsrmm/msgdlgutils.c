@@ -152,10 +152,7 @@ static void SaveAvatarToFile(struct MessageWindowData *dat, HBITMAP hbm, int isO
     ofn.nMaxFileTitle = MAX_PATH;
     ofn.lCustData = (LPARAM)&setView;
     if(GetSaveFileNameA(&ofn)) {
-        HANDLE hFile;
-
-        if((hFile = CreateFileA(szFinalFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE ) {
-            CloseHandle(hFile);
+        if(PathFileExistsA(szFinalFilename)) {
             if(MessageBox(0, TranslateT("The file exists. Do you want to overwrite it?"), TranslateT("Save contact picture"), MB_YESNO | MB_ICONQUESTION) == IDNO)
                 return;
         }
@@ -2522,9 +2519,7 @@ void LoadOverrideTheme(HWND hwndDlg, struct MessageWindowData *dat)
                            (dat->pContainer->logFonts == NULL) || (dat->pContainer->fontColors == NULL));
     
     if(lstrlenA(dat->pContainer->szThemeFile) > 1) {
-        HANDLE hFile;
-        if((hFile = CreateFileA(dat->pContainer->szThemeFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE ) {
-            CloseHandle(hFile);
+        if(PathFileExistsA(dat->pContainer->szThemeFile)) {
             if(CheckThemeVersion(dat->pContainer->szThemeFile) == 0) {
                 _DebugPopup(0, "%s is an incompatible theme.", dat->pContainer->szThemeFile);
                 LoadThemeDefaults(hwndDlg, dat);
@@ -2569,12 +2564,8 @@ void SaveMessageLogFlags(HWND hwndDlg, struct MessageWindowData *dat)
     if(!(dat->dwFlags & MWF_SHOW_PRIVATETHEME))
         DBWriteContactSettingDword(NULL, SRMSGMOD_T, "mwflags", dat->dwFlags & MWF_LOG_ALL);
     else {
-        HANDLE hFile;
-
-        if((hFile = CreateFileA(dat->pContainer->szThemeFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE ) {
-            CloseHandle(hFile);
+        if(PathFileExistsA(dat->pContainer->szThemeFile))
             WritePrivateProfileStringA("Message Log", "DWFlags", _itoa(dat->dwFlags & MWF_LOG_ALL, szBuf, 10), dat->pContainer->szThemeFile);
-        }
     }
 }
 
@@ -2596,6 +2587,8 @@ void ConfigureSmileyButton(HWND hwndDlg, struct MessageWindowData *dat)
         if(hButtonIcon == 0 || myGlobals.m_SmileyButtonOverride) {
             dat->hSmileyIcon = 0;
             SendDlgItemMessage(hwndDlg, iItemID, BM_SETIMAGE, IMAGE_ICON, (LPARAM) myGlobals.g_buttonBarIcons[11]);
+            if(hButtonIcon)
+                DestroyIcon(hButtonIcon);
         }
         else {
             SendDlgItemMessage(hwndDlg, iItemID, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hButtonIcon);

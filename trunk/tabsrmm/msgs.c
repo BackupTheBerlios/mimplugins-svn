@@ -83,7 +83,7 @@ static int IEViewOptionsChanged(WPARAM wParam, LPARAM lParam)
 static int SmileyAddOptionsChanged(WPARAM wParam, LPARAM lParam)
 {
     WindowList_Broadcast(hMessageWindowList, DM_SMILEYOPTIONSCHANGED, 0, 0);
-    if(g_chat_integration_enabled)
+    if(g_chat_integration_enabled) 
         SM_BroadcastMessage(NULL, DM_SMILEYOPTIONSCHANGED, 0, 0, FALSE);
     return 0;
 }
