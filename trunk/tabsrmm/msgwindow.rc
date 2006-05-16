@@ -94,7 +94,6 @@ BEGIN
     CONTROL         "",IDC_LOGFROZEN,"TSButtonClass",WS_TABSTOP,171,0,16,14,
                     0x18000000L
     LTEXT           "",IDC_LOGFROZENTEXT,10,3,200,10,SS_OWNERDRAW
-    CONTROL         "",IDC_PANELPIC,"Button",BS_OWNERDRAW,154,0,34,25
     CONTROL         "",IDC_PANELSTATUS,"Static",SS_OWNERDRAW | 
                     SS_CENTERIMAGE | WS_GROUP,10,16,100,14
     CONTROL         "",IDC_PANELNICK,"Static",SS_OWNERDRAW | SS_CENTERIMAGE | 
@@ -110,8 +109,7 @@ BEGIN
                     WS_EX_RTLREADING
     CONTROL         "",IDC_PANELSPLITTER,"Static",SS_ENHMETAFILE,0,32,188,2,
                     WS_EX_STATICEDGE
-    CONTROL         "",IDC_PANEL,"Static",SS_ENHMETAFILE | WS_CLIPSIBLINGS,0,
-                    0,188,31
+    CONTROL         "",IDC_PANELPIC,"Button",BS_OWNERDRAW,154,0,34,25
 END
 
 #endif    // Neutral resources
