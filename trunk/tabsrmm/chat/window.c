@@ -1247,7 +1247,6 @@ static void __cdecl forkthread_r(void *param)
 	} __finally {
 		CallService(MS_SYSTEM_THREAD_POP,0,0);
 	} 
-
 	return;
 }
 

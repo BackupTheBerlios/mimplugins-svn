@@ -265,7 +265,7 @@ static int Log_AppendRTF(LOGSTREAMDATA* streamData,char **buffer, int *cbBufferE
 					szTemp[0] = '\0';
 				else
 				{
-					mir_snprintf(szTemp, sizeof(szTemp), (*buffer)[i + 1] == 'U'?"\\%cl0 ":"\\%c0 ", (char)CharLowerA((char *)(*buffer)[i + 1]));
+					mir_snprintf(szTemp, sizeof(szTemp), (*buffer)[i + 1] == 'U' ? "\\%cl0 " : "\\%c0 ", (char)CharLowerA((char *)(*buffer)[i + 1]));
 				}
 				iOldCount = 2;
 				break;
