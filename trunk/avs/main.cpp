@@ -63,7 +63,8 @@ DWORD dwPendingAvatarJobs = 0;
 // Stores the id of the dialog
 long hwndSetMyAvatar = 0;
 
-int ChangeAvatar(HANDLE hContact);
+int			ChangeAvatar(HANDLE hContact);
+static int	ShutdownProc(WPARAM wParam, LPARAM lParam);
 
 PLUGININFO pluginInfo = {
     sizeof(PLUGININFO), 
@@ -139,6 +140,21 @@ return = 1 (supported) or 0 (not supported)
  * popup plugin.
  */
 
+
+#ifdef _DEBUG
+int _DebugTrace(const char *fmt, ...)
+{
+    char    debug[2048];
+    int     ibsize = 2047;
+    va_list va;
+    va_start(va, fmt);
+
+	lstrcpyA(debug, "AVS: ");
+	_vsnprintf(&debug[5], ibsize - 10, fmt, va);
+    OutputDebugStringA(debug);
+	return 0;
+}
+#endif
 
 static int g_maxBlock = 0, g_curBlock = 0;
 static struct CacheNode **g_cacheBlocks = NULL;
@@ -1788,7 +1804,10 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     mi.pszName = Translate("Contact picture...");
     mi.pszService = MS_AV_CONTACTOPTIONS;
     CallService(MS_CLIST_ADDCONTACTMENUITEM, 0, (LPARAM) &mi);
-
+	HANDLE hShutDown = HookEvent(ME_SYSTEM_PRESHUTDOWN, ShutdownProc);
+#ifdef _DEBUG
+	_DebugTrace("shutdown hook = %d", hShutDown);
+#endif
 	return 0;
 }
 
@@ -1914,9 +1933,18 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 {
     DWORD dwExitcode = 0;
 
+#ifdef _DEBUG
+	_DebugTrace("starting avs shutdown...");
+#endif
     EnterCriticalSection(&cachecs);
 	g_shutDown = TRUE;
 
+    UnhookEvent(hContactSettingChanged);
+    UnhookEvent(hProtoAckHook);
+
+#ifdef _DEBUG
+	_DebugTrace("destroying services...");
+#endif
 	DestroyServiceFunction((void *) MS_AV_GETAVATARBITMAP);
 	DestroyServiceFunction((void *) MS_AV_PROTECTAVATAR);
 	DestroyServiceFunction((void *) MS_AV_SETAVATAR);
@@ -1935,10 +1963,12 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 	DestroyHookableEvent(hMyAvatarChanged);
     hEventChanged = 0;
 	hMyAvatarChanged = 0;
-    UnhookEvent(hContactSettingChanged);
-    UnhookEvent(hProtoAckHook);
 
     LeaveCriticalSection(&cachecs);
+
+#ifdef _DEBUG
+	_DebugTrace("shutting down thread...");
+#endif
 
 	bAvatarThreadRunning = FALSE;
     ResumeThread(hAvatarThread);
@@ -1946,34 +1976,15 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 	WaitForSingleObject(hAvatarThread, 6000);
 
     DeleteCriticalSection(&avcs);
-    
+
+#ifdef _DEBUG
+	_DebugTrace("thread gone...");
+#endif
+
 	EnterCriticalSection(&cachecs);
 
 	if(avatarUpdateQueue)
         free(avatarUpdateQueue);
-
-	struct CacheNode *pNode = g_Cache;
-	while(pNode) {
-        if(pNode->ace.hbmPic != 0)
-            DeleteObject(pNode->ace.hbmPic);
-		pNode = pNode->pNextNode;
-    }
-
-	int i;
-	for(i = 0; i < g_curBlock; i++)
-		free(g_cacheBlocks[i]);
-
-	for(i = 0; i < g_protocount; i++) {
-        if(g_ProtoPictures[i].hbmPic != 0)
-            DeleteObject(g_ProtoPictures[i].hbmPic);
-		if(g_MyAvatars[i].hbmPic != 0)
-			DeleteObject(g_MyAvatars[i].hbmPic);
-    }
-    if(g_ProtoPictures)
-        free(g_ProtoPictures);
-
-	if(g_MyAvatars)
-		free(g_MyAvatars);
 
     LeaveCriticalSection(&cachecs);
     DeleteCriticalSection(&cachecs);
@@ -2208,9 +2219,29 @@ extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)
 
 extern "C" int __declspec(dllexport) Unload(void)
 {
-	FreeGdiPlus();
+	struct CacheNode *pNode = g_Cache;
+	while(pNode) {
+        if(pNode->ace.hbmPic != 0)
+            DeleteObject(pNode->ace.hbmPic);
+		pNode = pNode->pNextNode;
+    }
 
-    return ShutdownProc(0, 0);
-    //return 0;
+	int i;
+	for(i = 0; i < g_curBlock; i++)
+		free(g_cacheBlocks[i]);
+
+	for(i = 0; i < g_protocount; i++) {
+        if(g_ProtoPictures[i].hbmPic != 0)
+            DeleteObject(g_ProtoPictures[i].hbmPic);
+		if(g_MyAvatars[i].hbmPic != 0)
+			DeleteObject(g_MyAvatars[i].hbmPic);
+    }
+    if(g_ProtoPictures)
+        free(g_ProtoPictures);
+
+	if(g_MyAvatars)
+		free(g_MyAvatars);
+	FreeGdiPlus();
+    return 0;
 }
 
