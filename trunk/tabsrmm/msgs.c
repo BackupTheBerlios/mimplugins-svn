@@ -75,6 +75,7 @@ HMODULE g_hIconDLL = 0;
 
 int Chat_IconsChanged(WPARAM wp, LPARAM lp), Chat_ModulesLoaded(WPARAM wp, LPARAM lp);
 void Chat_AddIcons(void);
+int  Chat_PreShutdown(WPARAM wParam, LPARAM lParam);
 
 static int IEViewOptionsChanged(WPARAM wParam, LPARAM lParam)
 {
@@ -974,7 +975,11 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
 
 int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
 {
+    if(g_chat_integration_enabled)
+        Chat_PreShutdown(wParam, lParam);
 
+    while(pFirstContainer)
+        SendMessage(pFirstContainer->hwnd, WM_CLOSE, 0, 1);
     UnhookEvent(hEventDbEventAdded);
     UnhookEvent(hEventDispatch);
     UnhookEvent(hEventDbSettingChange);
@@ -1008,12 +1013,10 @@ int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
 
 	NEN_WriteOptions(&nen_options);
     DestroyWindow(myGlobals.g_hwndHotkeyHandler);
-    while(pFirstContainer)
-        SendMessage(pFirstContainer->hwnd, WM_CLOSE, 0, 1);
-
-    DeleteCriticalSection(&cs_sessions);
 
     //UnregisterClass(_T("TabSRMSG_Win"), g_hInst);
+    UnregisterClass(_T("TSStatusBarClass"), g_hInst);
+    UnregisterClassA("TSTabCtrlClass", g_hInst);
     return 0;
 }
 
@@ -1067,7 +1070,7 @@ int SplitmsgShutdown(void)
 		FreeLibrary(g_hIconDLL);
 		g_hIconDLL = 0;
 	}
-	//tQHTM_Free();
+    DeleteCriticalSection(&cs_sessions);
     return 0;
 }
 
@@ -1225,6 +1228,8 @@ tzdone:
     SkinAddNewSoundEx("RecvMsgInactive", Translate("Messages"), Translate("Incoming (Unfocused Window)"));
     SkinAddNewSoundEx("AlertMsg", Translate("Messages"), Translate("Incoming (New Session)"));
     SkinAddNewSoundEx("SendMsg", Translate("Messages"), Translate("Outgoing"));
+    SkinAddNewSoundEx("SendError", Translate("Messages"), Translate("Error sending message"));
+
     myGlobals.hCurSplitNS = LoadCursor(NULL, IDC_SIZENS);
     myGlobals.hCurSplitWE = LoadCursor(NULL, IDC_SIZEWE);
     myGlobals.hCurHyperlinkHand = LoadCursor(NULL, IDC_HAND);
@@ -1740,11 +1745,20 @@ static ICONDESC _deficons[] = {
     NULL, NULL, NULL, 0, 0
 };
 
+static ICONDESC _trayIcon[] = {
+    "tabSRMM_frame1", "Frame 1", &myGlobals.m_AnimTrayIcons[0], -IDI_TRAYANIM1, 1,
+    "tabSRMM_frame2", "Frame 2", &myGlobals.m_AnimTrayIcons[1], -IDI_TRAYANIM2, 1,
+    "tabSRMM_frame3", "Frame 3", &myGlobals.m_AnimTrayIcons[2], -IDI_TRAYANIM3, 1,
+    "tabSRMM_frame4", "Frame 4", &myGlobals.m_AnimTrayIcons[3], -IDI_TRAYANIM4, 1,
+    NULL, NULL, NULL, 0, 0
+};
+
 static struct _iconblocks { char *szSection; ICONDESC *idesc; } ICONBLOCKS[] = {
     "TabSRMM/Default", _deficons,
     "TabSRMM/Toolbar", _toolbaricons,
     "TabSRMM/Toolbar", _exttoolbaricons,
     "TabSRMM/Message Log", _logicons,
+    "TabSRMM/Animated Tray", _trayIcon,
     NULL, 0
 };
 
@@ -1907,5 +1921,9 @@ static void UnloadIcons()
     }
     if(myGlobals.g_hbmUnknown)
         DeleteObject(myGlobals.g_hbmUnknown);
+    for(i = 0; i < 4; i++) {
+        if(myGlobals.m_AnimTrayIcons[i])
+            DestroyIcon(myGlobals.m_AnimTrayIcons[i]);
+    }
 }
 

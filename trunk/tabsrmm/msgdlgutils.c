@@ -682,7 +682,7 @@ void UpdateReadChars(HWND hwndDlg, struct MessageWindowData *dat)
             len = GetWindowTextLength(GetDlgItem(hwndDlg, IDC_MESSAGE));
 
         _snprintf(buf, sizeof(buf), "%s %d/%d", dat->lcID, dat->iOpenJobs, len);
-        SendMessageA(dat->pContainer->hwndStatus, SB_SETTEXTA, 1 | SBT_NOBORDERS, (LPARAM) buf);
+        SendMessageA(dat->pContainer->hwndStatus, SB_SETTEXTA, 1, (LPARAM) buf);
     }
 }
 
@@ -695,7 +695,7 @@ void UpdateStatusBar(HWND hwndDlg, struct MessageWindowData *dat)
             SetSelftypingIcon(hwndDlg, dat, DBGetContactSettingByte(dat->hContact, SRMSGMOD, SRMSGSET_TYPING, DBGetContactSettingByte(NULL, SRMSGMOD, SRMSGSET_TYPINGNEW, SRMSGDEFSET_TYPINGNEW)));
             SendMessage(hwndDlg, DM_UPDATELASTMESSAGE, 0, 0);
             if(myGlobals.g_SecureIMAvail) {
-                SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, 2 | SBT_NOBORDERS, (LPARAM)"");
+                SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, 2, (LPARAM)"");
                 if((iSecIMStatus = CallService("SecureIM/IsContactSecured", (WPARAM)dat->hContact, 0)) != 0)
                     SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 2, (LPARAM)myGlobals.g_buttonBarIcons[14]);
                 else
@@ -710,7 +710,7 @@ void UpdateStatusBar(HWND hwndDlg, struct MessageWindowData *dat)
                 SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 2, 0);
         }
         
-		SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, (myGlobals.g_SecureIMAvail ? 3 : 2) | SBT_NOBORDERS, (LPARAM)"");
+		SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, (myGlobals.g_SecureIMAvail ? 3 : 2), (LPARAM)"");
         SendMessage(dat->pContainer->hwndStatus, SB_SETICON, (myGlobals.g_SecureIMAvail ? 3 : 2), (LPARAM)(dat->pContainer->dwFlags & CNT_NOSOUND ? myGlobals.g_buttonBarIcons[23] : myGlobals.g_buttonBarIcons[22]));
         UpdateReadChars(hwndDlg, dat);
         UpdateStatusBarTooltips(hwndDlg, dat, iSecIMStatus);
@@ -824,7 +824,7 @@ void SetSelftypingIcon(HWND dlg, struct MessageWindowData *dat, int iMode)
         char szTipText[64];
         int nParts = SendMessage(dat->pContainer->hwndStatus, SB_GETPARTS, 0, 0);
 
-        SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, (nParts - 1) | SBT_NOBORDERS, (LPARAM)"");
+        SendMessage(dat->pContainer->hwndStatus, SB_SETTEXTA, (nParts - 1), (LPARAM)"");
 		if(iMode > 0)
             SendMessage(dat->pContainer->hwndStatus, SB_SETICON, (nParts - 1), (LPARAM)myGlobals.g_buttonBarIcons[12]);
         else if(iMode == 0)
@@ -1735,7 +1735,6 @@ void PlayIncomingSound(struct ContainerWindowData *pContainer, HWND hwnd)
 
 void ConfigureSideBar(HWND hwndDlg, struct MessageWindowData *dat)
 {
-    return;
 	if(!dat->pContainer->dwFlags & CNT_SIDEBAR)
         return;
     CheckDlgButton(dat->pContainer->hwnd, IDC_SBAR_TOGGLEFORMAT, dat->SendFormat != 0 ? BST_CHECKED : BST_UNCHECKED);
@@ -2100,7 +2099,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 					else if(borderType == 3)
 	                    Rectangle(hdcDraw, 0, 0, dat->pic.cx, dat->pic.cy);
 					else if(borderType == 4) {
-						clipRgn = CreateRoundRectRgn(0, 0, dat->pic.cx, dat->pic.cy, 4, 4);
+						clipRgn = CreateRoundRectRgn(0, 0, dat->pic.cx + 1, dat->pic.cy + 1, 4, 4);
 						SelectClipRgn(hdcDraw, clipRgn);
 					}
 				}
@@ -2114,7 +2113,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 					else if(borderType == 3)
 						Rectangle(hdcDraw, rcEdge.left, rcEdge.top, rcEdge.right, rcEdge.bottom);
 					else if(borderType == 4) {
-						clipRgn = CreateRoundRectRgn(rcEdge.left, rcEdge.top, rcEdge.right, rcEdge.bottom, 4, 4);
+						clipRgn = CreateRoundRectRgn(rcEdge.left, rcEdge.top, rcEdge.right + 1, rcEdge.bottom + 1, 4, 4);
 						SelectClipRgn(hdcDraw, clipRgn);
 					}
                 }
@@ -2137,28 +2136,18 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 					rcFrame.bottom += height_off;
 				}
                 SetStretchBltMode(hdcDraw, HALFTONE);
-                if(aceFlags & AVS_PREMULTIPLIED) {
-					if(borderType == 2)
-						DrawEdge(hdcDraw, &rcFrame, BDR_SUNKENINNER, BF_RECT);
-					else if(borderType == 3)
-						Rectangle(hdcDraw, rcFrame.left, rcFrame.top, rcFrame.right, rcFrame.bottom);
-					else if(borderType == 4) {
-						clipRgn = CreateRoundRectRgn(rcFrame.left, rcFrame.top, rcFrame.right, rcFrame.bottom, 4, 4);
-						SelectClipRgn(hdcDraw, clipRgn);
-					}
+                if(borderType == 2)
+                    DrawEdge(hdcDraw, &rcFrame, BDR_SUNKENINNER, BF_RECT);
+                else if(borderType == 3)
+                    Rectangle(hdcDraw, rcFrame.left, rcFrame.top, rcFrame.right, rcFrame.bottom);
+                else if(borderType == 4) {
+                    clipRgn = CreateRoundRectRgn(rcFrame.left, rcFrame.top, rcFrame.right + 1, rcFrame.bottom + 1, 4, 4);
+                    SelectClipRgn(hdcDraw, clipRgn);
+                }
+                if(aceFlags & AVS_PREMULTIPLIED)
 					MY_AlphaBlend(hdcDraw, rcFrame.left + (borderType ? 1 : 0), height_off + (borderType ? 1 : 0), (int)dNewWidth + width_off, (int)dNewHeight + width_off, bminfo.bmWidth, bminfo.bmHeight, hdcMem);
-                }
-                else {
-					if(borderType == 2)
-						DrawEdge(hdcDraw, &rcFrame, BDR_SUNKENINNER, BF_RECT);
-					else if(borderType == 3)
-						Rectangle(hdcDraw, rcFrame.left, rcFrame.top, rcFrame.right, rcFrame.bottom);
-					else if(borderType == 4) {
-						clipRgn = CreateRoundRectRgn(rcFrame.left, rcFrame.top, rcFrame.right, rcFrame.bottom, 4, 4);
-						SelectClipRgn(hdcDraw, clipRgn);
-					}
+                else
                     StretchBlt(hdcDraw, rcFrame.left + (borderType ? 1 : 0), height_off + (borderType ? 1 : 0), (int)dNewWidth + width_off, (int)dNewHeight + width_off, hdcMem, 0, 0, bminfo.bmWidth, bminfo.bmHeight, SRCCOPY);
-                }
             }
             else {
 				LONG width_off = borderType ? 0 : 2;

@@ -63,7 +63,6 @@ void ApplyContainerSetting(struct ContainerWindowData *pContainer, DWORD flags, 
         if(flags & CNT_INFOPANEL)
             BroadCastContainer(pContainer, DM_SETINFOPANEL, 0, 0);
     }
-        
 }
 
 BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)

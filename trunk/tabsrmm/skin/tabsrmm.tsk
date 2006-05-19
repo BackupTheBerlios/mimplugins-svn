@@ -79,10 +79,19 @@ CORNER=0
 GRADIENT=none
 RADIUS=0
 
+[%Statusbarpanel]
+ALPHA=80
+COLOR1=9C9D92
+COLOR2=9C9D92
+COLOR2_TRANSPARENT=0
+TEXTCOLOR=202020
+CORNER=None
+GRADIENT=None
+
 [%InputArea]
-ALPHA=100
-COLOR1=7C7D72
-COLOR2=7C7D72
+ALPHA=10
+COLOR1=9C9D92
+COLOR2=9C9D92
 COLOR2_TRANSPARENT=0
 TEXTCOLOR=202020
 CORNER=None
@@ -94,8 +103,8 @@ Bottom=1
 
 [%MessageLog]
 ALPHA=100
-COLOR1=7C7D72
-COLOR2=7C7D72
+COLOR1=9C9D92
+COLOR2=9C9D92
 COLOR2_TRANSPARENT=0
 TEXTCOLOR=202020
 CORNER=None
@@ -145,8 +154,8 @@ BRDERSTYLE=0
 
 [%Tabpage]
 ALPHA=30
-COLOR1=aadaed
-COLOR2=aadaed
+COLOR1=cccccc
+COLOR2=cccccc
 COLOR2_TRANSPARENT=0
 TEXTCOLOR=202020
 CORNER=None
@@ -154,7 +163,7 @@ GRADIENT=None
 BRDERSTYLE=0
 
 [%Tabitem_active_bottom]
-ALPHA=100
+ALPHA=70
 COLOR1=cccccc
 COLOR2=a0a0a0
 COLOR2_TRANSPARENT=0
@@ -164,7 +173,7 @@ GRADIENT=up
 radius=12
 
 [%Tabitem_bottom]
-ALPHA=100
+ALPHA=70
 COLOR1=cccccc
 COLOR2=a0a0a0
 COLOR2_TRANSPARENT=0
@@ -174,7 +183,7 @@ GRADIENT=up
 radius=12
 
 [%Tabitem_active]
-ALPHA=100
+ALPHA=70
 COLOR1=f0f0f0
 COLOR2=e0e0e0
 COLOR2_TRANSPARENT=0
@@ -184,7 +193,7 @@ GRADIENT=down
 radius=6
 
 [%Tabitem]
-ALPHA=100
+ALPHA=70
 COLOR1=f0f0f0
 COLOR2=e0e0e0
 COLOR2_TRANSPARENT=0
@@ -349,11 +358,12 @@ Right=2
 Top=2
 Bottom=2
 Left=2
-Alpha=80
+Alpha=60
 Item0=Tabitem_bottom
 Item1=Tabitem_active_bottom
 Item2=Tabitem
 Item3=Tabitem_active
+Perpixel=1
 
 [$Tabitem_hover]
 Image=tabhover.png
@@ -361,9 +371,10 @@ Right=2
 Top=2
 Bottom=2
 Left=2
-Alpha=80
+Alpha=60
 Item0=Tabitem_hottrack_bottom
 Item1=Tabitem_hottrack
+Perpixel=1
 
 [$Button]
 Image=button.png
@@ -371,9 +382,19 @@ Right=3
 Top=3
 Bottom=3
 Left=3
-Alpha=100
+Alpha=60
 Item0=Buttonnotpressed
 Item1=Frame
+Perpixel=1
+
+[$Panel]
+Image=panel.png
+Right=2
+Top=2
+Bottom=2
+Left=2
+Alpha=60
+Item0=Statusbarpanel
 Perpixel=1
 
 [$Buttonhover]
@@ -382,7 +403,7 @@ Right=2
 Top=2
 Bottom=1
 Left=2
-Alpha=100
+Alpha=60
 Item0=Buttonmouseover
 Perpixel=1
 
@@ -416,6 +437,7 @@ Left=8
 Alpha=100
 Item0=FrameInactive
 FillColor=202020
+
 
 ;[$EditFrame]
 ;Image=TextBorder.png
@@ -456,11 +478,11 @@ FillColor=202020
 CloseGlyph=close.ico
 MinimizeGlyph=minimize.ico
 MaximizeGlyph=maximize.ico
-SbarHeight=20
+SbarHeight=22
 FontColor=0000BB
 Version=1
 Signature=101
-FrameLessMode=1
+FrameLessMode=0
 TabSkinning=1
 LightShadow=F4F4F1
 DarkShadow=B0ACA0
