@@ -1975,8 +1975,6 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 
 	WaitForSingleObject(hAvatarThread, 6000);
 
-    DeleteCriticalSection(&avcs);
-
 #ifdef _DEBUG
 	_DebugTrace("thread gone...");
 #endif
@@ -1987,7 +1985,6 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
         free(avatarUpdateQueue);
 
     LeaveCriticalSection(&cachecs);
-    DeleteCriticalSection(&cachecs);
 	return 0;
 }
 
@@ -2242,6 +2239,8 @@ extern "C" int __declspec(dllexport) Unload(void)
 	if(g_MyAvatars)
 		free(g_MyAvatars);
 	FreeGdiPlus();
+    DeleteCriticalSection(&avcs);
+    DeleteCriticalSection(&cachecs);
     return 0;
 }
 
