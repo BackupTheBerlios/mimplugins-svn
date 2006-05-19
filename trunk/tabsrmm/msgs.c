@@ -367,11 +367,20 @@ static int ProtoAck(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+/*                                                              
+ * this handler is called first in the message window chain - it will handle events for which a message window
+ * is already open. if not, it will do nothing and the 2nd handler (MessageEventAdded) will perform all
+ * the needed actions.
+ *
+ * this handler POSTs the event to the message window procedure - so it is fast and can exit quickly which will
+ * imprrove the overall responsiveness when receiving messages.
+ */
+
 static int DispatchNewEvent(WPARAM wParam, LPARAM lParam) {
 	if (wParam) {
         HWND h = WindowList_Find(hMessageWindowList, (HANDLE)wParam);
 		if(h)
-            SendMessage(h, HM_DBEVENTADDED, wParam, lParam);
+            PostMessage(h, HM_DBEVENTADDED, wParam, lParam);            // was SENDMESSAGE !!! XXX
 	}
 	return 0;
 }
@@ -436,9 +445,8 @@ static int MessageEventAdded(WPARAM wParam, LPARAM lParam)
         struct ContainerWindowData *pTargetContainer = 0;
         if(dbei.eventType == EVENTTYPE_MESSAGE) {
             SendMessage(hwnd, DM_QUERYCONTAINER, 0, (LPARAM)&pTargetContainer);
-            if (pTargetContainer) {
-                PlayIncomingSound(pTargetContainer, hwnd);
-            }
+            if (pTargetContainer)
+                PostMessage(hwnd, DM_PLAYINCOMINGSOUND, 0, 0);
         }
         return 0;
     }
@@ -975,11 +983,10 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
 
 int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
 {
-    if(g_chat_integration_enabled)
-        Chat_PreShutdown(wParam, lParam);
-
     while(pFirstContainer)
         SendMessage(pFirstContainer->hwnd, WM_CLOSE, 0, 1);
+    if(g_chat_integration_enabled)
+        Chat_PreShutdown(wParam, lParam);
     UnhookEvent(hEventDbEventAdded);
     UnhookEvent(hEventDispatch);
     UnhookEvent(hEventDbSettingChange);

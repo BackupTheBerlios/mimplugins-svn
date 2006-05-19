@@ -177,7 +177,7 @@ static int RoomWndResize(HWND hwndDlg,LPARAM lParam,UTILRESIZECONTROL *urc)
 		EnableWindow(GetDlgItem(hwndDlg, IDC_FILTER), FALSE);
 		EnableWindow(GetDlgItem(hwndDlg, IDC_CHANMGR), FALSE);
 	}
-    ShowWindow(GetDlgItem(hwndDlg, IDC_CHAT_TOGGLESIDEBAR), SW_SHOW);
+    ShowWindow(GetDlgItem(hwndDlg, IDC_CHAT_TOGGLESIDEBAR), myGlobals.m_SideBarEnabled ? SW_SHOW : SW_HIDE);
 
 	switch(urc->wId) {
 		case IDC_CHAT_LOG:
@@ -2394,16 +2394,10 @@ LABEL_SHOWWINDOW:
 			}break;
 
             case IDC_CHAT_TOGGLESIDEBAR:
+            {
                 ApplyContainerSetting(dat->pContainer, CNT_SIDEBAR, dat->pContainer->dwFlags & CNT_SIDEBAR ? 0 : 1);
-                SendMessage(hwndDlg, WM_SETREDRAW, FALSE, 0);
-                SendMessage(dat->pContainer->hwnd, DM_CONFIGURECONTAINER, 0, 0);
-                SendMessage(dat->pContainer->hwnd, WM_SIZE, 0, 1);
-                RedrawWindow(dat->pContainer->hwnd, NULL, NULL, RDW_INVALIDATE | RDW_ERASE);
-                SetFocus(GetDlgItem(hwndDlg, IDC_MESSAGE));
-                SendMessage(hwndDlg, WM_SETREDRAW, TRUE, 0);
-                SendMessage(hwndDlg, WM_SIZE, 0, 0);
-                RedrawWindow(hwndDlg, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_ERASE);
                 break;
+            }
 
             case IDCANCEL: 
             {

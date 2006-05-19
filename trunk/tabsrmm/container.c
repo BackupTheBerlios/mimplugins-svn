@@ -52,7 +52,6 @@ $Id: container.c,v 1.132 2006/01/13 22:39:32 ghazan Exp $
 #endif
 
 #define SB_CHAR_WIDTH        45
-#define SIDEBARWIDTH         30
 #define DEFAULT_CONTAINER_POS 0x00400040
 #define DEFAULT_CONTAINER_SIZE 0x019001f4
 
@@ -62,6 +61,7 @@ extern HWND floaterOwner;
 extern HANDLE hMessageWindowList;
 extern HINSTANCE g_hInst;
 extern SESSION_INFO *m_WndList;
+extern BOOL (WINAPI *pfnIsThemeActive)();
 
 
 extern BOOL CALLBACK SelectContainerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -267,6 +267,10 @@ LRESULT CALLBACK StatusBarSubclassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 				RECT rcClient;
                 if(pContainer && pContainer->bSkinned)
                     return 1;
+                if(pfnIsThemeActive) {
+                    if(pfnIsThemeActive())
+                        break;
+                }
                 GetClientRect(hWnd, &rcClient);
                 FillRect((HDC)wParam, &rcClient, GetSysColorBrush(COLOR_3DFACE));
                 return 1;
@@ -445,7 +449,7 @@ static void DrawSideBar(HWND hwndDlg, struct ContainerWindowData *pContainer, RE
         }
         if(sbarItems[j].dwFlags & SBI_TOP) {
             if(iTopSpaceAvail >= 23) {
-                SetWindowPos(GetDlgItem(hwndDlg, sbarItems[j].uId), 0, 3 + leftMargin, (topCount++ * 23) + 12, 22, 22, SWP_SHOWWINDOW | SWP_NOZORDER);
+                SetWindowPos(GetDlgItem(hwndDlg, sbarItems[j].uId), 0, 3 + leftMargin, (topCount++ * 23) + 12, 22, 22, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOCOPYBITS);
                 iTopSpaceAvail -= 23;
             }
             else {
@@ -454,7 +458,7 @@ static void DrawSideBar(HWND hwndDlg, struct ContainerWindowData *pContainer, RE
             }
         }
         else
-            SetWindowPos(GetDlgItem(hwndDlg, sbarItems[j].uId), 0, 3 + leftMargin, (rc->bottom - rc->top) - pContainer->statusBarHeight - ((bottomCount++ * 23) + 34), 22, 22, SWP_NOZORDER);
+            SetWindowPos(GetDlgItem(hwndDlg, sbarItems[j].uId), 0, 3 + leftMargin, (rc->bottom - rc->top) - pContainer->statusBarHeight - ((bottomCount++ * 23) + 34), 22, 22, SWP_NOZORDER | SWP_NOCOPYBITS);
         j++;
     }
     topEnabled = pContainer->sb_FirstButton ? TRUE : FALSE;
@@ -1061,6 +1065,33 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                 }
             }
             switch(LOWORD(wParam)) {
+                case IDC_TOGGLESIDEBAR:
+                {
+                    RECT rc;
+                    LONG dwNewLeft;
+                    int i;
+                    DWORD exStyle = GetWindowLong(hwndDlg, GWL_EXSTYLE);
+                    BOOL skinnedMode = pContainer->bSkinned;
+
+                    if(pfnIsThemeActive)
+                        skinnedMode |= (pfnIsThemeActive() ? 1 : 0);
+
+                    GetWindowRect(hwndDlg, &rc);
+                    dwNewLeft = pContainer->dwFlags & CNT_SIDEBAR ? -SIDEBARWIDTH : SIDEBARWIDTH;
+                    SetWindowLong(hwndDlg, GWL_EXSTYLE, exStyle | WS_EX_LAYERED);
+                    SetWindowLong(hwndDlg, GWL_EXSTYLE, exStyle);
+                    for(i = 0; sbarItems[i].uId != 0; i++)
+                        ShowWindow(GetDlgItem(hwndDlg, sbarItems[i].uId), pContainer->dwFlags & CNT_SIDEBAR ? SW_SHOW : SW_HIDE);
+                    SetWindowPos(hwndDlg, 0, rc.left + dwNewLeft, rc.top, (rc.right - rc.left) - dwNewLeft, rc.bottom - rc.top,
+                                 SWP_NOCOPYBITS | SWP_NOZORDER | SWP_DEFERERASE | SWP_ASYNCWINDOWPOS | (dwNewLeft < 0 && skinnedMode ? SWP_NOREDRAW : 0));
+                    /*if(!pContainer->bSkinned && !myGlobals.m_VSApiEnabled) {
+                        SendMessage(hwndDlg, WM_SIZE, 0, 1);
+                        RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_UPDATENOW | RDW_ERASE | RDW_INVALIDATE);
+                    }*/
+                    //InvalidateRect(GetParent(hwndDlg), &rc, FALSE);
+                    break;
+
+                }
                 case IDC_SIDEBARDOWN:
                 case IDC_SIDEBARUP:
                 {
