@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: msgs.c,v 1.160 2006/01/06 12:10:46 ghazan Exp $
+$Id: msgs.c 2926 2006-05-22 15:38:12Z nightwish2004 $
 
 */
 #include "commonheaders.h"
@@ -373,7 +373,7 @@ static int ProtoAck(WPARAM wParam, LPARAM lParam)
  * the needed actions.
  *
  * this handler POSTs the event to the message window procedure - so it is fast and can exit quickly which will
- * imprrove the overall responsiveness when receiving messages.
+ * improve the overall responsiveness when receiving messages.
  */
 
 static int DispatchNewEvent(WPARAM wParam, LPARAM lParam) {
@@ -442,12 +442,13 @@ static int MessageEventAdded(WPARAM wParam, LPARAM lParam)
 	CallServiceSync(MS_CLIST_REMOVEEVENT, wParam, (LPARAM) 1);
 
     if (hwnd) {
+        /*
         struct ContainerWindowData *pTargetContainer = 0;
         if(dbei.eventType == EVENTTYPE_MESSAGE) {
             SendMessage(hwnd, DM_QUERYCONTAINER, 0, (LPARAM)&pTargetContainer);
             if (pTargetContainer)
                 PostMessage(hwnd, DM_PLAYINCOMINGSOUND, 0, 0);
-        }
+        }*/
         return 0;
     }
 
@@ -931,10 +932,10 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
     myGlobals.g_hwndHotkeyHandler = CreateDialog(g_hInst, MAKEINTRESOURCE(IDD_HOTKEYSLAVE), 0, HotkeyHandlerDlgProc);
 
     ZeroMemory((void *)sendJobs, sizeof(struct SendJob) * NR_SENDJOBS);
-    if(nen_options.bTraySupport)
-        CreateSystrayIcon(TRUE);
 
     CreateTrayMenus(TRUE);
+    if(nen_options.bTraySupport)
+        CreateSystrayIcon(TRUE);
 
     ZeroMemory((void *)&mi, sizeof(mi));
     mi.cbSize = sizeof(mi);
@@ -985,8 +986,7 @@ int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
 {
     while(pFirstContainer)
         SendMessage(pFirstContainer->hwnd, WM_CLOSE, 0, 1);
-    if(g_chat_integration_enabled)
-        Chat_PreShutdown(wParam, lParam);
+
     UnhookEvent(hEventDbEventAdded);
     UnhookEvent(hEventDispatch);
     UnhookEvent(hEventDbSettingChange);
@@ -1077,6 +1077,8 @@ int SplitmsgShutdown(void)
 		FreeLibrary(g_hIconDLL);
 		g_hIconDLL = 0;
 	}
+    if(g_chat_integration_enabled)
+        Chat_PreShutdown(0, 0);
     DeleteCriticalSection(&cs_sessions);
     return 0;
 }

@@ -41,6 +41,8 @@ static char CHAT_rtfFontsGlobal[OPTIONS_FONTCOUNT + 2][RTFCACHELINESIZE];
 static char *CHAT_rtffonts = 0;
 static char szMicroLFeed[50];
 
+void GetIconSize(HICON hIcon, int* sizeX, int* sizeY);
+
 static int EventToIndex(LOGINFO * lin)
 {
 	switch(lin->iType)
@@ -420,6 +422,7 @@ char *MakeTimeStamp(char * pszStamp, time_t time)
 {
 
 	static char szTime[30];
+    _tzset();
 	strftime(szTime, 29, pszStamp, localtime(&time));
 	return szTime;
 }
@@ -897,8 +900,19 @@ void LoadMsgLogBitmaps(void)
 	HBRUSH hBkgBrush;
 	int rtfHeaderSize;
 	PBYTE pBmpBits;
-    int iIconSize = g_Settings.ScaleIcons ? 12 : 16;
-    
+    int iIconSize;
+    int sizeX = 0, sizeY = 0;
+
+    if(hIcons[0])
+		GetIconSize(hIcons[0], &sizeX, &sizeY);
+	else
+		sizeX = 16;
+
+    if(sizeX >= 12)
+        iIconSize = g_Settings.ScaleIcons ? 12 : 16;
+    else
+        iIconSize = sizeX;
+
 	hBkgBrush = CreateSolidBrush(DBGetContactSettingDword(NULL, "Chat", "ColorLogBG", GetSysColor(COLOR_WINDOW)));
 	bih.biSize = sizeof(bih);
 	bih.biBitCount = 24;

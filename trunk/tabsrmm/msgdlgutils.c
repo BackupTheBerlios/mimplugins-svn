@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: msgdlgutils.c,v 1.115 2005/10/27 08:27:23 nightwish2004 Exp $
+$Id: msgdlgutils.c 2926 2006-05-22 15:38:12Z nightwish2004 $
 */
 
 /*
@@ -2460,7 +2460,6 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
 		return TRUE;
 	}
 	else if(dis->hwndItem == GetDlgItem(hwndDlg, IDC_STATICERRORICON)) {
-		_DebugPopup(0, "draw icon");
 		if(dat->pContainer->bSkinned)
 			SkinDrawBG(dis->hwndItem, dat->pContainer->hwnd, dat->pContainer, &dis->rcItem, dis->hDC);
 		else

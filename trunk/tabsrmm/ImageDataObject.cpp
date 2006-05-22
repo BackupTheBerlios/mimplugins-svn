@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-// $Id: ImageDataObject.cpp,v 1.5 2005/04/05 13:33:20 nightwish2004 Exp $
+// $Id: ImageDataObject.cpp 2921 2006-05-21 21:48:18Z nightwish2004 $
 // code taken partly from public example on the internet, source unknown.
 
 #define __TSR_CXX
@@ -35,7 +35,7 @@ extern "C" void ImageDataInsertBitmap(IRichEditOle *ole, HBITMAP hBm)
     CImageDataObject::InsertBitmap(ole, hBm);
 }
 
-void GetIconSize(HICON hIcon, int* sizeX, int* sizeY)
+extern "C" void GetIconSize(HICON hIcon, int* sizeX, int* sizeY)
 {
     ICONINFO ii;
     BITMAP bm;

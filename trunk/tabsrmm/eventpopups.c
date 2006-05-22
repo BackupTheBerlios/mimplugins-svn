@@ -21,7 +21,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-$Id: eventpopups.c,v 1.47 2006/01/11 22:17:04 ghazan Exp $
+$Id: eventpopups.c 2922 2006-05-22 04:23:32Z nightwish2004 $
 
 Event popups for tabSRMM - most of the code taken from NewEventNotify (see copyright above)
 
@@ -43,7 +43,7 @@ extern      MYGLOBALS myGlobals;
 extern      struct ContainerWindowData *pFirstContainer;
 extern      BOOL CALLBACK DlgProcSetupStatusModes(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern      HIMAGELIST CreateStateImageList();
-extern      HANDLE hTrayAnimThread;
+extern      HANDLE hTrayAnimThread, g_hEvent;
 
 PLUGIN_DATA *PopUpList[20];
 static int PopupCount = 0;
@@ -1436,7 +1436,8 @@ int UpdateTrayMenu(struct MessageWindowData *dat, WORD wStatus, char *szProto, c
 #endif            
             myGlobals.m_UnreadInTray++;
             if(myGlobals.m_UnreadInTray)
-                ResumeThread(hTrayAnimThread);
+                SetEvent(g_hEvent);
+                //ResumeThread(hTrayAnimThread);
             SetMenuItemInfo(myGlobals.g_hMenuTrayUnread, (UINT_PTR)hContact, FALSE, &mii);
         }
         else {
@@ -1459,7 +1460,8 @@ int UpdateTrayMenu(struct MessageWindowData *dat, WORD wStatus, char *szProto, c
                 mii.dwItemData = fromEvent ? 1 : 0;
                 myGlobals.m_UnreadInTray += (mii.dwItemData & 0x0000ffff);
                 if(myGlobals.m_UnreadInTray)
-                    ResumeThread(hTrayAnimThread);
+                    SetEvent(g_hEvent);
+                    //ResumeThread(hTrayAnimThread);
                 if(fromEvent == 2)
                     mii.dwItemData |= 0x10000000;
             }
@@ -1468,7 +1470,8 @@ int UpdateTrayMenu(struct MessageWindowData *dat, WORD wStatus, char *szProto, c
                 mii.dwItemData += (fromEvent ? 1 : 0);
                 myGlobals.m_UnreadInTray += (fromEvent ? 1 : 0);
                 if(myGlobals.m_UnreadInTray)
-                    ResumeThread(hTrayAnimThread);
+                    SetEvent(g_hEvent);
+                    //ResumeThread(hTrayAnimThread);
                 mii.fMask |= MIIM_STRING;
                 if(fromEvent == 2)
                     mii.dwItemData |= 0x10000000;

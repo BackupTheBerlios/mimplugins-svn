@@ -2,7 +2,7 @@
  * sendqueue.c
  * implements a queued send system 
  * part of tabSRMM, (C) 2004-2005 by Miranda IM project
- * $Id: sendqueue.c,v 1.39 2005/09/20 12:22:39 nightwish2004 Exp $
+ * $Id: sendqueue.c 2924 2006-05-22 07:42:56Z nightwish2004 $
  */
 
 #include "commonheaders.h"
@@ -10,7 +10,7 @@
 #include "sendqueue.h"
 
 extern      MYGLOBALS myGlobals;
-extern      char *pszIDCSAVE_save, *pszIDCSAVE_close;
+extern      TCHAR *pszIDCSAVE_save, *pszIDCSAVE_close;
 extern      const UINT errorControls[5], infoPanelControls[8];
 extern      struct SendJob sendJobs[NR_SENDJOBS];
 
