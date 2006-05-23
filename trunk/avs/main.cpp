@@ -37,7 +37,7 @@ char *g_MetaName = NULL;
 
 static char g_szDBPath[MAX_PATH];		// database profile path (read at startup only)
 
-HANDLE hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hMyAvatarChanged = 0;
+HANDLE hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hMyAvatarChanged = 0, hEventDeleted = 0;
 HICON g_hIcon = 0;
 
 static struct CacheNode *g_Cache = 0;
@@ -878,7 +878,6 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
             szFilename[MAX_PATH - 1] = 0;
             DBFreeVariant(&dbv);
         }
-
     }
     else {
 		if(hContact == 0) {				// create a protocol picture in the proto picture cache
@@ -943,7 +942,7 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
 done:    
     if(lstrlenA(szFilename) < 4)
         return -1;
-    
+
     if((hFile = CreateFileA(szFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
         if(hContact != 0 && hContact != (HANDLE)-1)
             UpdateAvatar(hContact);
@@ -1963,6 +1962,7 @@ static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 	DestroyHookableEvent(hMyAvatarChanged);
     hEventChanged = 0;
 	hMyAvatarChanged = 0;
+	UnhookEvent(hEventDeleted);
 
     LeaveCriticalSection(&cachecs);
 
@@ -2149,7 +2149,7 @@ static int LoadAvatarModule()
 	HookEvent(ME_OPT_INITIALISE, OptInit);
     HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
     hContactSettingChanged = HookEvent(ME_DB_CONTACT_SETTINGCHANGED, ContactSettingChanged);
-    HookEvent(ME_DB_CONTACT_DELETED, ContactDeleted);
+    hEventDeleted = HookEvent(ME_DB_CONTACT_DELETED, ContactDeleted);
     hProtoAckHook = (HANDLE) HookEvent(ME_PROTO_ACK, ProtocolAck);
     CreateServiceFunction(MS_AV_GETAVATARBITMAP, GetAvatarBitmap);
     CreateServiceFunction(MS_AV_PROTECTAVATAR, ProtectAvatar);
