@@ -41,7 +41,7 @@ Tab icons are stored in a global image list (g_hImageList). They are loaded at
 plugin startup, or after a icon change event. Multiple containers can share the
 same image list, because the list is read-only.
 
-$Id: container.c 2926 2006-05-22 15:38:12Z nightwish2004 $
+$Id: container.c 2952 2006-05-24 20:21:42Z nightwish2004 $
 */
 
 #include "commonheaders.h"
@@ -1082,10 +1082,14 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                     SetWindowLong(hwndDlg, GWL_EXSTYLE, exStyle);
                     for(i = 0; sbarItems[i].uId != 0; i++)
                         ShowWindow(GetDlgItem(hwndDlg, sbarItems[i].uId), SW_HIDE);
+                    ShowWindow(GetDlgItem(hwndDlg, IDC_SIDEBARDOWN), SW_HIDE);
+                    ShowWindow(GetDlgItem(hwndDlg, IDC_SIDEBARUP), SW_HIDE);
                     SetWindowPos(hwndDlg, 0, rc.left + dwNewLeft, rc.top, (rc.right - rc.left) - dwNewLeft, rc.bottom - rc.top,
                                  SWP_NOCOPYBITS | SWP_NOZORDER | SWP_DEFERERASE | SWP_ASYNCWINDOWPOS | (dwNewLeft < 0 && skinnedMode ? SWP_NOREDRAW : 0));
                     for(i = 0; sbarItems[i].uId != 0; i++)
                         ShowWindow(GetDlgItem(hwndDlg, sbarItems[i].uId), pContainer->dwFlags & CNT_SIDEBAR ? SW_SHOW : SW_HIDE);
+                    ShowWindow(GetDlgItem(hwndDlg, IDC_SIDEBARDOWN), pContainer->dwFlags & CNT_SIDEBAR ? SW_SHOW : SW_HIDE);
+                    ShowWindow(GetDlgItem(hwndDlg, IDC_SIDEBARUP), pContainer->dwFlags & CNT_SIDEBAR ? SW_SHOW : SW_HIDE);
                     break;
 
                 }

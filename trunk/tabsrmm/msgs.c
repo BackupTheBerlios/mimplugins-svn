@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: msgs.c 2926 2006-05-22 15:38:12Z nightwish2004 $
+$Id: msgs.c 2942 2006-05-23 19:29:50Z nightwish2004 $
 
 */
 #include "commonheaders.h"
@@ -66,6 +66,7 @@ extern      struct SendJob sendJobs[NR_SENDJOBS];
 extern      struct MsgLogIcon msgLogIcons[NR_LOGICONS * 3];
 extern      HINSTANCE g_hInst;
 extern      BOOL CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+extern      int g_sessionshutdown;
 
 HANDLE g_hEvent_MsgWin;
 
@@ -294,15 +295,12 @@ int MessageWindowOpened(WPARAM wParam, LPARAM lParam)
 static int ProtoAck(WPARAM wParam, LPARAM lParam)
 {
     ACKDATA *pAck = (ACKDATA *) lParam;
-    PROTO_AVATAR_INFORMATION *pai;
     HWND hwndDlg = 0;
     int i, j, iFound = NR_SENDJOBS;
 
     if(lParam == 0)
         return 0;
     
-    pai = (PROTO_AVATAR_INFORMATION *) pAck->hProcess;
-
     if(pAck->type == ACKTYPE_MESSAGE) {
         for(j = 0; j < NR_SENDJOBS; j++) {
             for (i = 0; i < sendJobs[j].sendCount; i++) {
@@ -984,13 +982,16 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
 
 int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
 {
-    while(pFirstContainer)
-        SendMessage(pFirstContainer->hwnd, WM_CLOSE, 0, 1);
-
     UnhookEvent(hEventDbEventAdded);
     UnhookEvent(hEventDispatch);
     UnhookEvent(hEventDbSettingChange);
     UnhookEvent(hEventContactDeleted);
+
+    g_sessionshutdown = 1;
+    SM_BroadcastMessage(NULL, GC_CLOSEWINDOW, 0, 2, FALSE);         // lParam == 2 -> close at end
+
+    while(pFirstContainer)
+        SendMessage(pFirstContainer->hwnd, WM_CLOSE, 0, 1);
 
     DestroyServiceFunction(MS_MSG_SENDMESSAGE);
 #if defined(_UNICODE)

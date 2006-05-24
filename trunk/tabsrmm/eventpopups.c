@@ -21,7 +21,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-$Id: eventpopups.c 2922 2006-05-22 04:23:32Z nightwish2004 $
+$Id: eventpopups.c 2942 2006-05-23 19:29:50Z nightwish2004 $
 
 Event popups for tabSRMM - most of the code taken from NewEventNotify (see copyright above)
 
@@ -445,6 +445,7 @@ BOOL CALLBACK DlgProcPopupOpts(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 				NEN_WriteOptions(&nen_options);
 				CheckForRemoveMask();
 				CreateSystrayIcon(nen_options.bTraySupport);
+                SetEvent(g_hEvent);                                 // wake up the thread which cares about the floater and tray
 				/*
 				* check if there are containers minimized to the tray, get them back, otherwise the're trapped forever :)
 				* need to temporarily re-enable tray support, because the container checks for it.
