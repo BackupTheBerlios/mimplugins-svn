@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: msgoptions.c,v 1.133 2006/01/26 04:40:01 nightwish2004 Exp $
+$Id: msgoptions.c 2959 2006-05-26 01:27:05Z nightwish2004 $
 
 */
 #include "commonheaders.h"
@@ -603,7 +603,7 @@ static BOOL CALLBACK DlgProcLogOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			SendDlgItemMessage(hwndDlg, IDC_LOADTIMESPIN, UDM_SETRANGE, 0, MAKELONG(12 * 60, 0));
 			SendDlgItemMessage(hwndDlg, IDC_LOADTIMESPIN, UDM_SETPOS, 0, DBGetContactSettingWord(NULL, SRMSGMOD, SRMSGSET_LOADTIME, SRMSGDEFSET_LOADTIME));
 
-			CheckDlgButton(hwndDlg, IDC_TSFIX, DBGetContactSettingByte(NULL, SRMSGMOD_T, "no_future", 0));
+			CheckDlgButton(hwndDlg, IDC_TSFIX, DBGetContactSettingByte(NULL, SRMSGMOD_T, "no_future", 1));
 
 			SetDlgItemInt(hwndDlg, IDC_INDENTAMOUNT, DBGetContactSettingDword(NULL, SRMSGMOD_T, "IndentAmount", 0), FALSE);
 			SendDlgItemMessage(hwndDlg, IDC_INDENTSPIN, UDM_SETRANGE, 0, MAKELONG(1000, 0));
@@ -1532,7 +1532,7 @@ void ReloadGlobals()
      myGlobals.m_FormatWholeWordsOnly = 1;
      myGlobals.m_AllowSendButtonHidden = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "hidesend", 0);
      myGlobals.m_ToolbarHideMode = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "tbarhidemode", 0);
-     myGlobals.m_FixFutureTimestamps = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "no_future", 0);
+     myGlobals.m_FixFutureTimestamps = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "no_future", 1);
      myGlobals.m_RTLDefault = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "rtldefault", 0);
      myGlobals.m_SplitterSaveOnClose = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "splitsavemode", 1);
      myGlobals.m_WheelDefault = (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, "no_wheelhack", 0);

@@ -119,10 +119,6 @@ typedef struct _settextex {
 */
 #endif
 
-#define NR_LOGICONS 8
-#define NR_BUTTONBARICONS 29
-#define NR_SIDEBARICONS 10
-
 #include <richedit.h>
 #include <richole.h>
 #include "m_avatars.h"
@@ -524,8 +520,8 @@ typedef struct _tagImageItem {
     LONG inner_height, inner_width;
     LONG width, height;
     BLENDFUNCTION bf;
-    LPVOID lpDIBSection;
     BYTE bStretch;
+	LONG glyphMetrics[4];
     struct _tagImageItem *nextItem;
 	HBRUSH fillBrush;
 } ImageItem;
@@ -615,6 +611,7 @@ typedef struct {
 #define IMAGE_PERPIXEL_ALPHA 1
 #define IMAGE_FLAG_DIVIDED 2
 #define IMAGE_FILLSOLID 4
+#define IMAGE_GLYPH 8
 
 #define IMAGE_STRETCH_V 1
 #define IMAGE_STRETCH_H 2

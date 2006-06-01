@@ -41,7 +41,7 @@ Tab icons are stored in a global image list (g_hImageList). They are loaded at
 plugin startup, or after a icon change event. Multiple containers can share the
 same image list, because the list is read-only.
 
-$Id: container.c 2952 2006-05-24 20:21:42Z nightwish2004 $
+$Id: container.c 2959 2006-05-26 01:27:05Z nightwish2004 $
 */
 
 #include "commonheaders.h"
@@ -310,6 +310,10 @@ LRESULT CALLBACK StatusBarSubclassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                     if(!item->IGNORED)
                         DrawAlpha(hdcMem, &itemRect, item->COLOR, item->ALPHA, item->COLOR2, item->COLOR2_TRANSPARENT, item->GRADIENT,
                                   item->CORNER, item->RADIUS, item->imageItem);
+
+                    if(i == 0)
+                        itemRect.left += 2;
+
 					height = itemRect.bottom - itemRect.top;
 					width = itemRect.right - itemRect.left;
 					hIcon = (HICON)SendMessage(hWnd, SB_GETICON, i, 0);
@@ -400,12 +404,14 @@ LRESULT CALLBACK StatusBarSubclassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                         if(PtInRect(&rc,pt)) {
                             CLCINFOTIP ti = {0};
 
+                            ti.cbSize = sizeof(ti);
                             szTip[0] = 0;
                             SendMessageA(hWnd, SB_GETTIPTEXTA, MAKEWPARAM(i, 500), (LPARAM)szTip);
                             szTip[500] = 0;
-                            if(szTip[0])
-                                CallService("mToolTip/ShowTip", (WPARAM)szTip, (LPARAM)&ti);
-                            tooltip_active = TRUE;
+                            if(szTip[0]) {
+                                CallService("mToolTip/ShowTip", (WPARAM)szTip, &ti);
+                                tooltip_active = TRUE;
+                            }
                             break;
                         }
                     }
@@ -1308,7 +1314,7 @@ BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                     SendMessage(pContainer->hwndStatus, SB_SETPARTS, myGlobals.g_SecureIMAvail ? 5 : 4, (LPARAM) statwidths);
                     pContainer->statusBarHeight = (rcs.bottom - rcs.top) + 1;
                     if(pContainer->hwndSlist)
-                        MoveWindow(pContainer->hwndSlist, 2, (rcs.bottom - rcs.top) / 2 - 7, 16, 16, FALSE);
+                        MoveWindow(pContainer->hwndSlist, pContainer->bSkinned ? 4 : 2, (rcs.bottom - rcs.top) / 2 - 7, 16, 16, FALSE);
                 }
                 else
                     pContainer->statusBarHeight = 0;

@@ -181,6 +181,10 @@ struct TitleBtn {
 #define BTN_MAX 1
 #define BTN_CLOSE 2
 
+#define NR_LOGICONS 8
+#define NR_BUTTONBARICONS 29
+#define NR_SIDEBARICONS 10
+
 struct ContainerWindowData {
 	struct ContainerWindowData *pNextContainer;
 	TCHAR szName[CONTAINER_NAMELEN + 4];		// container name
@@ -274,7 +278,7 @@ struct MessageWindowData {
 	HANDLE hContact, hSubContact;
 	HWND hwndLog, hwndFlash;
     HWND hwnd;
-	HANDLE hDbEventFirst,hDbEventLast;
+	HANDLE hDbEventFirst,hDbEventLast, hDbEventLastFeed;
 	int sendMode;
 	HBRUSH hBkgBrush, hInputBkgBrush;
 	int splitterY, originalSplitterY, dynaSplitter, savedSplitter;

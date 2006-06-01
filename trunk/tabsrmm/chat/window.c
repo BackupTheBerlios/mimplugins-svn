@@ -211,6 +211,7 @@ static int RoomWndResize(HWND hwndDlg,LPARAM lParam,UTILRESIZECONTROL *urc)
                 urc->rcItem.left = 9;
             else
                 urc->rcItem.left = 0;
+            urc->rcItem.bottom++; urc->rcItem.top++;
 			return RD_ANCHORX_CUSTOM|RD_ANCHORY_CUSTOM;
 		case IDC_CHAT_MESSAGE:
 			urc->rcItem.right = urc->dlgNewSize.cx ;
@@ -235,6 +236,7 @@ static int RoomWndResize(HWND hwndDlg,LPARAM lParam,UTILRESIZECONTROL *urc)
 		case IDC_BKGCOLOR:
 			urc->rcItem.top = urc->dlgNewSize.cy - si->iSplitterY - 22;
 			urc->rcItem.bottom = urc->dlgNewSize.cy - si->iSplitterY - 1;
+            urc->rcItem.bottom++; urc->rcItem.right++;
             if(!splitterEdges)
                 OffsetRect(&urc->rcItem, 0, 2);
 			return RD_ANCHORX_LEFT|RD_ANCHORY_CUSTOM;
@@ -246,6 +248,9 @@ static int RoomWndResize(HWND hwndDlg,LPARAM lParam,UTILRESIZECONTROL *urc)
         case IDOK:
             urc->rcItem.top = urc->dlgNewSize.cy - si->iSplitterY - 22;
             urc->rcItem.bottom = urc->dlgNewSize.cy - si->iSplitterY - 1;
+            urc->rcItem.bottom++; 
+            if(urc->wId != IDOK)
+                urc->rcItem.right++;
             if(!splitterEdges)
                 OffsetRect(&urc->rcItem, 0, 2);
 			return RD_ANCHORX_RIGHT|RD_ANCHORY_CUSTOM;
@@ -1480,14 +1485,14 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
                 COLORREF crB = DBGetContactSettingDword(NULL, FONTMODULE, "inputbg", GetSysColor(COLOR_WINDOW));
                 
 				LoadLogfont(MSGFONTID_MESSAGEAREA, &lf, &crFore, FONTMODULE);
-                cf2.dwMask = CFM_COLOR | CFM_FACE | CFM_CHARSET | CFM_SIZE | CFM_WEIGHT | CFM_BOLD | CFM_ITALIC | CFM_BACKCOLOR;
+                cf2.dwMask = CFM_COLOR | CFM_FACE | CFM_CHARSET | CFM_SIZE | CFM_WEIGHT | CFM_ITALIC | CFM_BACKCOLOR;
                 cf2.cbSize = sizeof(cf2);
                 cf2.crTextColor = crFore;
                 cf2.bCharSet = lf.lfCharSet;
                 cf2.crBackColor = crB;
                 strncpy(cf2.szFaceName, lf.lfFaceName, LF_FACESIZE);
-                cf2.dwEffects = ((lf.lfWeight >= FW_BOLD) ? CFE_BOLD : 0) | (lf.lfItalic ? CFE_ITALIC : 0);
-                cf2.wWeight = (WORD)lf.lfWeight;
+                cf2.dwEffects = 0; //((lf.lfWeight >= FW_BOLD) ? CFE_BOLD : 0) | (lf.lfItalic ? CFE_ITALIC : 0);
+                cf2.wWeight = 0; //(WORD)lf.lfWeight;
                 cf2.bPitchAndFamily = lf.lfPitchAndFamily;
                 cf2.yHeight = abs(lf.lfHeight) * 15;
                 SetDlgItemText(hwndDlg, IDC_CHAT_MESSAGE, _T(""));
@@ -1838,12 +1843,12 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 			case WINDOW_CLEARLOG:
 				SetDlgItemText(hwndDlg, IDC_CHAT_LOG, _T(""));
 				return TRUE;
-			case SESSION_TERMINATE:
+            case SESSION_TERMINATE:
 				if(CallService(MS_CLIST_GETEVENT, (WPARAM)si->hContact, (LPARAM)0))
 					CallService(MS_CLIST_REMOVEEVENT, (WPARAM)si->hContact, (LPARAM)szChatIconString);
 				si->wState &= ~STATE_TALK;
 				DBWriteContactSettingWord(si->hContact, si->pszModule ,"ApparentMode",(LPARAM) 0);
-				SendMessage(hwndDlg, GC_CLOSEWINDOW, 0, 1);
+				SendMessage(hwndDlg, GC_CLOSEWINDOW, 0, lParam == 2 ? lParam : 1);
 				return TRUE;
 			case WINDOW_MINIMIZE:
 				ShowWindow(hwndDlg, SW_MINIMIZE); 
@@ -2796,14 +2801,20 @@ LABEL_SHOWWINDOW:
             struct ContainerWindowData *pContainer = dat->pContainer;
             BOOL   bForced = (lParam == 2);
 
-#ifdef _DEBUG
-            _DebugTraceA("gc_closewindow: %d (%d, %d)", hwndDlg, wParam, lParam);
-#endif
             iTabs = TabCtrl_GetItemCount(hwndTab);
             if(iTabs == 1) {
-                PostMessage(GetParent(GetParent(hwndDlg)), WM_CLOSE, 0, 1);
-                if(!bForced)
+                if(!bForced && g_sessionshutdown == 0) {
+#ifdef _DEBUG
+                    _DebugTraceA("UNforced close of last tab posting close to container %d", g_sessionshutdown);
+#endif
+                    PostMessage(GetParent(GetParent(hwndDlg)), WM_CLOSE, 0, 1);
                     return 1;
+                }
+                else {
+#ifdef _DEBUG
+                    _DebugTraceA("forced close of last tab (gc_closewindow param = 2)");
+#endif
+                }
             }
             dat->pContainer->iChilds--;
             i = GetTabIndexFromHWND(hwndTab, hwndDlg);
@@ -2838,7 +2849,7 @@ LABEL_SHOWWINDOW:
             else
                 SendMessage(pContainer->hwnd, WM_SIZE, 0, 0);
             
-            break;
+            return 0;
 		}
 
         case DM_SAVELOCALE: 
@@ -3000,7 +3011,7 @@ LABEL_SHOWWINDOW:
 			SetWindowLong(GetDlgItem(hwndDlg,IDC_BKGCOLOR),GWL_WNDPROC,(LONG)OldFilterButtonProc);
 
             DBWriteContactSettingWord(NULL, "Chat", "SplitterX", (WORD)g_Settings.iSplitterX);
-            DBWriteContactSettingWord(NULL, "Chat", "SplitterY", (WORD)g_Settings.iSplitterY);
+            DBWriteContactSettingWord(NULL, "Chat", "splitY", (WORD)g_Settings.iSplitterY);
             
             UpdateTrayMenuState(dat, FALSE);               // remove me from the tray menu (if still there)
             if(myGlobals.g_hMenuTrayUnread)

@@ -20,7 +20,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ---------------------------------------------------------------------------
 
-$Id: formatting.cpp,v 1.42 2006/01/08 21:25:02 ghazan Exp $
+$Id: formatting.cpp 2828 2006-05-03 16:28:21Z nightwish2004 $
 
 License: GPL
 */
@@ -72,8 +72,6 @@ extern "C" const WCHAR *FormatRaw(DWORD dwFlags, const WCHAR *msg, int flags)
     WCHAR endmarker;
     message.assign(msg);
 
-    if(message.find(L"://") != message.npos)
-       return(message.c_str());
  #ifdef __MATHMOD_SUPPORT
     if(myGlobals.m_MathModAvail && message.find(myGlobals.m_MathModStartDelimiter) != message.npos)
         return(message.c_str());
@@ -133,6 +131,9 @@ extern "C" const WCHAR *FormatRaw(DWORD dwFlags, const WCHAR *msg, int flags)
         message.replace(beginmark, 4, formatting_strings_begin[i]);
     }
 nobbcode:
+    if(message.find(L"://") != message.npos)
+       goto nosimpletags;
+
     if(!(dwFlags & MWF_LOG_TEXTFORMAT))
         goto nosimpletags;
 
@@ -205,8 +206,6 @@ extern "C" const char *FormatRaw(DWORD dwFlags, const char *msg, int flags)
     int i, endindex;
     message.assign(msg);
 
-    if(message.find("://") != message.npos)
-       return(message.c_str());
 #ifdef __MATHMOD_SUPPORT
     if(myGlobals.m_MathModAvail && message.find(myGlobals.m_MathModStartDelimiter) != message.npos)
         return(message.c_str());
@@ -267,6 +266,9 @@ extern "C" const char *FormatRaw(DWORD dwFlags, const char *msg, int flags)
     }
 
 nobbcode:
+    if(message.find("://") != message.npos)
+       goto nosimpletags;
+
     if(!(dwFlags & MWF_LOG_TEXTFORMAT))            // skip */_ stuff if not enabled
         goto nosimpletags;
 

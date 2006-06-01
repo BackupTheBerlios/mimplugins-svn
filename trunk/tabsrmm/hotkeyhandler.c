@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 The Hotkey-Handler is a hidden dialog window which needs to be in place for
 handling the global hotkeys registered by tabSRMM.
 
-$Id: hotkeyhandler.c 2924 2006-05-22 07:42:56Z nightwish2004 $
+$Id: hotkeyhandler.c 2959 2006-05-26 01:27:05Z nightwish2004 $
 
 The hotkeyhandler is a small, invisible window which cares about a few things:
 
@@ -59,9 +59,6 @@ void HandleMenuEntryFromhContact(int iSelection)
     HWND hWnd = WindowList_Find(hMessageWindowList, (HANDLE)iSelection);
     SESSION_INFO *si = NULL;
 
-#ifdef _DEBUG
-    _DebugTraceA("selection: %d", iSelection);
-#endif
     if(hWnd && IsWindow(hWnd)) {
         struct ContainerWindowData *pContainer = 0;
         SendMessage(hWnd, DM_QUERYCONTAINER, 0, (LPARAM)&pContainer);
@@ -93,9 +90,6 @@ void HandleMenuEntryFromhContact(int iSelection)
     else {
 nothing_open:
         CallService(MS_CLIST_CONTACTDOUBLECLICKED, (WPARAM)iSelection, 0);
-#ifdef _DEBUG
-        _DebugTraceA("performing double click service");
-#endif
     }
 }
 

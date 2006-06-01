@@ -41,6 +41,7 @@ extern BOOL g_skinnedContainers;
 extern BOOL (WINAPI *MyEnableThemeDialogTexture)(HANDLE, DWORD);
 static LRESULT CALLBACK TabControlSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 extern LRESULT CALLBACK StatusBarSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern void GetIconSize(HICON hIcon, int* sizeX, int* sizeY);
 
 HMODULE hUxTheme = 0;
 
@@ -258,8 +259,13 @@ static void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nH
         else if(dat->mayFlashTab)
             hIcon = dat->iFlashIcon;
 		else {
-            if(dat->si && dat->iFlashIcon)
+            if(dat->si && dat->iFlashIcon) {
+                int sizeX, sizeY;
+
                 hIcon = dat->iFlashIcon;
+                GetIconSize(hIcon, &sizeX, &sizeY);
+                iSize = sizeX;
+            }
 			else if(dat->hTabIcon == dat->hTabStatusIcon && dat->hXStatusIcon)
 				hIcon = dat->hXStatusIcon;
 			else
@@ -277,12 +283,6 @@ static void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nH
                 DrawIconEx (dc, ix, iy, hIcon, iSize, iSize, 0, NULL, DI_NORMAL | DI_COMPAT); 
         }
 
-        // draw the overlay for chat tabs
-        
-        /*if(dat->bType == SESSIONTYPE_CHAT && dat->iFlashIcon && dat->mayFlashTab == FALSE)
-            DrawIconEx (dc, rcItem->left + tabdat->m_xpad - 1, rcItem->top + 1, dat->iFlashIcon, 10, 10, 0, NULL, DI_NORMAL | DI_COMPAT); 
-        */
-        
         rcItem->left += (iSize + 2 + tabdat->m_xpad);
         
         if(dat->mayFlashTab == FALSE || (dat->mayFlashTab == TRUE && dat->bTabFlash != 0) || !(myGlobals.m_TabAppearance & TCF_FLASHLABEL)) {
@@ -310,6 +310,9 @@ static void DrawItem(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nH
  * draws the item rect (the "tab") in *classic* style (no visual themes
  */
 
+
+static RECT rcTabPage = {0};
+
 static void DrawItemRect(struct TabControlData *tabdat, HDC dc, RECT *rcItem, int nHint)
 {
     POINT pt;
@@ -327,9 +330,8 @@ static void DrawItemRect(struct TabControlData *tabdat, HDC dc, RECT *rcItem, in
             BOOL bClassicDraw = (tabdat->m_skinning == FALSE) || (myGlobals.m_TabAppearance & TCF_NOSKINNING);
 
             // draw frame controls for button or bottom tabs
-            if(dwStyle & TCS_BOTTOM) {
+            if(dwStyle & TCS_BOTTOM)
                 rcItem->top++;
-            }
             else
                 rcItem->bottom--;
             
@@ -393,6 +395,7 @@ b_nonskinned:
 				StatusItems_t *item = &StatusItems[dwStyle & TCS_BOTTOM ? ID_EXTBKTABITEMACTIVEBOTTOM : ID_EXTBKTABITEMACTIVE];
 				if(!item->IGNORED) {
                     rcItem->left += item->MARGIN_LEFT; rcItem->right -= item->MARGIN_RIGHT;
+                    rcItem->top += item->MARGIN_TOP; rcItem->bottom -= item->MARGIN_BOTTOM;
 					DrawAlpha(dc, rcItem, item->COLOR, item->ALPHA, item->COLOR2, item->COLOR2_TRANSPARENT,
 							  item->GRADIENT, item->CORNER, item->RADIUS, item->imageItem);
 					return;
@@ -403,6 +406,12 @@ b_nonskinned:
 			StatusItems_t *item = &StatusItems[dwStyle & TCS_BOTTOM ? (nHint & HINT_HOTTRACK ? ID_EXTBKTABITEMHOTTRACKBOTTOM : ID_EXTBKTABITEMBOTTOM) : 
                                                (nHint & HINT_HOTTRACK ? ID_EXTBKTABITEMHOTTRACK : ID_EXTBKTABITEM)];
 			if(!item->IGNORED) {
+                if(dwStyle & TCS_BOTTOM)
+                    rcItem->top = (rcItem->top > rcTabPage.bottom + 5) ? --rcItem->top : rcItem->top;
+                else
+                    rcItem->bottom++;
+                    //rcItem->bottom = (rcItem->bottom < rcTabPage.top - 5) ? ++rcItem->bottom : rcItem->bottom;
+
                 rcItem->left += item->MARGIN_LEFT; rcItem->right -= item->MARGIN_RIGHT;
 				DrawAlpha(dc, rcItem, item->COLOR, item->ALPHA, item->COLOR2, item->COLOR2_TRANSPARENT,
 						  item->GRADIENT, item->CORNER, item->RADIUS, item->imageItem);
@@ -827,6 +836,7 @@ static LRESULT CALLBACK TabControlSubclassProc(HWND hwnd, UINT msg, WPARAM wPara
 					if(tabdat->pContainer->bSkinned) {
 						StatusItems_t *item = &StatusItems[ID_EXTBKTABPAGE];
 
+                        CopyRect(&rcTabPage, &rctPage);
 						if(!item->IGNORED) {
 							DrawAlpha(hdc, &rctPage, item->COLOR, item->ALPHA, item->COLOR2, item->COLOR2_TRANSPARENT,
 									  item->GRADIENT, item->CORNER, item->RADIUS, item->imageItem);

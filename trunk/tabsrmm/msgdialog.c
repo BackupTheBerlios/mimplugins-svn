@@ -21,7 +21,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
-$Id: msgdialog.c 2931 2006-05-23 12:02:50Z ghazan $
+$Id: msgdialog.c 2986 2006-05-30 07:34:21Z nightwish2004 $
 */
 
 #include "commonheaders.h"
@@ -1028,64 +1028,70 @@ LRESULT CALLBACK SplitterSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
                 }
                 break;
             }
-        case WM_LBUTTONUP:
-            ReleaseCapture();
-            SendMessage(hwndParent, DM_SCROLLLOGTOBOTTOM, 0, 1);
-			if(dat && dat->bType == SESSIONTYPE_IM && hwnd == GetDlgItem(hwndParent, IDC_PANELSPLITTER)) {
-				dat->panelWidth = -1;
-				SendMessage(hwndParent, WM_SIZE, 0, 0);
-			}
-			else if((dat && dat->bType == SESSIONTYPE_IM && hwnd == GetDlgItem(hwndParent, IDC_SPLITTER)) ||
-                    (dat && dat->bType == SESSIONTYPE_CHAT && hwnd == GetDlgItem(hwndParent, IDC_SPLITTERY))) {
-                RECT rc;
-                POINT pt;
-                int selection;
-                HMENU hMenu = GetSubMenu(dat->pContainer->hMenuContext, 12);
-                LONG messagePos = GetMessagePos();
-    
-                GetClientRect(hwnd, &rc);
-                GetCursorPos(&pt);
-                selection = TrackPopupMenu(hMenu, TPM_RETURNCMD, pt.x, pt.y, 0, hwndParent, NULL);
-                switch(selection) {
-                    case ID_SPLITTERCONTEXT_SAVEFORTHISCONTACTONLY:
-                    {
-                        HWND hwndParent = GetParent(hwnd);
-    
-                        dat->dwEventIsShown |= MWF_SHOW_SPLITTEROVERRIDE;
-                        DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "splitoverride", 1);
-                        if(dat->bType == SESSIONTYPE_IM)
-                            SaveSplitter(hwndParent, dat);
-                        break;
-                    }
-                    case ID_SPLITTERCONTEXT_SETPOSITIONFORTHISSESSION:
-                        break;
-                    case ID_SPLITTERCONTEXT_SAVEGLOBALFORALLSESSIONS:
-                    {
-                        RECT rcWin;
-    
-                        GetWindowRect(hwndParent, &rcWin);
-                        if(dat->bType == SESSIONTYPE_IM) {
-                            dat->dwEventIsShown &= ~(MWF_SHOW_SPLITTEROVERRIDE);
-                            DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "splitoverride", 0);
-                            WindowList_Broadcast(hMessageWindowList, DM_SPLITTERMOVEDGLOBAL, 
-                                                 rcWin.bottom - HIWORD(messagePos), rc.bottom);
-                        }
-                        else {
-                            SM_BroadcastMessage(NULL, DM_SAVESIZE, 0, 0, 0);
-                            SM_BroadcastMessage(NULL, DM_SPLITTERMOVED, (short) HIWORD(messagePos) + rc.bottom / 2, (LPARAM) -1, 0);
-                            SM_BroadcastMessage(NULL, WM_SIZE, 0, 0, 1);
-                            DBWriteContactSettingWord(NULL, "Chat", "SplitterY", (WORD)g_Settings.iSplitterY);
-                        }
-                        
-                        break;
-                    }
-                    default:
-                        SendMessage(hwndParent, DM_SPLITTERMOVED, dat->savedSplitter, (LPARAM) hwnd);
-                        SendMessage(hwndParent, DM_SCROLLLOGTOBOTTOM, 0, 1);
-                        break;
+            case WM_LBUTTONUP:
+            {
+                HWND hwndCapture = GetCapture();
+
+                ReleaseCapture();
+                SendMessage(hwndParent, DM_SCROLLLOGTOBOTTOM, 0, 1);
+                if(dat && dat->bType == SESSIONTYPE_IM && hwnd == GetDlgItem(hwndParent, IDC_PANELSPLITTER)) {
+                    dat->panelWidth = -1;
+                    SendMessage(hwndParent, WM_SIZE, 0, 0);
                 }
-			}
-            return 0;
+                else if((dat && dat->bType == SESSIONTYPE_IM && hwnd == GetDlgItem(hwndParent, IDC_SPLITTER)) ||
+                        (dat && dat->bType == SESSIONTYPE_CHAT && hwnd == GetDlgItem(hwndParent, IDC_SPLITTERY))) {
+                    RECT rc;
+                    POINT pt;
+                    int selection;
+                    HMENU hMenu = GetSubMenu(dat->pContainer->hMenuContext, 12);
+                    LONG messagePos = GetMessagePos();
+
+                    GetClientRect(hwnd, &rc);
+                    if(hwndCapture != hwnd || dat->savedSplitter == (rc.right > rc.bottom ? (short) HIWORD(messagePos) + rc.bottom / 2 : (short) LOWORD(messagePos) + rc.right / 2))
+                        break;
+                    GetCursorPos(&pt);
+                    selection = TrackPopupMenu(hMenu, TPM_RETURNCMD, pt.x, pt.y, 0, hwndParent, NULL);
+                    switch(selection) {
+                        case ID_SPLITTERCONTEXT_SAVEFORTHISCONTACTONLY:
+                        {
+                            HWND hwndParent = GetParent(hwnd);
+
+                            dat->dwEventIsShown |= MWF_SHOW_SPLITTEROVERRIDE;
+                            DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "splitoverride", 1);
+                            if(dat->bType == SESSIONTYPE_IM)
+                                SaveSplitter(hwndParent, dat);
+                            break;
+                        }
+                        case ID_SPLITTERCONTEXT_SETPOSITIONFORTHISSESSION:
+                            break;
+                        case ID_SPLITTERCONTEXT_SAVEGLOBALFORALLSESSIONS:
+                        {
+                            RECT rcWin;
+
+                            GetWindowRect(hwndParent, &rcWin);
+                            if(dat->bType == SESSIONTYPE_IM) {
+                                dat->dwEventIsShown &= ~(MWF_SHOW_SPLITTEROVERRIDE);
+                                DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "splitoverride", 0);
+                                WindowList_Broadcast(hMessageWindowList, DM_SPLITTERMOVEDGLOBAL, 
+                                                     rcWin.bottom - HIWORD(messagePos), rc.bottom);
+                            }
+                            else {
+                                SM_BroadcastMessage(NULL, DM_SAVESIZE, 0, 0, 0);
+                                SM_BroadcastMessage(NULL, DM_SPLITTERMOVED, (short) HIWORD(messagePos) + rc.bottom / 2, (LPARAM) -1, 0);
+                                SM_BroadcastMessage(NULL, WM_SIZE, 0, 0, 1);
+                                DBWriteContactSettingWord(NULL, "Chat", "splitY", (WORD)g_Settings.iSplitterY);
+                            }
+
+                            break;
+                        }
+                        default:
+                            SendMessage(hwndParent, DM_SPLITTERMOVED, dat->savedSplitter, (LPARAM) hwnd);
+                            SendMessage(hwndParent, DM_SCROLLLOGTOBOTTOM, 0, 1);
+                            break;
+                    }
+                }
+                return 0;
+            }
     }
     return CallWindowProc(OldSplitterProc, hwnd, msg, wParam, lParam);
 }
@@ -1153,7 +1159,7 @@ static int MessageDialogResizeIP(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL 
 */
 
 /*
- * resizer proc for the "new" layout.
+ *  resizer proc for the "new" layout.
  */
 
 
@@ -1188,6 +1194,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
         case IDC_NAME:
             urc->rcItem.top -= (dat->splitterY - dat->originalSplitterY + s_offset);
             urc->rcItem.bottom -= (dat->splitterY - dat->originalSplitterY + s_offset);
+            urc->rcItem.bottom++; urc->rcItem.right++;
             if(dat->controlsHidden & TOOLBAR_PROTO_HIDDEN)
                 OffsetRect(&urc->rcItem, -(rcButton.right + 2), 0);
              return RD_ANCHORX_LEFT | RD_ANCHORY_BOTTOM;
@@ -1199,6 +1206,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
         case IDC_FONTCOLOR:
             urc->rcItem.top -= (dat->splitterY - dat->originalSplitterY + s_offset);
             urc->rcItem.bottom -= (dat->splitterY - dat->originalSplitterY + s_offset);
+            urc->rcItem.bottom++; urc->rcItem.right++;
             if(!dat->doSmileys)
                 OffsetRect(&urc->rcItem, -22, 0);
             if(dat->controlsHidden & TOOLBAR_PROTO_HIDDEN)
@@ -1231,6 +1239,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
                 OffsetRect(&urc->rcItem, 12, 0);
             urc->rcItem.top -= (dat->splitterY - dat->originalSplitterY + s_offset);
             urc->rcItem.bottom -= (dat->splitterY - dat->originalSplitterY + s_offset);
+            urc->rcItem.bottom++; urc->rcItem.right++;
             if (urc->wId == IDC_PROTOCOL) // || urc->wId == IDC_PROTOMENU || urc->wId == IDC_INFOPANELMENU)
                 return RD_ANCHORX_LEFT | RD_ANCHORY_BOTTOM;
             if (showToolbar && !(dat->controlsHidden & TOOLBAR_SEND_HIDDEN)) {
@@ -1253,6 +1262,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
             }
             if(dat->showPic)
                 OffsetRect(&urc->rcItem, -(dat->pic.cx+2), 0);
+            urc->rcItem.bottom++; urc->rcItem.right++;
             return RD_ANCHORX_RIGHT | RD_ANCHORY_BOTTOM;
         case IDC_LOG:
             if(dat->dwFlags & MWF_ERRORSTATE && !(dat->dwEventIsShown & MWF_SHOW_INFOPANEL))
@@ -1300,6 +1310,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
             urc->rcItem.right = urc->dlgNewSize.cx;
             urc->rcItem.top -= dat->splitterY - dat->originalSplitterY;
             urc->rcItem.bottom = urc->rcItem.top + 2;
+            OffsetRect(&urc->rcItem, 0, 1);
             if (urc->wId == IDC_SPLITTER && dat->splitterY <= (dat->bottomOffset + (dat->iAvatarDisplayMode == AVATARMODE_DYNAMIC ? 32 : 25)) && dat->showPic && showToolbar)
                 urc->rcItem.right -= (dat->pic.cx + 2);
             if(myGlobals.m_SideBarEnabled)
@@ -1331,6 +1342,7 @@ static int MessageDialogResize(HWND hwndDlg, LPARAM lParam, UTILRESIZECONTROL * 
             OffsetRect(&urc->rcItem, 12, 0);
             urc->rcItem.top -= (dat->splitterY - dat->originalSplitterY + s_offset);
             urc->rcItem.bottom -= (dat->splitterY - dat->originalSplitterY + s_offset);
+            urc->rcItem.bottom++;
 
             if (dat->showPic && (dat->splitterY <= (dat->bottomOffset + (dat->iAvatarDisplayMode == AVATARMODE_DYNAMIC ? 32 : 25))))
                 OffsetRect(&urc->rcItem, -(dat->pic.cx + 2), 0);
@@ -1945,8 +1957,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 if(dat->showTyping) {
                     TCHAR szBuf[80];
 
-                    _sntprintf(szBuf, safe_sizeof(szBuf), TranslateT("%s is typing..."), dat->szNickname);
-                    szBuf[79] = 0;
+                    mir_sntprintf(szBuf, safe_sizeof(szBuf), TranslateT("%s is typing..."), dat->szNickname);
                     SendMessage(dat->pContainer->hwndStatus, SB_SETTEXT, 0, (LPARAM) szBuf);
                     SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 0, (LPARAM) myGlobals.g_buttonBarIcons[5]);
                     if(dat->pContainer->hwndSlist)
@@ -1954,26 +1965,31 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     break;
                 }
                 if (dat->lastMessage || dat->pContainer->dwFlags & CNT_UINSTATUSBAR) {
-                    DBTIMETOSTRING dbtts;
-                    char date[64], time[64], fmt[128];
+                    DBTIMETOSTRINGT dbtts;
+                    TCHAR date[64], time[64];
 
                     if(!(dat->pContainer->dwFlags & CNT_UINSTATUSBAR)) {
-                        dbtts.szFormat = "d";
-                        dbtts.cbDest = sizeof(date);
+                        dbtts.szFormat = _T("d");
+                        dbtts.cbDest = safe_sizeof(date);
                         dbtts.szDest = date;
-                        CallService(MS_DB_TIME_TIMESTAMPTOSTRING, dat->lastMessage, (LPARAM) & dbtts);
-                        if(dat->pContainer->dwFlags & CNT_UINSTATUSBAR && lstrlenA(date) > 6)
-                            date[lstrlenA(date) - 5] = 0;
-                        dbtts.szFormat = "t";
-                        dbtts.cbDest = sizeof(time);
+                        CallService(MS_DB_TIME_TIMESTAMPTOSTRINGT, dat->lastMessage, (LPARAM) & dbtts);
+                        if(dat->pContainer->dwFlags & CNT_UINSTATUSBAR && lstrlen(date) > 6)
+                            date[lstrlen(date) - 5] = 0;
+                        dbtts.szFormat = _T("t");
+                        dbtts.cbDest = safe_sizeof(time);
                         dbtts.szDest = time;
-                        CallService(MS_DB_TIME_TIMESTAMPTOSTRING, dat->lastMessage, (LPARAM) & dbtts);
+                        CallService(MS_DB_TIME_TIMESTAMPTOSTRINGT, dat->lastMessage, (LPARAM) & dbtts);
                     }
-                    if(dat->pContainer->dwFlags & CNT_UINSTATUSBAR)
+                    if(dat->pContainer->dwFlags & CNT_UINSTATUSBAR) {
+                        char fmt[100];
                         mir_snprintf(fmt, sizeof(fmt), Translate("UIN: %s"), dat->uin);
-                    else
-                        mir_snprintf(fmt, sizeof(fmt), Translate("Last received: %s at %s"), date, time);
-                    SendMessageA(dat->pContainer->hwndStatus, SB_SETTEXTA, 0, (LPARAM) fmt);
+                        SendMessageA(dat->pContainer->hwndStatus, SB_SETTEXTA, 0, (LPARAM) fmt);
+                    }
+                    else {
+                        TCHAR fmt[100];
+                        mir_sntprintf(fmt, safe_sizeof(fmt), TranslateT("Last received: %s at %s"), date, time);
+                        SendMessage(dat->pContainer->hwndStatus, SB_SETTEXT, 0, (LPARAM) fmt);
+                    }
                     SendMessage(dat->pContainer->hwndStatus, SB_SETICON, 0, (LPARAM)(nen_options.bFloaterInWin ? myGlobals.g_buttonBarIcons[16] : 0));
                     if(dat->pContainer->hwndSlist)
                         SendMessage(dat->pContainer->hwndSlist, BM_SETIMAGE, IMAGE_ICON, (LPARAM)myGlobals.g_buttonBarIcons[16]);
@@ -2799,7 +2815,15 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             StreamInEvents(hwndDlg, dat->hDbEventFirst, -1, 0, NULL);
             return 0;
         case DM_APPENDTOLOG:
-            StreamInEvents(hwndDlg, (HANDLE) wParam, 1, 1, NULL);
+            if((HANDLE)wParam != dat->hDbEventLastFeed) {
+                dat->hDbEventLastFeed = (HANDLE)wParam;
+                StreamInEvents(hwndDlg, (HANDLE) wParam, 1, 1, NULL);
+            }
+            else {
+                TCHAR szBuffer[256];
+                mir_sntprintf(szBuffer, safe_sizeof(szBuffer), TranslateT("Duplicate event handle detected"));
+                SendMessage(hwndDlg, DM_ACTIVATETOOLTIP, IDC_MESSAGE, (LPARAM)szBuffer);
+            }
             return 0;
             /*
              * replays queued events after the message log has been frozen for a while
@@ -2813,7 +2837,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                         StreamInEvents(hwndDlg, dat->hQueuedEvents[i], 1, 1, NULL);
                 }
                 dat->iNextQueuedEvent = 0;
-                SetDlgItemTextA(hwndDlg, IDC_LOGFROZENTEXT, Translate("Message Log is frozen"));
+                SetDlgItemText(hwndDlg, IDC_LOGFROZENTEXT, TranslateT("Message Log is frozen"));
                 return 0;
             }
 		case DM_SCROLLIEVIEW:
@@ -2930,14 +2954,15 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                             if(!(dat->dwEventIsShown & MWF_SHOW_SCROLLINGDISABLED))
                                 SendMessage(hwndDlg, DM_APPENDTOLOG, lParam, 0);
                             else {
-                                char szBuf[40];
+                                TCHAR szBuf[40];
+
                                 if(dat->iNextQueuedEvent >= dat->iEventQueueSize) {
                                     dat->hQueuedEvents = realloc(dat->hQueuedEvents, (dat->iEventQueueSize + 10) * sizeof(HANDLE));
                                     dat->iEventQueueSize += 10;
                                 }
                                 dat->hQueuedEvents[dat->iNextQueuedEvent++] = (HANDLE)lParam;
-                                mir_snprintf(szBuf, sizeof(szBuf), Translate("Message Log is frozen (%d queued)"), dat->iNextQueuedEvent);
-                                SetDlgItemTextA(hwndDlg, IDC_LOGFROZENTEXT, szBuf);
+                                mir_sntprintf(szBuf, safe_sizeof(szBuf), TranslateT("Message Log is frozen (%d queued)"), dat->iNextQueuedEvent);
+                                SetDlgItemText(hwndDlg, IDC_LOGFROZENTEXT, szBuf);
                                 RedrawWindow(GetDlgItem(hwndDlg, IDC_LOGFROZENTEXT), NULL, NULL, RDW_INVALIDATE);
                             }
                             if(dbei.eventType == EVENTTYPE_MESSAGE && !(dbei.flags & DBEF_SENT)) {

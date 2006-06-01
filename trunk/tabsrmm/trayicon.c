@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: trayicon.c 2922 2006-05-22 04:23:32Z nightwish2004 $
+$Id: trayicon.c 2959 2006-05-26 01:27:05Z nightwish2004 $
 
 Functions, concerning tabSRMMs system tray support. There is more in eventpopups.c
 
@@ -121,7 +121,6 @@ void CreateTrayMenus(int mode)
     }
     else {
         isAnimThreadRunning = FALSE;
-        //ResumeThread(hTrayAnimThread);
         SetEvent(g_hEvent);
         WaitForSingleObject(hTrayAnimThread, 5000);
         CloseHandle(hTrayAnimThread);
@@ -290,9 +289,6 @@ void FlashTrayIcon(HICON hIcon)
     }
     else if(IsWindowVisible(myGlobals.g_hwndHotkeyHandler) && !nen_options.bTraySupport) {
         SendDlgItemMessage(myGlobals.g_hwndHotkeyHandler, IDC_TRAYICON, BM_SETIMAGE, IMAGE_ICON, (LPARAM) hIcon);
-#ifdef _DEBUG
-        _DebugTraceA("set floater icon... %d", hIcon);
-#endif
     }
 }
 
