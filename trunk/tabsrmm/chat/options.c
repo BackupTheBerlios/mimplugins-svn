@@ -696,7 +696,7 @@ static void LoadFontsToList(HWND hwndDlg)
     
     for (i = 0; i < fontCount; i++) {
         LoadMsgDlgFont(i + (fontOptionsList == IP_fontOptionsList ? 100 : 0) , &lf, &fontOptionsList[i].colour, szModule);
-		lstrcpyn(LF_FACESIZE, fontOptionsList[i].szFace, lf.lfFaceName);
+		lstrcpyn(fontOptionsList[i].szFace, lf.lfFaceName, LF_FACESIZE);
         fontOptionsList[i].szFace[LF_FACESIZE - 1] = 0;
         fontOptionsList[i].size = (char) lf.lfHeight;
         fontOptionsList[i].style = (lf.lfWeight >= FW_BOLD ? FONTF_BOLD : 0) | (lf.lfItalic ? FONTF_ITALIC : 0);
