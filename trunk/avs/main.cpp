@@ -1927,6 +1927,12 @@ static int OptInit(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+static HANDLE hSvc_MS_AV_GETAVATARBITMAP = 0, hSvc_MS_AV_PROTECTAVATAR = 0,
+	hSvc_MS_AV_SETAVATAR = 0, hSvc_MS_AV_SETMYAVATAR = 0, hSvc_MS_AV_CANSETMYAVATAR, hSvc_MS_AV_CONTACTOPTIONS,
+	hSvc_MS_AV_DRAWAVATAR = 0, hSvc_MS_AV_GETMYAVATAR = 0, hSvc_MS_AV_REPORTMYAVATARCHANGED = 0,
+	hSvc_MS_AV_LOADBITMAP32 = 0, hSvc_MS_AV_SAVEBITMAP = 0, hSvc_MS_AV_CANSAVEBITMAP = 0,
+	hSvc_MS_AV_RESIZEBITMAP = 0;
+
 static int OkToExitProc(WPARAM wParam, LPARAM lParam)
 {
     EnterCriticalSection(&cachecs);
@@ -1935,19 +1941,19 @@ static int OkToExitProc(WPARAM wParam, LPARAM lParam)
     UnhookEvent(hContactSettingChanged);
     UnhookEvent(hProtoAckHook);
 
-    DestroyServiceFunction((void *) MS_AV_GETAVATARBITMAP);
-    DestroyServiceFunction((void *) MS_AV_PROTECTAVATAR);
-    DestroyServiceFunction((void *) MS_AV_SETAVATAR);
-    DestroyServiceFunction((void *) MS_AV_SETMYAVATAR);
-    DestroyServiceFunction((void *) MS_AV_CANSETMYAVATAR);
-    DestroyServiceFunction((void *) MS_AV_CONTACTOPTIONS);
-    DestroyServiceFunction((void *) MS_AV_DRAWAVATAR);
-    DestroyServiceFunction((void *) MS_AV_GETMYAVATAR);
-    DestroyServiceFunction((void *) MS_AV_REPORTMYAVATARCHANGED);
-    DestroyServiceFunction((void *) MS_AV_LOADBITMAP32);
-    DestroyServiceFunction((void *) MS_AV_SAVEBITMAP);
-    DestroyServiceFunction((void *) MS_AV_CANSAVEBITMAP);
-    DestroyServiceFunction((void *) MS_AV_RESIZEBITMAP);
+    DestroyServiceFunction(hSvc_MS_AV_GETAVATARBITMAP);
+    DestroyServiceFunction(hSvc_MS_AV_PROTECTAVATAR);
+    DestroyServiceFunction(hSvc_MS_AV_SETAVATAR);
+    DestroyServiceFunction(hSvc_MS_AV_SETMYAVATAR);
+    DestroyServiceFunction(hSvc_MS_AV_CANSETMYAVATAR);
+    DestroyServiceFunction(hSvc_MS_AV_CONTACTOPTIONS);
+    DestroyServiceFunction(hSvc_MS_AV_DRAWAVATAR);
+    DestroyServiceFunction(hSvc_MS_AV_GETMYAVATAR);
+    DestroyServiceFunction(hSvc_MS_AV_REPORTMYAVATARCHANGED);
+    DestroyServiceFunction(hSvc_MS_AV_LOADBITMAP32);
+    DestroyServiceFunction(hSvc_MS_AV_SAVEBITMAP);
+    DestroyServiceFunction(hSvc_MS_AV_CANSAVEBITMAP);
+    DestroyServiceFunction(hSvc_MS_AV_RESIZEBITMAP);
 
     DestroyHookableEvent(hEventChanged);
     DestroyHookableEvent(hMyAvatarChanged);
@@ -2144,21 +2150,24 @@ static int LoadAvatarModule()
     hContactSettingChanged = HookEvent(ME_DB_CONTACT_SETTINGCHANGED, ContactSettingChanged);
     hEventDeleted = HookEvent(ME_DB_CONTACT_DELETED, ContactDeleted);
     hProtoAckHook = (HANDLE) HookEvent(ME_PROTO_ACK, ProtocolAck);
-    CreateServiceFunction(MS_AV_GETAVATARBITMAP, GetAvatarBitmap);
-    CreateServiceFunction(MS_AV_PROTECTAVATAR, ProtectAvatar);
-    CreateServiceFunction(MS_AV_SETAVATAR, SetAvatar);
-    CreateServiceFunction(MS_AV_SETMYAVATAR, SetMyAvatar);
-    CreateServiceFunction(MS_AV_CANSETMYAVATAR, CanSetMyAvatar);
-    CreateServiceFunction(MS_AV_CONTACTOPTIONS, ContactOptions);
-    CreateServiceFunction(MS_AV_DRAWAVATAR, DrawAvatarPicture);
-	CreateServiceFunction(MS_AV_GETMYAVATAR, GetMyAvatar);
-	CreateServiceFunction(MS_AV_REPORTMYAVATARCHANGED, ReportMyAvatarChanged);
-	CreateServiceFunction(MS_AV_LOADBITMAP32, BmpFilterLoadBitmap32);
-	CreateServiceFunction(MS_AV_SAVEBITMAP, BmpFilterSaveBitmap);
-	CreateServiceFunction(MS_AV_CANSAVEBITMAP, BmpFilterCanSaveBitmap);
-	CreateServiceFunction(MS_AV_RESIZEBITMAP, BmpFilterResizeBitmap);
-    hEventChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
+
+    hSvc_MS_AV_GETAVATARBITMAP = CreateServiceFunction(MS_AV_GETAVATARBITMAP, GetAvatarBitmap);
+    hSvc_MS_AV_PROTECTAVATAR = CreateServiceFunction(MS_AV_PROTECTAVATAR, ProtectAvatar);
+    hSvc_MS_AV_SETAVATAR = CreateServiceFunction(MS_AV_SETAVATAR, SetAvatar);
+    hSvc_MS_AV_SETMYAVATAR = CreateServiceFunction(MS_AV_SETMYAVATAR, SetMyAvatar);
+    hSvc_MS_AV_CANSETMYAVATAR = CreateServiceFunction(MS_AV_CANSETMYAVATAR, CanSetMyAvatar);
+    hSvc_MS_AV_CONTACTOPTIONS = CreateServiceFunction(MS_AV_CONTACTOPTIONS, ContactOptions);
+    hSvc_MS_AV_DRAWAVATAR = CreateServiceFunction(MS_AV_DRAWAVATAR, DrawAvatarPicture);
+	hSvc_MS_AV_GETMYAVATAR = CreateServiceFunction(MS_AV_GETMYAVATAR, GetMyAvatar);
+	hSvc_MS_AV_REPORTMYAVATARCHANGED = CreateServiceFunction(MS_AV_REPORTMYAVATARCHANGED, ReportMyAvatarChanged);
+	hSvc_MS_AV_LOADBITMAP32 = CreateServiceFunction(MS_AV_LOADBITMAP32, BmpFilterLoadBitmap32);
+	hSvc_MS_AV_SAVEBITMAP = CreateServiceFunction(MS_AV_SAVEBITMAP, BmpFilterSaveBitmap);
+	hSvc_MS_AV_CANSAVEBITMAP = CreateServiceFunction(MS_AV_CANSAVEBITMAP, BmpFilterCanSaveBitmap);
+	hSvc_MS_AV_RESIZEBITMAP =CreateServiceFunction(MS_AV_RESIZEBITMAP, BmpFilterResizeBitmap);
+    
+	hEventChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
 	hMyAvatarChanged = CreateHookableEvent(ME_AV_MYAVATARCHANGED);
+
 	AllocCacheBlock();
     AV_QUEUESIZE = CallService(MS_DB_CONTACT_GETCOUNT, 0, 0);
     if(AV_QUEUESIZE < 300)
