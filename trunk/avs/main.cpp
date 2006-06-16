@@ -36,6 +36,7 @@ static int AV_QUEUESIZE = 0;
 char *g_MetaName = NULL;
 
 static char g_szDBPath[MAX_PATH];		// database profile path (read at startup only)
+static TCHAR g_EventName[100];
 
 HANDLE hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hMyAvatarChanged = 0, hEventDeleted = 0;
 HICON g_hIcon = 0;
@@ -737,7 +738,7 @@ static DWORD WINAPI AvatarUpdateThread(LPVOID vParam)
     char *szProto = NULL;
     int i;
     HANDLE hFound = 0;
-    HANDLE hEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, _T("evt_avscache"));
+    HANDLE hEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, g_EventName);
 
     do {
         if(dwPendingAvatarJobs == 0 && bAvatarThreadRunning)
@@ -1711,8 +1712,9 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     static char *szPrefix = "avs ";
 
 	// Start thread
+	mir_sntprintf(g_EventName, 100, _T("evt_avscache_%d"), GetCurrentThreadId());
+    g_hEvent = CreateEvent(NULL, TRUE, FALSE, g_EventName);
 	hAvatarThread = CreateThread(NULL, 16000, AvatarUpdateThread, 0, 0, &dwThreadID);
-    g_hEvent = CreateEvent(NULL, TRUE, FALSE, _T("evt_avscache"));
 
 	// Folders plugin support
 	if (ServiceExists(MS_FOLDERS_REGISTER_PATH))
