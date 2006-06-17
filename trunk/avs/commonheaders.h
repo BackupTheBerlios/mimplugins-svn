@@ -21,6 +21,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#if defined( UNICODE ) && !defined( _UNICODE )
+	#define _UNICODE
+#endif
 #include <tchar.h>
 
 #ifdef _DEBUG
@@ -44,6 +47,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <direct.h>
 #include <math.h>
 #include <win2k.h>
+
+extern "C"
+{
 #include <newpluginapi.h>
 #include <m_clist.h>
 #include <m_clc.h>
@@ -66,9 +72,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "m_avatars.h"
 #include <m_popup.h>
 #include "m_metacontacts.h"
+}
+
 #include "resource.h"
 #include "m_updater.h"
 #include "image_utils.h"
+#include "mir_dblists.h"
+#include "mir_memory.h"
+#include "poll.h"
 
 
 // shared vars
@@ -83,12 +94,6 @@ extern HINSTANCE g_hInst;
   * easy search and replace
 
 */
-
-extern struct MM_INTERFACE memoryManagerInterface;
-
-#define mir_alloc(n) memoryManagerInterface.mmi_malloc(n)
-#define mir_free(ptr) memoryManagerInterface.mmi_free(ptr)
-#define mir_realloc(ptr,size) memoryManagerInterface.mmi_realloc(ptr,size)
 
 __inline char * mir_strdup(const char *src)
 {
@@ -114,5 +119,3 @@ struct protoPicCacheEntry {
 };
 
 int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode);
-static BOOL ColorsAreTheSame(int colorDiff, BYTE *px1, BYTE *px2);
-void AddToStack(int *stack, int *topPos, int x, int y);

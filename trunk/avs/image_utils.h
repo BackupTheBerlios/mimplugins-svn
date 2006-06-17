@@ -37,5 +37,9 @@ void FreeGdiPlus(void);
 void CorrectBitmap32Alpha(HBITMAP hBitmap, BOOL force);
 HBITMAP CopyBitmapTo32(HBITMAP hBitmap);
 
+BOOL PreMultiply(HBITMAP hBitmap);
+BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap);
+BOOL MakeGrayscale(HANDLE hContact, HBITMAP *hBitmap);
+DWORD GetImgHash(HBITMAP hBitmap);
 
 #endif // __IMAGE_UTILS_H__

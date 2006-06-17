@@ -1,6 +1,10 @@
 
         Version history:
 
+0.0.2.0 - 2006/06/19
+
+		+ New way to download avatars
+
 0.0.1.24 - 2006/04/29
 
 		* Loads GDI+ dynamically. With this the dll should load in Win98.

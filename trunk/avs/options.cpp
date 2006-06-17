@@ -37,9 +37,9 @@ extern BOOL g_imgDecoderAvail;
 extern CRITICAL_SECTION cachecs;
 
 extern int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szProto);
-extern int ProtectAvatar(WPARAM wParam, LPARAM lParam), UpdateAvatar(HANDLE hContact);
+extern int ProtectAvatar(WPARAM wParam, LPARAM lParam);
 extern int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode);
-extern int DeleteAvatar(HANDLE hContact);
+extern int DeleteAvatarFromCache(HANDLE hContact);
 extern int ChangeAvatar(HANDLE hContact);
 extern HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename);
 
@@ -164,8 +164,10 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 			BOOL enabled = IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG);
 			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), enabled);
 			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), enabled);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS), enabled);
 			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), enabled);
 			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), enabled);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE), enabled);
 			EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_TRANSP_PROPORTIONAL), enabled);
 			EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP), enabled);
 
@@ -268,13 +270,15 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     break;
 				case IDC_MAKE_TRANSPARENT_BKG:
 				{
-					BOOL enabled = IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG);
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), enabled);
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), enabled);
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), enabled);
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), enabled);
-					EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_TRANSP_PROPORTIONAL), enabled);
-					EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP), enabled);
+					BOOL transp_enabled = IsDlgButtonChecked(hwndDlg, IDC_MAKE_TRANSPARENT_BKG);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), transp_enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), transp_enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS), transp_enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), transp_enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), transp_enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE), transp_enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_TRANSP_PROPORTIONAL), transp_enabled);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP), transp_enabled);
 					break;
 				}
                 case 0:
@@ -318,46 +322,38 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 
 void LoadTransparentData(HWND hwndDlg, HANDLE hContact)
 {
-	BOOL transp_enabled = DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0);
-
-	CheckDlgButton(hwndDlg, IDC_MAKETRANSPBKG, transp_enabled && DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 1));
-	EnableWindow(GetDlgItem(hwndDlg, IDC_MAKETRANSPBKG), transp_enabled);
-
-	SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETRANGE, 0, MAKELONG(8, 2));
+	CheckDlgButton(hwndDlg, IDC_MAKETRANSPBKG, DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0)));
 	SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETPOS, 0, (LPARAM)DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5)));
-
-	SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
 	SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETPOS, 0, (LPARAM)DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgColorDiff", 10)));
 
-	transp_enabled = IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && transp_enabled;
+	BOOL transp_enabled = IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG);
 	EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), transp_enabled);
 	EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), transp_enabled);
+	EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS), transp_enabled);
 	EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), transp_enabled);
 	EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), transp_enabled);
+	EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE), transp_enabled);
 }
 
 void SaveTransparentData(HWND hwndDlg, HANDLE hContact)
 {
-	BOOL transp_enabled = DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0);
+	BOOL transp = IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG);
+	if (DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0) == transp)
+		DBDeleteContactSetting(hContact, "ContactPhoto", "MakeTransparentBkg");
+	else
+		DBWriteContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", transp);
 
-	if (transp_enabled) {
-		if (IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG))
-			DBDeleteContactSetting(hContact, "ContactPhoto", "MakeTransparentBkg");
-		else
-			DBWriteContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", FALSE);
-	
-		WORD tmp = (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0);
-		if (DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5) == tmp)
-			DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgNumPoints");
-		else
-			DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", tmp);
+	WORD tmp = (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0);
+	if (DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5) == tmp)
+		DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgNumPoints");
+	else
+		DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", tmp);
 
-		tmp = (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0);
-		if (DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgColorDiff", 10) == tmp)
-			DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgColorDiff");
-		else
-			DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", tmp);
-	}
+	tmp = (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0);
+	if (DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgColorDiff", 10) == tmp)
+		DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgColorDiff");
+	else
+		DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", tmp);
 }
 
 BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -374,12 +370,8 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
             hContact = (HANDLE)lParam;
             TranslateDialogDefault(hwndDlg);
             if(hContact) {
-#if defined(_UNICODE)
-                szNick = (TCHAR *)CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM)hContact, GCDNF_UNICODE);
-#else
-                szNick = (TCHAR *)CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM)hContact, 0);
-#endif
-                mir_sntprintf(szTitle, 500, TranslateT("Set avatar options for %s"), szNick);
+                szNick = (TCHAR *)CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM)hContact, GCDNF_TCHAR);
+				mir_sntprintf(szTitle, 500, TranslateT("Set avatar options for %s"), szNick);
                 SetWindowText(hwndDlg, szTitle);
             }
             SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
@@ -387,6 +379,12 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
             InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, FALSE);
             CheckDlgButton(hwndDlg, IDC_PROTECTAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0) ? TRUE : FALSE);
             CheckDlgButton(hwndDlg, IDC_HIDEAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0) ? TRUE : FALSE);
+
+			SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETBUDDY, (WPARAM)GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS), 0);
+			SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETRANGE, 0, MAKELONG(8, 2));
+
+			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETBUDDY, (WPARAM)GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE), 0);
+			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
 
 			LoadTransparentData(hwndDlg, hContact);
 
@@ -403,8 +401,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 
 					LoadTransparentData(hwndDlg, hContact);
 
-					if (DBGetContactSettingByte(NULL, AVS_MODULE, "MakeTransparentBkg", 0))
-						SendMessage(hwndDlg, DM_REALODAVATAR, 0, 0);
+					SendMessage(hwndDlg, DM_REALODAVATAR, 0, 0);
 					break;
 				}
                 case IDOK:
@@ -412,15 +409,16 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                     if(LOWORD(wParam) == IDOK) {
                         int hidden = IsDlgButtonChecked(hwndDlg, IDC_HIDEAVATAR) ? 1 : 0;
 
-                        ProtectAvatar((WPARAM)hContact, IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR) ? 1 : 0);
+						BOOL locked = IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR);
+                        ProtectAvatar((WPARAM)hContact, locked ? 1 : 0);
                         SetAvatarAttribute(hContact, AVS_HIDEONCLIST, hidden);
                         if(hidden != DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0))
-                            DBWriteContactSettingByte(hContact, "ContactPhoto", "Hidden", hidden);
+							DBWriteContactSettingByte(hContact, "ContactPhoto", "Hidden", hidden);
 
 						SaveTransparentData(hwndDlg, hContact);
 
-						if(DBGetContactSettingByte(NULL, AVS_MODULE, "MakeTransparentBkg", 0))
-							SendMessage(hwndDlg, DM_REALODAVATAR, 0, 0);
+						if (!locked && DBGetContactSettingByte(hContact, "ContactPhoto", "NeedUpdate", 0))
+							QueueAdd(requestQueue, hContact);
                     }
                     DestroyWindow(hwndDlg);
                     break;
@@ -437,12 +435,18 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 					if (HIWORD(wParam)!=EN_CHANGE || (HWND)lParam!=GetFocus())
 						break;
 				case IDC_MAKETRANSPBKG:
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
-					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG) && DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0));
+				{
+					BOOL enable = IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), enable);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), enable);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS), enable);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), enable);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), enable);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE), enable);
+
                     SendMessage(hwndDlg, DM_REALODAVATAR, 0, 0);
                     break;
+				}
                 case IDC_RESET:
                 {
                     char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
@@ -456,14 +460,16 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 							DBFreeVariant(&dbv);
 						}
 					}
-                    DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0);
-                    DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Locked");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "File");
                     DBDeleteContactSetting(hContact, szProto, "AvatarHash");
                     DBDeleteContactSetting(hContact, szProto, "AvatarSaved");
-					DeleteAvatar(hContact);
-                    UpdateAvatar(hContact);
 					LeaveCriticalSection(&cachecs);
+
+					QueueAdd(requestQueue, hContact);
+
                     DestroyWindow(hwndDlg);
                     break;
                 }
@@ -478,12 +484,12 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 							DBFreeVariant(&dbv);
 						}
 					}
-                    DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0);
-                    DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Locked");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "File");
                     SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
                     InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
-                    DeleteAvatar(hContact);
 					LeaveCriticalSection(&cachecs);
                     break;
 				}
@@ -523,7 +529,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                 DBFreeVariant(&dbv);
             }
             else if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
-                strncpy(szFinalName, dbv.pszVal, MAX_PATH);
+                CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFinalName);
                 DBFreeVariant(&dbv);
             }
             szFinalName[MAX_PATH - 1] = 0;

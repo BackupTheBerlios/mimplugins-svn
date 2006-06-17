@@ -32,11 +32,8 @@ int g_shutDown = FALSE;
 PROTOCOLDESCRIPTOR **g_protocols = NULL;
 int g_protocount = 0;
 char g_installed_protos[1030];
-static int AV_QUEUESIZE = 0;
-char *g_MetaName = NULL;
 
 static char g_szDBPath[MAX_PATH];		// database profile path (read at startup only)
-static TCHAR g_EventName[100];
 
 HANDLE hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hMyAvatarChanged = 0, hEventDeleted = 0;
 HICON g_hIcon = 0;
@@ -46,16 +43,9 @@ struct protoPicCacheEntry *g_ProtoPictures = 0;
 struct protoPicCacheEntry *g_MyAvatars = 0;
 
 CRITICAL_SECTION cachecs;
-static CRITICAL_SECTION avcs;
 
-HANDLE hAvatarThread = 0, g_hEvent = 0;
-DWORD dwAvatarThreadID = 0;
-BOOL bAvatarThreadRunning = TRUE;
 BOOL g_MetaAvail = FALSE;
 char *g_szMetaName = NULL;
-
-HANDLE *avatarUpdateQueue = NULL;
-DWORD dwPendingAvatarJobs = 0;
 
 #ifndef SHVIEW_THUMBNAIL
 # define SHVIEW_THUMBNAIL 0x702D
@@ -75,7 +65,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 1, 25), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 0), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -89,8 +79,7 @@ extern BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 extern BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 int SetProtoMyAvatar(char *protocol, HBITMAP hBmp);
-
-#define GET_PIXEL(__P__, __X__, __Y__) ( __P__ + width * 4 * (__Y__) + 4 * (__X__) )
+int DeleteAvatar(HANDLE hContact);
 
 
 // Functions to set avatar for a protocol
@@ -108,6 +97,13 @@ lParam=(const char *)Avatar file name
 return=0 for sucess
 */
 #define PS_SETMYAVATAR "/SetMyAvatar"
+
+/*
+wParam=(char *)Buffer to file name
+lParam=(int)Buffer size
+return=0 for sucess
+*/
+#define PS_GETMYAVATAR "/GetMyAvatar"
 
 /*
 wParam=(int *)max width of avatar - will be set (-1 for no max)
@@ -133,6 +129,16 @@ return = 1 (supported) or 0 (not supported)
 #define PS_ISAVATARFORMATSUPPORTED "/IsAvatarFormatSupported"
 
 
+// See if a protocol service exists
+__inline static int ProtoServiceExists(const char *szModule,const char *szService)
+{
+	char str[MAXMODULELABELLENGTH * 2];
+	strcpy(str,szModule);
+	strcat(str,szService);
+	return ServiceExists(str);
+}
+
+
 /*
  * output a notification message.
  * may accept a hContact to include the contacts nickname in the notification message...
@@ -142,8 +148,8 @@ return = 1 (supported) or 0 (not supported)
  * popup plugin.
  */
 
-
 #ifdef _DEBUG
+
 int _DebugTrace(const char *fmt, ...)
 {
     char    debug[2048];
@@ -151,9 +157,40 @@ int _DebugTrace(const char *fmt, ...)
     va_list va;
     va_start(va, fmt);
 
-	lstrcpyA(debug, "AVS: ");
-	_vsnprintf(&debug[5], ibsize - 10, fmt, va);
+	mir_snprintf(debug, sizeof(debug) - 10, " ***** AVS [%08d] [ID:%04x]: ", GetTickCount(), GetCurrentThreadId());
     OutputDebugStringA(debug);
+	_vsnprintf(debug, ibsize, fmt, va);
+    OutputDebugStringA(debug);
+    OutputDebugStringA(" ***** \n");
+
+	return 0;
+}
+
+int _DebugTrace(HANDLE hContact, const char *fmt, ...)
+{
+	char text[1024];
+	size_t len;
+    va_list va;
+
+	char *name = NULL;
+	char *proto = NULL;
+	if (hContact != NULL)
+	{
+		name = (char*) CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM)hContact, 0);
+		proto = (char*) CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
+	}
+
+	mir_snprintf(text, sizeof(text) - 10, " ***** AVS [%08d] [ID:%04x]: [%08d - %s - %s] ", 
+		GetTickCount(), GetCurrentThreadId(), hContact, proto == NULL ? "" : proto, name == NULL ? "" : name);
+	len = strlen(text);
+
+    va_start(va, fmt);
+    mir_vsnprintf(&text[len], sizeof(text) - len, fmt, va);
+    va_end(va);
+
+	OutputDebugStringA(text);
+    OutputDebugStringA(" ***** \n");
+
 	return 0;
 }
 #endif
@@ -234,475 +271,42 @@ int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode)
     return 0;
 }
 
-static BOOL ColorsAreTheSame(int colorDiff, BYTE *px1, BYTE *px2)
+/*
+// Add a contact to the cache queue
+#define CacheAdd(_hContact_) _beginthread(CacheAddThread, 0, (LPVOID) (HANDLE) _hContact_);
+static void CacheAddThread(LPVOID lpParam)
 {
-	return abs(px1[0] - px2[0]) <= colorDiff 
-			&& abs(px1[1] - px2[1]) <= colorDiff 
-			&& abs(px1[2] - px2[2])  <= colorDiff;
+	QueueAdd(cacheQueue, (HANDLE) lpParam);
+	
+	_endthread();
+}
+*/
+
+// Add a contact to the request queue
+#define RequestAdd(_hContact_) _beginthread(RequestAddThread, 0, (LPVOID) (HANDLE) _hContact_);
+static void RequestAddThread(LPVOID lpParam)
+{
+	QueueAdd(requestQueue, (HANDLE) lpParam);
+	
+	_endthread();
 }
 
-
-void AddToStack(int *stack, int *topPos, int x, int y)
-{
-	int i;
-
-	// Already is in stack?
-	for(i = 0 ; i < *topPos ; i += 2)
-	{
-		if (stack[i] == x && stack[i+1] == y)
-			return;
-	}
-
-	stack[*topPos] = x; 
-	(*topPos)++;
-
-	stack[*topPos] = y; 
-	(*topPos)++;
-}
-
-
-BOOL GetColorForPoint(int colorDiff, BYTE *p, int width, int height, 
-					  int x0, int y0, int x1, int y1, int x2, int y2, BOOL *foundBkg, BYTE colors[][3])
-{
-	BYTE *px1, *px2, *px3; 
-
-	px1 = GET_PIXEL(p, x0,y0);
-	px2 = GET_PIXEL(p, x1,y1);
-	px3 = GET_PIXEL(p, x2,y2);
-
-	// If any of the corners have transparency, forget about it
-	// Not using != 255 because some MSN bmps have 254 in some positions
-	if (px1[3] < 253 || px2[3] < 253 || px3[3] < 253)
-		return FALSE;
-
-	// See if is the same color
-	if (ColorsAreTheSame(colorDiff, px1, px2) && ColorsAreTheSame(colorDiff, px3, px2))
-	{
-		*foundBkg = TRUE;
-		memmove(colors, px1, 3);
-	}
-	else
-	{
-		*foundBkg = FALSE;
-	}
-
-	return TRUE;
-}
-
-
-static DWORD GetImgHash(HBITMAP hBitmap)
-{
-	BITMAP bmp;
-	DWORD dwLen;
-	WORD *p;
-
-	GetObject(hBitmap, sizeof(bmp), &bmp);
-
-	dwLen = bmp.bmWidth * bmp.bmHeight * (bmp.bmBitsPixel / 8);
-	p = (WORD *)malloc(dwLen);
-	if (p == NULL)
-		return 0;
-	memset(p, 0, dwLen);
-
-	GetBitmapBits(hBitmap, dwLen, p);
-
-	DWORD ret = 0;
-	for (DWORD i = 0 ; i < dwLen/2 ; i++)
-		ret += p[i];
-
-	free(p);
-
-	return ret;
-}
 
 /*
- * Changes the handle to a grayscale image
+ * convert the avatar image path to a relative one...
+ * given: contact handle, path to image
  */
-static BOOL MakeGrayscale(HANDLE hContact, HBITMAP *hBitmap)
+static void MakePathRelative(HANDLE hContact, char *path) 
 {
-	BYTE *p = NULL;
-	DWORD dwLen;
-    int width, height;
-    BITMAP bmp;
+	char szFinalPath[MAX_PATH];
+	szFinalPath[0] = '\0';
 
-	GetObject(*hBitmap, sizeof(bmp), &bmp);
-    width = bmp.bmWidth;
-	height = bmp.bmHeight;
-
-	dwLen = width * height * 4;
-	p = (BYTE *)malloc(dwLen);
-    if (p == NULL) 
-	{
-		return FALSE;
+	int result = CallService(MS_UTILS_PATHTORELATIVE, (WPARAM)path, (LPARAM)szFinalPath);
+	if(result && lstrlenA(szFinalPath) > 0) {
+	   DBWriteContactSettingString(hContact, "ContactPhoto", "RFile", szFinalPath);
+	   if(!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
+		   DBWriteContactSettingString(hContact, "ContactPhoto", "Backup", szFinalPath);
 	}
-
-	if (bmp.bmBitsPixel != 32)
-	{
-		// Convert to 32 bpp
-		HBITMAP hBmpTmp = CopyBitmapTo32(*hBitmap);
-		DeleteObject(*hBitmap);
-		*hBitmap = hBmpTmp;
-
-		GetBitmapBits(*hBitmap, dwLen, p);
-	} 
-	else
-	{
-		GetBitmapBits(*hBitmap, dwLen, p);
-	}
-
-	// Make grayscale
-	BYTE *p1;
-	for (int y = 0 ; y < height ; y++)
-	{
-		for (int x = 0 ; x < width ; x++)
-		{
-			p1 = GET_PIXEL(p, x, y);
-			p1[0] = p1[1] = p1[2] = ( p1[0] + p1[1] + p1[2] ) / 3;
-		}
-	}
-
-    dwLen = SetBitmapBits(*hBitmap, dwLen, p);
-    free(p);
-
-	return TRUE;
-}
-
-/*
- * See if finds a transparent background in image, and set its transparency
- * Return TRUE if found a transparent background
- */
-static BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap)
-{
-	BYTE *p = NULL;
-	DWORD dwLen;
-    int width, height, i, j;
-    BITMAP bmp;
-	BYTE colors[8][3];
-	BOOL foundBkg[8];
-	BYTE *px1; 
-	int count, maxCount, selectedColor;
-	HBITMAP hBmpTmp;
-	int colorDiff;
-
-	GetObject(*hBitmap, sizeof(bmp), &bmp);
-    width = bmp.bmWidth;
-	height = bmp.bmHeight;
-	colorDiff = DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", 
-					DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgColorDiff", 10));
-
-	// Min 5x5 to easy things in loop
-	if (width <= 4 || height <= 4)
-		return FALSE;
-
-	dwLen = width * height * 4;
-	p = (BYTE *)malloc(dwLen);
-    if (p == NULL) 
-	{
-		return FALSE;
-	}
-
-	if (bmp.bmBitsPixel == 32)
-	{
-		hBmpTmp = *hBitmap;
-	}
-	else
-	{
-		// Convert to 32 bpp
-		hBmpTmp = CopyBitmapTo32(*hBitmap);
-	}
-
-    GetBitmapBits(hBmpTmp, dwLen, p);
-
-	// **** Get corner colors
-
-	// Top left
-	if (!GetColorForPoint(colorDiff, p, width, height, 
-						  0, 0, 0, 1, 1, 0, &foundBkg[0], &colors[0]))
-	{
-		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
-		free(p);
-		return FALSE;
-	}
-
-	// Top center
-	if (!GetColorForPoint(colorDiff, p, width, height, 
-						  width/2, 0, width/2-1, 0, width/2+1, 0, &foundBkg[1], &colors[1]))
-	{
-		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
-		free(p);
-		return FALSE;
-	}
-
-	// Top Right
-	if (!GetColorForPoint(colorDiff, p, width, height, 
-						  width-1, 0, width-1, 1, width-2, 0, &foundBkg[2], &colors[2]))
-	{
-		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
-		free(p);
-		return FALSE;
-	}
-
-	// Center left
-	if (!GetColorForPoint(colorDiff, p, width, height, 
-						  0, height/2, 0, height/2-1, 0, height/2+1, &foundBkg[3], &colors[3]))
-	{
-		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
-		free(p);
-		return FALSE;
-	}
-
-	// Center left
-	if (!GetColorForPoint(colorDiff, p, width, height, 
-						  width-1, height/2, width-1, height/2-1, width-1, height/2+1, &foundBkg[4], &colors[4]))
-	{
-		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
-		free(p);
-		return FALSE;
-	}
-
-	// Bottom left
-	if (!GetColorForPoint(colorDiff, p, width, height, 
-						  0, height-1, 0, height-2, 1, height-1, &foundBkg[5], &colors[5]))
-	{
-		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
-		free(p);
-		return FALSE;
-	}
-
-	// Bottom center
-	if (!GetColorForPoint(colorDiff, p, width, height, 
-						  width/2, height-1, width/2-1, height-1, width/2+1, height-1, &foundBkg[6], &colors[6]))
-	{
-		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
-		free(p);
-		return FALSE;
-	}
-
-	// Bottom Right
-	if (!GetColorForPoint(colorDiff, p, width, height, 
-						  width-1, height-1, width-1, height-2, width-2, height-1, &foundBkg[7], &colors[7]))
-	{
-		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
-		free(p);
-		return FALSE;
-	}
-
-
-	// **** X corners have to have the same color
-
-	count = 0;
-	for (i = 0 ; i < 8 ; i++)
-	{
-		if (foundBkg[i])
-			count++;
-	}
-
-	if (count < DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", 
-						DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5)))
-	{
-		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
-		free(p);
-		return FALSE;
-	}
-
-	// Ok, X corners at least have a color, lets compare then
-	maxCount = 0;
-	for (i = 0 ; i < 8 ; i++)
-	{
-		if (foundBkg[i])
-		{
-			count = 0;
-
-			for (j = 0 ; j < 8 ; j++)
-			{
-				if (foundBkg[j] && ColorsAreTheSame(colorDiff, (BYTE *) &colors[i], (BYTE *) &colors[j]))
-					count++;
-			}
-
-			if (count > maxCount)
-			{
-				maxCount = count;
-				selectedColor = i;
-			}
-		}
-	}
-
-	if (maxCount < DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", 
-						DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5)))
-	{
-		// Not enought corners with the same color
-		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
-		free(p);
-		return FALSE;
-	}
-
-	// Get bkg color as mean of colors
-	{
-		int bkgColor[3];
-
-		bkgColor[0] = 0;
-		bkgColor[1] = 0;
-		bkgColor[2] = 0;
-		for (i = 0 ; i < 8 ; i++)
-		{
-			if (foundBkg[i] && ColorsAreTheSame(colorDiff, (BYTE *) &colors[i], (BYTE *) &colors[selectedColor]))
-			{
-				bkgColor[0] += colors[i][0];
-				bkgColor[1] += colors[i][1];
-				bkgColor[2] += colors[i][2];
-			}
-		}
-		bkgColor[0] /= maxCount;
-		bkgColor[1] /= maxCount;
-		bkgColor[2] /= maxCount;
-
-		colors[selectedColor][0] = bkgColor[0];
-		colors[selectedColor][1] = bkgColor[1];
-		colors[selectedColor][2] = bkgColor[2];
-	}
-
-	// **** Set alpha for the background color, from the borders
-
-	if (hBmpTmp != *hBitmap)
-	{
-		DeleteObject(*hBitmap);
-
-		*hBitmap = hBmpTmp;
-
-		GetObject(*hBitmap, sizeof(bmp), &bmp);
-		GetBitmapBits(*hBitmap, dwLen, p);
-	}
-
-	{
-		// Set alpha from borders
-		int x, y;
-		int topPos = 0;
-		int curPos = 0;
-		int *stack = (int *)malloc(width * height * 2 * sizeof(int));
-		bool transpProportional = (DBGetContactSettingByte(NULL, AVS_MODULE, "MakeTransparencyProportionalToColorDiff", 0) != 0);
-
-		if (stack == NULL)
-		{
-			free(p);
-			return FALSE;
-		}
-
-		// Put four corners
-		AddToStack(stack, &topPos, 0, 0);
-		AddToStack(stack, &topPos, width/2, 0);
-		AddToStack(stack, &topPos, width-1, 0);
-		AddToStack(stack, &topPos, 0, height/2);
-		AddToStack(stack, &topPos, width-1, height/2);
-		AddToStack(stack, &topPos, 0, height-1);
-		AddToStack(stack, &topPos, width/2, height-1);
-		AddToStack(stack, &topPos, width-1, height-1);
-
-		while(curPos < topPos)
-		{
-			// Get pos
-			x = stack[curPos]; curPos++;
-			y = stack[curPos]; curPos++;
-
-			// Get pixel
-			px1 = GET_PIXEL(p, x, y);
-
-			// It won't change the transparency if one exists
-			// (This avoid an endless loop too)
-			// Not using == 255 because some MSN bmps have 254 in some positions
-			if (px1[3] >= 253)
-			{
-				if (ColorsAreTheSame(colorDiff, px1, (BYTE *) &colors[selectedColor]))
-				{
-					if (transpProportional)
-					{
-						px1[3] = min(252, 
-								(abs(px1[0] - colors[selectedColor][0]) 
-								+ abs(px1[1] - colors[selectedColor][1]) 
-								+ abs(px1[2] - colors[selectedColor][2])) / 3);
-					}
-					else
-					{
-						px1[3] = 0;
-					}
-
-					// Add 4 neighbours
-
-					if (x + 1 < width)
-						AddToStack(stack, &topPos, x + 1, y);
-
-					if (x - 1 >= 0)
-						AddToStack(stack, &topPos, x - 1, y);
-
-					if (y + 1 < height)
-						AddToStack(stack, &topPos, x, y + 1);
-
-					if (y - 1 >= 0)
-						AddToStack(stack, &topPos, x, y - 1);
-				}
-			}
-		}
-
-		free(stack);
-	}
-
-    dwLen = SetBitmapBits(*hBitmap, dwLen, p);
-    free(p);
-
-	return TRUE;
-}
-
-/*
- * needed for per pixel transparent images. Such images should then be rendered by
- * using AlphaBlend() with AC_SRC_ALPHA
- * dwFlags will be set to AVS_PREMULTIPLIED
- * return TRUE if the image has at least one pixel with transparency
- */
-
-static BOOL PreMultiply(HBITMAP hBitmap)
-{
-	BYTE *p = NULL;
-	DWORD dwLen;
-    int width, height, x, y;
-    BITMAP bmp;
-    BYTE alpha;
-	BOOL transp = FALSE;
-    
-	GetObject(hBitmap, sizeof(bmp), &bmp);
-    width = bmp.bmWidth;
-	height = bmp.bmHeight;
-	dwLen = width * height * 4;
-	p = (BYTE *)malloc(dwLen);
-    if (p != NULL) 
-	{
-        GetBitmapBits(hBitmap, dwLen, p);
-
-        for (y = 0; y < height; ++y) 
-		{
-            BYTE *px = p + width * 4 * y;
-
-            for (x = 0; x < width; ++x) 
-			{
-                alpha = px[3];
-
-				if (alpha < 255) 
-				{
-					transp  = TRUE;
-
-					px[0] = px[0] * alpha/255;
-					px[1] = px[1] * alpha/255;
-					px[2] = px[2] * alpha/255;
-				}
-
-                px += 4;
-            }
-        }
-
-		if (transp)
-			dwLen = SetBitmapBits(hBitmap, dwLen, p);
-        free(p);
-    }
-
-	return transp;
 }
 
 /*
@@ -712,128 +316,14 @@ static BOOL PreMultiply(HBITMAP hBitmap)
 
 static void MakePathRelative(HANDLE hContact)
 {
-   DBVARIANT dbv = {0};
-   char szFinalPath[MAX_PATH];
-   int result = 0;
+	DBVARIANT dbv = {0};
 
-   szFinalPath[0] = 0;
-   
-   if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
-       if(dbv.type == DBVT_ASCIIZ) {
-           result = CallService(MS_UTILS_PATHTORELATIVE, (WPARAM)dbv.pszVal, (LPARAM)szFinalPath);
-           if(result && lstrlenA(szFinalPath) > 0) {
-               DBWriteContactSettingString(hContact, "ContactPhoto", "RFile", szFinalPath);
-               if(!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
-                   DBWriteContactSettingString(hContact, "ContactPhoto", "Backup", szFinalPath);
-           }
-       }
-       DBFreeVariant(&dbv);
-   }
-}
-
-static DWORD WINAPI AvatarUpdateThread(LPVOID vParam)
-{
-    PROTO_AVATAR_INFORMATION pai_s;
-    int result;
-    char *szProto = NULL;
-    int i;
-    HANDLE hFound = 0;
-    HANDLE hEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, g_EventName);
-
-    do {
-        if(dwPendingAvatarJobs == 0 && bAvatarThreadRunning)
-            SuspendThread(hAvatarThread);                       // nothing to do...
-        if(!bAvatarThreadRunning)                           
-            break;
-        /*
-         * the thread is awake, processing the update quque one by one entry with a given delay of 5 seconds. The delay
-         * ensures that no protocol will kick us because of flood protection(s)
-         */
-        hFound = 0;
-        
-        for (i = 0; i < AV_QUEUESIZE; i++) {
-            if (avatarUpdateQueue[i] != 0) {
-                int status = ID_STATUS_OFFLINE;
-                szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)avatarUpdateQueue[i], 0);
-                if(szProto && g_MetaName && !strcmp(szProto, g_MetaName)) {
-                    HANDLE hSubContact = (HANDLE)CallService(MS_MC_GETMOSTONLINECONTACT, (WPARAM)avatarUpdateQueue[i], 0);
-                    if(hSubContact)
-                        szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hSubContact, 0);
-                }
-                if(szProto) {
-                    status = CallProtoService(szProto, PS_GETSTATUS, 0, 0);
-                    if(status != ID_STATUS_OFFLINE && status != ID_STATUS_INVISIBLE) {
-				        EnterCriticalSection(&avcs);
-                        hFound = avatarUpdateQueue[i];
-                        avatarUpdateQueue[i] = 0;
-                        dwPendingAvatarJobs--;
-				        LeaveCriticalSection(&avcs);
-                        break;
-                    }
-                    else if(status == ID_STATUS_OFFLINE) {
-				        EnterCriticalSection(&avcs);
-                        avatarUpdateQueue[i] = 0;
-                        dwPendingAvatarJobs--;
-				        LeaveCriticalSection(&avcs);
-                    }
-                }
-            }
-        }
-
-        if(hFound) {
-            if(szProto) {
-                if(DBGetContactSettingWord(hFound, szProto, "Status", ID_STATUS_OFFLINE) != ID_STATUS_OFFLINE) {
-                    pai_s.cbSize = sizeof(pai_s);
-                    pai_s.hContact = hFound;
-                    pai_s.format = PA_FORMAT_UNKNOWN;
-                    strcpy(pai_s.filename, "X");
-                    result = CallProtoService(szProto, PS_GETAVATARINFO, GAIF_FORCE, (LPARAM)&pai_s);
-                    if(result == GAIR_SUCCESS) {
-                        DBWriteContactSettingString(hFound, "ContactPhoto", "File", "****");
-                        DBWriteContactSettingString(hFound, "ContactPhoto", "File", pai_s.filename);
-                        if(DBGetContactSettingByte(hFound, "MetaContacts", "IsSubcontact", 0)) {
-                            HANDLE hMaster = (HANDLE)DBGetContactSettingDword(hFound, "MetaContacts", "Handle", 0);
-                            if(hMaster) {
-                                DBWriteContactSettingString(hMaster, "ContactPhoto", "File", "****");
-                                DBWriteContactSettingString(hMaster, "ContactPhoto", "File", pai_s.filename);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        WaitForSingleObject(hEvent, 5000);
-    } while ( bAvatarThreadRunning );
-
-    return 0;
-}
-
-int UpdateAvatar(HANDLE hContact)
-{
-    int i;
-    int pCaps = 0;
-    char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
-    int iFound = -1;
-
-    if(hContact && szProto) {
-        if(DBGetContactSettingWord(hContact, szProto, "Status", ID_STATUS_OFFLINE) != ID_STATUS_OFFLINE) {
-            pCaps = CallProtoService(szProto, PS_GETCAPS, PFLAGNUM_4, 0);
-            if(pCaps & PF4_AVATARS && DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1) && DBGetContactSettingWord(hContact, szProto, "ApparentMode", 0) != ID_STATUS_OFFLINE) {
-                EnterCriticalSection(&avcs);
-                for (i = 0; i < AV_QUEUESIZE && avatarUpdateQueue[i] != hContact; i++) {
-                    if(iFound == -1 && avatarUpdateQueue[i] == 0)
-                        iFound = i;
-                }
-                if(i == AV_QUEUESIZE && iFound != -1) {
-                    avatarUpdateQueue[iFound] = hContact;
-                    dwPendingAvatarJobs++;
-                    ResumeThread(hAvatarThread);            // make sure, the thread wakes up...
-                }
-                LeaveCriticalSection(&avcs);
-            }
-        }
-    }
-    return 0;
+	if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
+		if(dbv.type == DBVT_ASCIIZ) {
+			MakePathRelative(hContact, dbv.pszVal);
+		}
+		DBFreeVariant(&dbv);
+	}
 }
 
 
@@ -858,25 +348,25 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
     szFilename[0] = 0;
 
     if(szProto == NULL) {
-        if(DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)) {
-            if(!DBGetContactSetting(hContact, "ContactPhoto", "Backup", &dbv)) {
-                CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
-                DBFreeVariant(&dbv);
-                goto done;
-            }
-        }
-        if(!DBGetContactSetting(hContact, "ContactPhoto", "RFile", &dbv)) {
+        if(DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
+				&& !DBGetContactSetting(hContact, "ContactPhoto", "Backup", &dbv)) {
             CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
             DBFreeVariant(&dbv);
         }
-        else if(DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
-            UpdateAvatar(hContact);
-            return -1;
+        else if(!DBGetContactSetting(hContact, "ContactPhoto", "RFile", &dbv)) {
+            CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
+            DBFreeVariant(&dbv);
+			if (DBGetContactSettingByte(hContact, "ContactPhoto", "NeedUpdate", 0))
+				RequestAdd(hContact);
+        }
+        else if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
+            CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
+            DBFreeVariant(&dbv);
+			if (DBGetContactSettingByte(hContact, "ContactPhoto", "NeedUpdate", 0))
+				RequestAdd(hContact);
         }
         else {
-            strncpy(szFilename, dbv.pszVal, MAX_PATH);
-            szFilename[MAX_PATH - 1] = 0;
-            DBFreeVariant(&dbv);
+            return -1;
         }
     }
     else {
@@ -888,7 +378,11 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
 		}
 		else if(hContact == (HANDLE)-1) {	// create own picture - note, own avatars are not on demand, they are loaded once at
 											// startup and everytime they are changed.
-			if(!DBGetContactSetting(NULL, szProto, "AvatarFile", &dbv)) {
+			if (ProtoServiceExists(szProto, PS_GETMYAVATAR)) {
+				if (CallProtoService(szProto, PS_GETMYAVATAR, (WPARAM)szFilename, (LPARAM)MAX_PATH)) {
+					szFilename[0] = '\0';
+				}
+			} else if(!DBGetContactSetting(NULL, szProto, "AvatarFile", &dbv)) {
 				CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
 				DBFreeVariant(&dbv);
 			}
@@ -939,16 +433,14 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
 			}
 		}
     }
-done:    
+done:
     if(lstrlenA(szFilename) < 4)
         return -1;
 
-    if((hFile = CreateFileA(szFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
-        if(hContact != 0 && hContact != (HANDLE)-1)
-            UpdateAvatar(hContact);
+    if((hFile = CreateFileA(szFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE)
         return -1;
-    }
-    sizeLimit = DBGetContactSettingDword(0, AVS_MODULE, "SizeLimit", 70);
+
+	sizeLimit = DBGetContactSettingDword(0, AVS_MODULE, "SizeLimit", 70);
     dwFileSize = GetFileSize(hFile, &dwFileSizeHigh) / 1024;
     CloseHandle(hFile);
     if(dwFileSize > 0 && dwFileSize > sizeLimit && sizeLimit > 0) {
@@ -989,7 +481,8 @@ done:
         strncpy(ace->szFilename, szFilename, MAX_PATH);
         ace->szFilename[MAX_PATH - 1] = 0;
 
-		if ((hContact != 0 && hContact != (HANDLE)-1) && DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0))
+		// Calc image hash
+		if ((hContact != 0 && hContact != (HANDLE)-1))
 		{
 			// Have to reset settings? -> do it if image changed
 			DWORD imgHash = GetImgHash(ace->hbmPic);
@@ -999,13 +492,23 @@ done:
 				ResetTranspSettings(hContact);
 				DBWriteContactSettingDword(hContact, "ContactPhoto", "ImageHash", imgHash);
 			}
-		}
 
-		if (DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0)) {
-			if (( (hContact != 0 && hContact != (HANDLE)-1) || DBGetContactSettingByte(0, AVS_MODULE, "MakeMyAvatarsTransparent", 0)) &&
-				DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 1))
+			// Make transparent?
+			if (DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 
+					DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0)) )
 			{
 				if (MakeTransparentBkg(hContact, &ace->hbmPic))
+				{
+					ace->dwFlags |= AVS_CUSTOMTRANSPBKG | AVS_HASTRANSPARENCY;
+					GetObject(ace->hbmPic, sizeof(bminfo), &bminfo);
+				}
+			}
+		}
+		else {
+			if (DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0)
+				&& DBGetContactSettingByte(0, AVS_MODULE, "MakeMyAvatarsTransparent", 0))
+			{
+				if (MakeTransparentBkg(0, &ace->hbmPic))
 				{
 					ace->dwFlags |= AVS_CUSTOMTRANSPBKG | AVS_HASTRANSPARENCY;
 					GetObject(ace->hbmPic, sizeof(bminfo), &bminfo);
@@ -1039,10 +542,6 @@ done:
 
         return 1;
     }
-    else if(hContact != 0 && hContact != (HANDLE)-1){                     // don't update for pseudo avatars...
-        UpdateAvatar(hContact);
-        return -1;
-    }
     return -1;
 }
 
@@ -1060,15 +559,27 @@ static struct CacheNode *AddToList(struct CacheNode *node) {
     return pCurrent;
 }
 
-static struct CacheNode *FindAvatarInCache(HANDLE hContact)
+static struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL realoadAvatar)
 {
 	struct CacheNode *cacheNode = g_Cache, *foundNode = NULL;
     
+	if(g_shutDown)
+		return NULL;
+
 	EnterCriticalSection(&cachecs);
 	while(cacheNode) {
 		if(cacheNode->ace.hContact == hContact) {
-			LeaveCriticalSection(&cachecs);
-			return cacheNode;
+			if (realoadAvatar) {
+				foundNode = cacheNode;
+				if(foundNode->ace.hbmPic != NULL)
+					DeleteObject(foundNode->ace.hbmPic);
+				ZeroMemory(&foundNode->ace, sizeof(struct avatarCacheEntry));
+				break;
+			}
+			else {
+				LeaveCriticalSection(&cachecs);
+				return cacheNode;
+			}
 		}
 		if(foundNode == NULL && cacheNode->ace.hbmPic == 0 && cacheNode->ace.hContact == 0)
 			foundNode = cacheNode;				// found an empty and usable node
@@ -1082,12 +593,13 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact)
 		foundNode = newNode;
 	}
 	if(CreateAvatarInCache(hContact, &foundNode->ace, NULL) != -1) {
-	    LeaveCriticalSection(&cachecs);
+		LeaveCriticalSection(&cachecs);
         return foundNode;
 	}
 	else {
-		ZeroMemory(&foundNode->ace, sizeof(struct avatarCacheEntry));			// mark the entry as unused
-	    LeaveCriticalSection(&cachecs);
+		ZeroMemory(&foundNode->ace, sizeof(struct avatarCacheEntry));
+		foundNode->ace.hContact = hContact;								// Mark that this contact is beeing handled
+		LeaveCriticalSection(&cachecs);
         return NULL;
 	}
 }
@@ -1097,26 +609,35 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 {
     ACKDATA *ack = (ACKDATA *) lParam;
 
-    if (ack != NULL && ack->type == ACKTYPE_AVATAR && ack->hContact != 0) {
-        PROTO_AVATAR_INFORMATION *pai = (PROTO_AVATAR_INFORMATION *) ack->hProcess;
-        if(pai == NULL)
-            return 0;
-        if (ack->result == ACKRESULT_SUCCESS) {
-            DBWriteContactSettingString(ack->hContact, "ContactPhoto", "File", "****");
+	if (ack != NULL && ack->type == ACKTYPE_AVATAR && ack->hContact != 0
+		// Ignore metacontacts
+		&& (!g_MetaAvail || strcmp(ack->szModule, g_szMetaName))) 
+	{
+        if (ack->result == ACKRESULT_SUCCESS) 
+		{
+			PROTO_AVATAR_INFORMATION *pai = (PROTO_AVATAR_INFORMATION *) ack->hProcess;
+			if(pai == NULL)
+				return 0;
+
+			DBDeleteContactSetting(ack->hContact, "ContactPhoto", "NeedUpdate");
+            DBWriteContactSettingString(ack->hContact, "ContactPhoto", "File", "");
             DBWriteContactSettingString(ack->hContact, "ContactPhoto", "File", pai->filename);
-            if(DBGetContactSettingByte(ack->hContact, "MetaContacts", "IsSubcontact", 0)) {
-                HANDLE hMaster = (HANDLE)DBGetContactSettingDword(ack->hContact, "MetaContacts", "Handle", 0);
-                if(hMaster) {
-                    DBWriteContactSettingString(hMaster, "ContactPhoto", "File", "****");
-                    DBWriteContactSettingString(hMaster, "ContactPhoto", "File", pai->filename);
-                }
-            }
         }
-        else if(ack->result == ACKRESULT_FAILED) {
-            DBDeleteContactSetting(ack->hContact, "ContactPhoto", "File");
-            DBDeleteContactSetting(ack->hContact, "ContactPhoto", "RFile");
+        else if(ack->result == ACKRESULT_FAILED) 
+		{
+			if (DBGetContactSettingByte(NULL, AVS_MODULE, "RemoveAvatarOnFail", 1)) 
+			{
+				DBDeleteContactSetting(ack->hContact, "ContactPhoto", "File");
+			}
         }
+		else if(ack->result == ACKRESULT_STATUS) 
+		{
+			DBWriteContactSettingByte(ack->hContact, "ContactPhoto", "NeedUpdate", 1);
+
+			QueueAdd(requestQueue, ack->hContact);
+		}
     }
+	
     return 0;
 }
 
@@ -1265,26 +786,18 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
         return 0;
         
     // file exists...
-    
-    CloseHandle(hFile);
-    DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0);       // force unlock it
-    DBWriteContactSettingString(hContact, "ContactPhoto", "File", szFinalName);
-    MakePathRelative(hContact);
 
-    if(is_locked) {                                  // restore protection, if it was active
+    CloseHandle(hFile);
+
+	if (is_locked)
+		DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0);       // force unlock it
+
+    DBWriteContactSettingString(hContact, "ContactPhoto", "File", szFinalName);
+
+    if(is_locked)                                  // restore protection, if it was active
         ProtectAvatar((WPARAM)hContact, 1);
-    }
 
     return 0;
-}
-
-// See if a protocol service exists
-__inline static int ProtoServiceExists(const char *szModule,const char *szService)
-{
-	char str[MAXMODULELABELLENGTH * 2];
-	strcpy(str,szModule);
-	strcat(str,szService);
-	return ServiceExists(str);
 }
 
 /*
@@ -1292,12 +805,9 @@ __inline static int ProtoServiceExists(const char *szModule,const char *szServic
  */
 int CanSetMyAvatar(WPARAM wParam, LPARAM lParam)
 {
-	char *protocol;
-
-    if(wParam == 0)
+	char *protocol = (char *) wParam;
+    if(protocol == NULL)
         return 0;
-	
-	protocol = (char *)wParam;
 
 	return ProtoServiceExists(protocol, PS_SETMYAVATAR) 
 			|| ProtoServiceExists(protocol, MSN_PS_SETMYAVATAR); // TODO remove this when MSN change this
@@ -1609,44 +1119,80 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
     if(wParam == 0 || g_shutDown)
 		return 0;
 
-    node = FindAvatarInCache((HANDLE)wParam);
-    if(node == NULL) {
+    node = FindAvatarInCache((HANDLE)wParam, FALSE);
+
+	if (node != NULL)
+		node->ace.t_lastAccess = time(NULL);
+
+	if(node == NULL || node->ace.hbmPic == NULL) {
         char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
         if(szProto) {
             for(i = 0; i < g_protocount; i++) {
-                if(g_ProtoPictures[i].szProtoname[0] && !strcmp(g_ProtoPictures[i].szProtoname, szProto) && lstrlenA(szProto) == lstrlenA(g_ProtoPictures[i].szProtoname) && g_ProtoPictures[i].hbmPic != 0)
+				if(g_ProtoPictures[i].szProtoname[0] && !strcmp(g_ProtoPictures[i].szProtoname, szProto) && lstrlenA(szProto) == lstrlenA(g_ProtoPictures[i].szProtoname) && g_ProtoPictures[i].hbmPic != 0) {
                     return (int)&g_ProtoPictures[i];
+				}
             }
         }
         return 0;
     }
     else {
-		node->ace.t_lastAccess = time(NULL);
         return (int)&node->ace;
     }
 }
 
-int DeleteAvatar(HANDLE hContact)
+CacheNode *GetContactNode(HANDLE hContact)
 {
-    char *szProto = NULL;
 	struct CacheNode *pNode = g_Cache;
 
-    if(g_shutDown)
-		return 0;
+	if(g_shutDown)
+		return NULL;
 
 	EnterCriticalSection(&cachecs);
 	while(pNode) {
         if(pNode->ace.hContact == hContact) {
-            if(pNode->ace.hbmPic != 0)
-                DeleteObject(pNode->ace.hbmPic);
-            ZeroMemory((void *)&pNode->ace, sizeof(struct avatarCacheEntry));
-            break;
+			LeaveCriticalSection(&cachecs);
+			return pNode;
         }
 		pNode = pNode->pNextNode;
     }
-    LeaveCriticalSection(&cachecs);
+	LeaveCriticalSection(&cachecs);
+	return NULL;
+}
+
+// Just delete an avatar from cache
+// An cache entry is never deleted. What is deleted is the image handle inside it
+// This is done this way to keep track of which avatars avs have to keep track
+void DeleteAvatarFromCache(HANDLE hContact)
+{
+	if(g_shutDown)
+		return;
+
+	EnterCriticalSection(&cachecs);
+
+	struct CacheNode *pNode = GetContactNode(hContact);
+	if (pNode != NULL)
+	{
+		if(pNode->ace.hbmPic != NULL)
+		{
+			DeleteObject(pNode->ace.hbmPic);
+			ZeroMemory(&pNode->ace, sizeof(struct avatarCacheEntry));
+			pNode->ace.hContact = hContact;								// Mark that this contact is beeing handled
+        }
+    }
+
+	LeaveCriticalSection(&cachecs);
+}
+
+// Delete an avatar from cache, replace it by proto avatar and notify hooks
+int DeleteAvatar(HANDLE hContact)
+{
+	if(g_shutDown)
+		return 0;
+
+	DeleteAvatarFromCache(hContact);
+
     // fallback with a protocol picture, if available...
-    szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
+    char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
     if(szProto) {
         for(int i = 0; i < g_protocount; i++) {
             if(g_ProtoPictures[i].szProtoname != NULL && !strcmp(g_ProtoPictures[i].szProtoname, szProto) && g_ProtoPictures[i].hbmPic != 0) {
@@ -1661,24 +1207,13 @@ int DeleteAvatar(HANDLE hContact)
 
 int ChangeAvatar(HANDLE hContact)
 {
-	struct CacheNode *pNode = g_Cache, *newNode = NULL;
+	struct CacheNode *newNode = NULL;
 
     if(g_shutDown)
 		return 0;
 
-	EnterCriticalSection(&cachecs);
-	while(pNode) {
-        if(pNode->ace.hContact == hContact) {
-            if(pNode->ace.hbmPic != 0)
-                DeleteObject(pNode->ace.hbmPic);
-            ZeroMemory((void *)&pNode->ace, sizeof(struct avatarCacheEntry));
-            break;
-        }
-		pNode = pNode->pNextNode;
-    }
-    LeaveCriticalSection(&cachecs);
-    newNode = FindAvatarInCache(hContact);
-    if(newNode) {
+	newNode = FindAvatarInCache(hContact, TRUE);
+	if(newNode && newNode->ace.hbmPic != NULL) {
         newNode->ace.cbSize = sizeof(struct avatarCacheEntry);
         NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&newNode->ace);
     }
@@ -1699,22 +1234,8 @@ int ChangeAvatar(HANDLE hContact)
 
 static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 {
-    DWORD dwThreadID;
     int i, j;
     DBVARIANT dbv = {0};
-    static Update upd = {0};
-    static char *component = "Avatar service";
-    static char szCurrentVersion[30];
-    static char *szVersionUrl = "http://miranda.or.at/files/avs/version.txt";
-    static char *szUpdateUrl = "http://miranda.or.at/files/avs/avs.zip";
-    static char *szFLVersionUrl = "http://www.miranda-im.org/download/details.php?action=viewfile&id=2361";
-    static char *szFLUpdateurl = "http://www.miranda-im.org/download/feed.php?dlfile=2361";
-    static char *szPrefix = "avs ";
-
-	// Start thread
-	mir_sntprintf(g_EventName, 100, _T("evt_avscache_%d"), GetCurrentThreadId());
-    g_hEvent = CreateEvent(NULL, TRUE, FALSE, g_EventName);
-	hAvatarThread = CreateThread(NULL, 16000, AvatarUpdateThread, 0, 0, &dwThreadID);
 
 	// Folders plugin support
 	if (ServiceExists(MS_FOLDERS_REGISTER_PATH))
@@ -1732,7 +1253,6 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     if(g_MetaAvail)
         g_szMetaName = (char *)CallService(MS_MC_GETPROTOCOLNAME, 0, 0);
 
-    g_installed_protos[0] = 0;
 
     CallService(MS_PROTO_ENUMPROTOCOLS, (WPARAM)&g_protocount, (LPARAM)&g_protocols);
     g_ProtoPictures = (struct protoPicCacheEntry *)malloc(sizeof(struct protoPicCacheEntry) * (g_protocount + 1));
@@ -1741,6 +1261,7 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 	g_MyAvatars = (struct protoPicCacheEntry *)malloc(sizeof(struct protoPicCacheEntry) * (g_protocount + 1));
     ZeroMemory((void *)g_MyAvatars, sizeof(struct protoPicCacheEntry) * (g_protocount + 1));
     
+    g_installed_protos[0] = '\0';
     j = 0;
     for(i = 0; i < g_protocount; i++) {
         if(g_protocols[i]->type != PROTOTYPE_PROTOCOL)
@@ -1767,33 +1288,38 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
         }
     }
     DBWriteContactSettingString(NULL, AVS_MODULE, "InstalledProtos", g_installed_protos);
-    if(ServiceExists(MS_MC_GETMOSTONLINECONTACT))
-        g_MetaName = (char *)CallService(MS_MC_GETPROTOCOLNAME, 0, 0);
-    else
-        g_MetaName = NULL;
 
 
     // updater plugin support
-
-    upd.cbSize = sizeof(upd);
-    upd.szComponentName = pluginInfo.shortName;
-    upd.pbVersion = (BYTE *)CreateVersionStringPlugin(&pluginInfo, szCurrentVersion);
-    upd.cpbVersion = strlen((char *)upd.pbVersion);
-    upd.szVersionURL = szFLVersionUrl;
-    upd.szUpdateURL = szFLUpdateurl;
-    upd.pbVersionPrefix = (BYTE *)"<span class=\"fileNameHeader\">Updater ";
-
-    upd.szBetaUpdateURL = szUpdateUrl;
-    upd.szBetaVersionURL = szVersionUrl;
-    upd.pbBetaVersionPrefix = (BYTE *)szPrefix;
-    upd.pbVersion = (PBYTE)szCurrentVersion;
-    upd.cpbVersion = lstrlenA(szCurrentVersion);
-
-    upd.cpbVersionPrefix = strlen((char *)upd.pbVersionPrefix);
-    upd.cpbBetaVersionPrefix = strlen((char *)upd.pbBetaVersionPrefix);
-
     if(ServiceExists(MS_UPDATE_REGISTER))
+	{
+		Update upd = {0};
+		char szCurrentVersion[30];
+		char *szVersionUrl = "http://miranda.or.at/files/avs/version.txt";
+		char *szUpdateUrl = "http://miranda.or.at/files/avs/avs.zip";
+		char *szFLVersionUrl = "http://www.miranda-im.org/download/details.php?action=viewfile&id=2361";
+		char *szFLUpdateurl = "http://www.miranda-im.org/download/feed.php?dlfile=2361";
+		char *szPrefix = "avs ";
+
+		upd.cbSize = sizeof(upd);
+		upd.szComponentName = pluginInfo.shortName;
+		upd.pbVersion = (BYTE *)CreateVersionStringPlugin(&pluginInfo, szCurrentVersion);
+		upd.cpbVersion = strlen((char *)upd.pbVersion);
+		upd.szVersionURL = szFLVersionUrl;
+		upd.szUpdateURL = szFLUpdateurl;
+		upd.pbVersionPrefix = (BYTE *)"<span class=\"fileNameHeader\">Updater ";
+
+		upd.szBetaUpdateURL = szUpdateUrl;
+		upd.szBetaVersionURL = szVersionUrl;
+		upd.pbBetaVersionPrefix = (BYTE *)szPrefix;
+		upd.pbVersion = (PBYTE)szCurrentVersion;
+		upd.cpbVersion = lstrlenA(szCurrentVersion);
+
+		upd.cpbVersionPrefix = strlen((char *)upd.pbVersionPrefix);
+		upd.cpbBetaVersionPrefix = strlen((char *)upd.pbBetaVersionPrefix);
+
         CallService(MS_UPDATE_REGISTER, 0, (LPARAM)&upd);
+	}
 
     g_hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_AVATAR));
     ZeroMemory(&mi, sizeof(mi));
@@ -1815,9 +1341,8 @@ static void ReloadMyAvatar(LPVOID lpParam)
 {
 	char *szProto = (char *)lpParam;
 	
-	Sleep(5000);
 	for(int i = 0; i < g_protocount; i++) {
-		if(!strcmp(g_MyAvatars[i].szProtoname, szProto) && lstrlenA(szProto) == lstrlenA(g_MyAvatars[i].szProtoname)) {
+		if(!strcmp(g_MyAvatars[i].szProtoname, szProto)) {
 			if(g_MyAvatars[i].hbmPic)
 				DeleteObject(g_MyAvatars[i].hbmPic);
 
@@ -1840,10 +1365,8 @@ static int ReportMyAvatarChanged(WPARAM wParam, LPARAM lParam)
 
 	int i;
 	for(i = 0; i < g_protocount; i++) {
-		if(!strcmp(g_MyAvatars[i].szProtoname, proto) && lstrlenA(proto) == lstrlenA(g_MyAvatars[i].szProtoname)) {
-			LPVOID lpParam = 0;
-
-			lpParam = (void *)malloc(lstrlenA(g_MyAvatars[i].szProtoname) + 2);
+		if(!strcmp(g_MyAvatars[i].szProtoname, proto)) {
+			LPVOID lpParam = (void *)malloc(lstrlenA(g_MyAvatars[i].szProtoname) + 2);
 			strcpy((char *)lpParam, g_MyAvatars[i].szProtoname);
 			_beginthread(ReloadMyAvatar, 0, lpParam);
 			return 0;
@@ -1855,61 +1378,69 @@ static int ReportMyAvatarChanged(WPARAM wParam, LPARAM lParam)
 
 static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 {
-    char *szProto;
     DBCONTACTWRITESETTING *cws = (DBCONTACTWRITESETTING *) lParam;  
 
     if(cws == NULL || g_shutDown)
         return 0;
 
-	if(wParam == 0) {
-		if(!strcmp(cws->szSetting, "AvatarFile") || !strcmp(cws->szSetting, "PictObject") || !strcmp(cws->szSetting, "AvatarHash")) {
+	if(wParam == 0) 
+	{
+		if(!strcmp(cws->szSetting, "AvatarFile") 
+			|| !strcmp(cws->szSetting, "PictObject") 
+			|| !strcmp(cws->szSetting, "AvatarHash")) 
+		{
 			ReportMyAvatarChanged((WPARAM) cws->szModule, 0);
 		}
 		return 0;
 	}
-    if(!strcmp(cws->szModule, "ContactPhoto")) {
-        DBVARIANT dbv = {0};
-        
-        if(!strcmp(cws->szSetting, "File") && !DBGetContactSetting((HANDLE)wParam, "ContactPhoto", "File", &dbv)) {
-            HANDLE hFile;
-            if(strcmp(dbv.pszVal, "****")) {
-                if((hFile = CreateFileA(dbv.pszVal, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE) {
-                    MakePathRelative((HANDLE)wParam);
-                    CloseHandle(hFile);
-                    ChangeAvatar((HANDLE)wParam);
-                }
-            }
-            DBFreeVariant(&dbv);
+	
+	if(!strcmp(cws->szModule, "ContactPhoto")) 
+	{
+		if(!strcmp(cws->szSetting, "File")) 
+		{
+			if (cws->value.type == DBVT_DELETED) 
+			{
+				HANDLE hContact = (HANDLE) wParam;
+
+				DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
+				if (!DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
+					DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
+
+				//CacheAdd(hContact);
+				char *szProto = (char *) CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
+				if (szProto != NULL 
+					&& DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1) 
+					&& !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
+					&& GetContactNode(hContact) != NULL)
+				{
+					ChangeAvatar(hContact);
+				}
+			}
+			else if (cws->value.pszVal[0] != '\0') 
+			{
+				//CacheAdd(wParam);
+				HANDLE hContact = (HANDLE) wParam;
+				char *szProto = (char *) CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
+				if (szProto != NULL 
+					&& DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1) 
+					&& !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
+					&& GetContactNode(hContact) != NULL)
+				{
+					ChangeAvatar(hContact);
+				}
+
+			}
         }
-        return 0;
-    }
-    szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
-    if(szProto && !strcmp(cws->szModule, szProto)) {
-        if(!strcmp(cws->szSetting, "PictContext"))
-            UpdateAvatar((HANDLE)wParam);
-        if(!strcmp(cws->szSetting, "AvatarHash")) {
-            UpdateAvatar((HANDLE)wParam);
-        }
+		return 0;
     }
     return 0;
 }
 
 static int ContactDeleted(WPARAM wParam, LPARAM lParam)
 {
-	struct CacheNode *pNode = g_Cache;
+	DeleteAvatarFromCache((HANDLE)wParam);
 
-    EnterCriticalSection(&cachecs);
-	while(pNode) {
-        if(pNode->ace.hContact == (HANDLE)wParam) {
-            if(pNode->ace.hbmPic != 0)
-                DeleteObject(pNode->ace.hbmPic);
-            ZeroMemory((void *)&pNode->ace, sizeof(struct avatarCacheEntry));
-            break;
-        }
-		pNode = pNode->pNextNode;
-    }
-    LeaveCriticalSection(&cachecs);
-    return 0;
+	return 0;
 }
 
 static int OptInit(WPARAM wParam, LPARAM lParam)
@@ -1963,28 +1494,15 @@ static int OkToExitProc(WPARAM wParam, LPARAM lParam)
     hMyAvatarChanged = 0;
 	UnhookEvent(hEventDeleted);
 
-    LeaveCriticalSection(&cachecs);
+	FreePolls();
 
-    bAvatarThreadRunning = FALSE;
-    SetEvent(g_hEvent);
-    ResumeThread(hAvatarThread);
-    WaitForSingleObject(hAvatarThread, 6000);
-    CloseHandle(hAvatarThread);
-    CloseHandle(g_hEvent);
+	LeaveCriticalSection(&cachecs);
 
     return 0;
 }
 
 static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 {
-	EnterCriticalSection(&cachecs);
-
-	if(avatarUpdateQueue)
-        free(avatarUpdateQueue);
-
-    LeaveCriticalSection(&cachecs);
-
-    DeleteCriticalSection(&avcs);
     DeleteCriticalSection(&cachecs);
 	return 0;
 }
@@ -2146,7 +1664,10 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
 
 static int LoadAvatarModule()
 {
-//    HMODULE hModule;
+	init_mir_malloc();
+	init_list_interface();
+	InitPolls();
+
 	HookEvent(ME_OPT_INITIALISE, OptInit);
     HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
     hContactSettingChanged = HookEvent(ME_DB_CONTACT_SETTINGCHANGED, ContactSettingChanged);
@@ -2171,21 +1692,12 @@ static int LoadAvatarModule()
 	hMyAvatarChanged = CreateHookableEvent(ME_AV_MYAVATARCHANGED);
 
 	AllocCacheBlock();
-    AV_QUEUESIZE = CallService(MS_DB_CONTACT_GETCOUNT, 0, 0);
-    if(AV_QUEUESIZE < 300)
-        AV_QUEUESIZE = 300;
-    avatarUpdateQueue = (HANDLE *)malloc(sizeof(HANDLE) * (AV_QUEUESIZE + 10));
-    ZeroMemory((void *)avatarUpdateQueue, sizeof(HANDLE) * (AV_QUEUESIZE + 10));
 
-    InitializeCriticalSection(&avcs);
     InitializeCriticalSection(&cachecs);
 
     CallService(MS_DB_GETPROFILEPATH, MAX_PATH, (LPARAM)g_szDBPath);
 
-	hAvatarThread = 0;
-	//hAvatarThread = (HANDLE)_beginthread(AvatarUpdateThread, 0, NULL);
-	//hAvatarThread = CreateThread(NULL, 16000, AvatarUpdateThread, NULL, 0, &dwAvatarThreadID);
-    return 0;
+	return 0;
 }
 
 
@@ -2201,12 +1713,6 @@ extern "C" __declspec(dllexport) PLUGININFO * MirandaPluginInfo(DWORD mirandaVer
     if (mirandaVersion < PLUGIN_MAKE_VERSION(0, 4, 0, 0))
         return NULL;
     return &pluginInfo;
-}
-
-static int systemModulesLoaded(WPARAM wParam, LPARAM lParam)
-{
-    ModulesLoaded(wParam, lParam);
-    return 0;
 }
 
 extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)

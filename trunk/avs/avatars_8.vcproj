@@ -184,11 +184,10 @@
 			<Tool
 				Name="VCLinkerTool"
 				IgnoreImportLibrary="true"
-				AdditionalDependencies="comctl32.lib msimg32.lib gdiplus.lib"
+				AdditionalDependencies="comctl32.lib msimg32.lib"
 				OutputFile="../../bin/release/plugins/loadavatarsW.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				DelayLoadDLLs="gdiplus.dll"
 				ProgramDatabaseFile=""
 				GenerateMapFile="true"
 				OptimizeReferences="2"
@@ -197,7 +196,6 @@
 				BaseAddress="0x6b540000"
 				TurnOffAssemblyGeneration="false"
 				SupportUnloadOfDelayLoadedDLL="false"
-				ImportLibrary=""
 				TargetMachine="1"
 				FixedBaseAddress="0"
 			/>
@@ -290,7 +288,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="msimg32.lib gdiplus.lib"
+				AdditionalDependencies="msimg32.lib"
 				OutputFile="../../bin/release/plugins/loadavatars.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -343,7 +341,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\mir_dblists.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mir_memory.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\options.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\poll.cpp"
 				>
 			</File>
 		</Filter>
@@ -369,6 +379,18 @@
 			</File>
 			<File
 				RelativePath="m_updater.h"
+				>
+			</File>
+			<File
+				RelativePath=".\mir_dblists.h"
+				>
+			</File>
+			<File
+				RelativePath=".\mir_memory.h"
+				>
+			</File>
+			<File
+				RelativePath=".\poll.h"
 				>
 			</File>
 			<File

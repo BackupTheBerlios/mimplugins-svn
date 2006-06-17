@@ -25,6 +25,9 @@ Theese are the ones needed
 */
 
 
+#define GET_PIXEL(__P__, __X__, __Y__) ( __P__ + width * 4 * (__Y__) + 4 * (__X__) )
+
+
 // GDI+ ///////////////////////////////////////////////////////////////////////////////////////////
 
 using namespace Gdiplus;
@@ -898,3 +901,478 @@ int BmpFilterCanSaveBitmap(WPARAM wParam,LPARAM lParam)
 			return 0;
 	}
 }
+
+
+// Other utilities ////////////////////////////////////////////////////////////////////////////////
+
+
+static BOOL ColorsAreTheSame(int colorDiff, BYTE *px1, BYTE *px2)
+{
+	return abs(px1[0] - px2[0]) <= colorDiff 
+			&& abs(px1[1] - px2[1]) <= colorDiff 
+			&& abs(px1[2] - px2[2])  <= colorDiff;
+}
+
+
+void AddToStack(int *stack, int *topPos, int x, int y)
+{
+	int i;
+
+	// Already is in stack?
+	for(i = 0 ; i < *topPos ; i += 2)
+	{
+		if (stack[i] == x && stack[i+1] == y)
+			return;
+	}
+
+	stack[*topPos] = x; 
+	(*topPos)++;
+
+	stack[*topPos] = y; 
+	(*topPos)++;
+}
+
+
+BOOL GetColorForPoint(int colorDiff, BYTE *p, int width, int height, 
+					  int x0, int y0, int x1, int y1, int x2, int y2, BOOL *foundBkg, BYTE colors[][3])
+{
+	BYTE *px1, *px2, *px3; 
+
+	px1 = GET_PIXEL(p, x0,y0);
+	px2 = GET_PIXEL(p, x1,y1);
+	px3 = GET_PIXEL(p, x2,y2);
+
+	// If any of the corners have transparency, forget about it
+	// Not using != 255 because some MSN bmps have 254 in some positions
+	if (px1[3] < 253 || px2[3] < 253 || px3[3] < 253)
+		return FALSE;
+
+	// See if is the same color
+	if (ColorsAreTheSame(colorDiff, px1, px2) && ColorsAreTheSame(colorDiff, px3, px2))
+	{
+		*foundBkg = TRUE;
+		memmove(colors, px1, 3);
+	}
+	else
+	{
+		*foundBkg = FALSE;
+	}
+
+	return TRUE;
+}
+
+
+DWORD GetImgHash(HBITMAP hBitmap)
+{
+	BITMAP bmp;
+	DWORD dwLen;
+	WORD *p;
+
+	GetObject(hBitmap, sizeof(bmp), &bmp);
+
+	dwLen = bmp.bmWidth * bmp.bmHeight * (bmp.bmBitsPixel / 8);
+	p = (WORD *)malloc(dwLen);
+	if (p == NULL)
+		return 0;
+	memset(p, 0, dwLen);
+
+	GetBitmapBits(hBitmap, dwLen, p);
+
+	DWORD ret = 0;
+	for (DWORD i = 0 ; i < dwLen/2 ; i++)
+		ret += p[i];
+
+	free(p);
+
+	return ret;
+}
+
+/*
+ * Changes the handle to a grayscale image
+ */
+BOOL MakeGrayscale(HANDLE hContact, HBITMAP *hBitmap)
+{
+	BYTE *p = NULL;
+	DWORD dwLen;
+    int width, height;
+    BITMAP bmp;
+
+	GetObject(*hBitmap, sizeof(bmp), &bmp);
+    width = bmp.bmWidth;
+	height = bmp.bmHeight;
+
+	dwLen = width * height * 4;
+	p = (BYTE *)malloc(dwLen);
+    if (p == NULL) 
+	{
+		return FALSE;
+	}
+
+	if (bmp.bmBitsPixel != 32)
+	{
+		// Convert to 32 bpp
+		HBITMAP hBmpTmp = CopyBitmapTo32(*hBitmap);
+		DeleteObject(*hBitmap);
+		*hBitmap = hBmpTmp;
+
+		GetBitmapBits(*hBitmap, dwLen, p);
+	} 
+	else
+	{
+		GetBitmapBits(*hBitmap, dwLen, p);
+	}
+
+	// Make grayscale
+	BYTE *p1;
+	for (int y = 0 ; y < height ; y++)
+	{
+		for (int x = 0 ; x < width ; x++)
+		{
+			p1 = GET_PIXEL(p, x, y);
+			p1[0] = p1[1] = p1[2] = ( p1[0] + p1[1] + p1[2] ) / 3;
+		}
+	}
+
+    dwLen = SetBitmapBits(*hBitmap, dwLen, p);
+    free(p);
+
+	return TRUE;
+}
+
+/*
+ * See if finds a transparent background in image, and set its transparency
+ * Return TRUE if found a transparent background
+ */
+BOOL MakeTransparentBkg(HANDLE hContact, HBITMAP *hBitmap)
+{
+	BYTE *p = NULL;
+	DWORD dwLen;
+    int width, height, i, j;
+    BITMAP bmp;
+	BYTE colors[8][3];
+	BOOL foundBkg[8];
+	BYTE *px1; 
+	int count, maxCount, selectedColor;
+	HBITMAP hBmpTmp;
+	int colorDiff;
+
+	GetObject(*hBitmap, sizeof(bmp), &bmp);
+    width = bmp.bmWidth;
+	height = bmp.bmHeight;
+	colorDiff = DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", 
+					DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgColorDiff", 10));
+
+	// Min 5x5 to easy things in loop
+	if (width <= 4 || height <= 4)
+		return FALSE;
+
+	dwLen = width * height * 4;
+	p = (BYTE *)malloc(dwLen);
+    if (p == NULL) 
+	{
+		return FALSE;
+	}
+
+	if (bmp.bmBitsPixel == 32)
+	{
+		hBmpTmp = *hBitmap;
+	}
+	else
+	{
+		// Convert to 32 bpp
+		hBmpTmp = CopyBitmapTo32(*hBitmap);
+	}
+
+    GetBitmapBits(hBmpTmp, dwLen, p);
+
+	// **** Get corner colors
+
+	// Top left
+	if (!GetColorForPoint(colorDiff, p, width, height, 
+						  0, 0, 0, 1, 1, 0, &foundBkg[0], &colors[0]))
+	{
+		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
+		free(p);
+		return FALSE;
+	}
+
+	// Top center
+	if (!GetColorForPoint(colorDiff, p, width, height, 
+						  width/2, 0, width/2-1, 0, width/2+1, 0, &foundBkg[1], &colors[1]))
+	{
+		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
+		free(p);
+		return FALSE;
+	}
+
+	// Top Right
+	if (!GetColorForPoint(colorDiff, p, width, height, 
+						  width-1, 0, width-1, 1, width-2, 0, &foundBkg[2], &colors[2]))
+	{
+		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
+		free(p);
+		return FALSE;
+	}
+
+	// Center left
+	if (!GetColorForPoint(colorDiff, p, width, height, 
+						  0, height/2, 0, height/2-1, 0, height/2+1, &foundBkg[3], &colors[3]))
+	{
+		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
+		free(p);
+		return FALSE;
+	}
+
+	// Center left
+	if (!GetColorForPoint(colorDiff, p, width, height, 
+						  width-1, height/2, width-1, height/2-1, width-1, height/2+1, &foundBkg[4], &colors[4]))
+	{
+		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
+		free(p);
+		return FALSE;
+	}
+
+	// Bottom left
+	if (!GetColorForPoint(colorDiff, p, width, height, 
+						  0, height-1, 0, height-2, 1, height-1, &foundBkg[5], &colors[5]))
+	{
+		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
+		free(p);
+		return FALSE;
+	}
+
+	// Bottom center
+	if (!GetColorForPoint(colorDiff, p, width, height, 
+						  width/2, height-1, width/2-1, height-1, width/2+1, height-1, &foundBkg[6], &colors[6]))
+	{
+		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
+		free(p);
+		return FALSE;
+	}
+
+	// Bottom Right
+	if (!GetColorForPoint(colorDiff, p, width, height, 
+						  width-1, height-1, width-1, height-2, width-2, height-1, &foundBkg[7], &colors[7]))
+	{
+		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
+		free(p);
+		return FALSE;
+	}
+
+
+	// **** X corners have to have the same color
+
+	count = 0;
+	for (i = 0 ; i < 8 ; i++)
+	{
+		if (foundBkg[i])
+			count++;
+	}
+
+	if (count < DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", 
+						DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5)))
+	{
+		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
+		free(p);
+		return FALSE;
+	}
+
+	// Ok, X corners at least have a color, lets compare then
+	maxCount = 0;
+	for (i = 0 ; i < 8 ; i++)
+	{
+		if (foundBkg[i])
+		{
+			count = 0;
+
+			for (j = 0 ; j < 8 ; j++)
+			{
+				if (foundBkg[j] && ColorsAreTheSame(colorDiff, (BYTE *) &colors[i], (BYTE *) &colors[j]))
+					count++;
+			}
+
+			if (count > maxCount)
+			{
+				maxCount = count;
+				selectedColor = i;
+			}
+		}
+	}
+
+	if (maxCount < DBGetContactSettingWord(hContact, "ContactPhoto", "TranspBkgNumPoints", 
+						DBGetContactSettingWord(0, AVS_MODULE, "TranspBkgNumPoints", 5)))
+	{
+		// Not enought corners with the same color
+		if (hBmpTmp != *hBitmap) DeleteObject(hBmpTmp);
+		free(p);
+		return FALSE;
+	}
+
+	// Get bkg color as mean of colors
+	{
+		int bkgColor[3];
+
+		bkgColor[0] = 0;
+		bkgColor[1] = 0;
+		bkgColor[2] = 0;
+		for (i = 0 ; i < 8 ; i++)
+		{
+			if (foundBkg[i] && ColorsAreTheSame(colorDiff, (BYTE *) &colors[i], (BYTE *) &colors[selectedColor]))
+			{
+				bkgColor[0] += colors[i][0];
+				bkgColor[1] += colors[i][1];
+				bkgColor[2] += colors[i][2];
+			}
+		}
+		bkgColor[0] /= maxCount;
+		bkgColor[1] /= maxCount;
+		bkgColor[2] /= maxCount;
+
+		colors[selectedColor][0] = bkgColor[0];
+		colors[selectedColor][1] = bkgColor[1];
+		colors[selectedColor][2] = bkgColor[2];
+	}
+
+	// **** Set alpha for the background color, from the borders
+
+	if (hBmpTmp != *hBitmap)
+	{
+		DeleteObject(*hBitmap);
+
+		*hBitmap = hBmpTmp;
+
+		GetObject(*hBitmap, sizeof(bmp), &bmp);
+		GetBitmapBits(*hBitmap, dwLen, p);
+	}
+
+	{
+		// Set alpha from borders
+		int x, y;
+		int topPos = 0;
+		int curPos = 0;
+		int *stack = (int *)malloc(width * height * 2 * sizeof(int));
+		bool transpProportional = (DBGetContactSettingByte(NULL, AVS_MODULE, "MakeTransparencyProportionalToColorDiff", 0) != 0);
+
+		if (stack == NULL)
+		{
+			free(p);
+			return FALSE;
+		}
+
+		// Put four corners
+		AddToStack(stack, &topPos, 0, 0);
+		AddToStack(stack, &topPos, width/2, 0);
+		AddToStack(stack, &topPos, width-1, 0);
+		AddToStack(stack, &topPos, 0, height/2);
+		AddToStack(stack, &topPos, width-1, height/2);
+		AddToStack(stack, &topPos, 0, height-1);
+		AddToStack(stack, &topPos, width/2, height-1);
+		AddToStack(stack, &topPos, width-1, height-1);
+
+		while(curPos < topPos)
+		{
+			// Get pos
+			x = stack[curPos]; curPos++;
+			y = stack[curPos]; curPos++;
+
+			// Get pixel
+			px1 = GET_PIXEL(p, x, y);
+
+			// It won't change the transparency if one exists
+			// (This avoid an endless loop too)
+			// Not using == 255 because some MSN bmps have 254 in some positions
+			if (px1[3] >= 253)
+			{
+				if (ColorsAreTheSame(colorDiff, px1, (BYTE *) &colors[selectedColor]))
+				{
+					if (transpProportional)
+					{
+						px1[3] = min(252, 
+								(abs(px1[0] - colors[selectedColor][0]) 
+								+ abs(px1[1] - colors[selectedColor][1]) 
+								+ abs(px1[2] - colors[selectedColor][2])) / 3);
+					}
+					else
+					{
+						px1[3] = 0;
+					}
+
+					// Add 4 neighbours
+
+					if (x + 1 < width)
+						AddToStack(stack, &topPos, x + 1, y);
+
+					if (x - 1 >= 0)
+						AddToStack(stack, &topPos, x - 1, y);
+
+					if (y + 1 < height)
+						AddToStack(stack, &topPos, x, y + 1);
+
+					if (y - 1 >= 0)
+						AddToStack(stack, &topPos, x, y - 1);
+				}
+			}
+		}
+
+		free(stack);
+	}
+
+    dwLen = SetBitmapBits(*hBitmap, dwLen, p);
+    free(p);
+
+	return TRUE;
+}
+
+/*
+ * needed for per pixel transparent images. Such images should then be rendered by
+ * using AlphaBlend() with AC_SRC_ALPHA
+ * dwFlags will be set to AVS_PREMULTIPLIED
+ * return TRUE if the image has at least one pixel with transparency
+ */
+BOOL PreMultiply(HBITMAP hBitmap)
+{
+	BYTE *p = NULL;
+	DWORD dwLen;
+    int width, height, x, y;
+    BITMAP bmp;
+    BYTE alpha;
+	BOOL transp = FALSE;
+    
+	GetObject(hBitmap, sizeof(bmp), &bmp);
+    width = bmp.bmWidth;
+	height = bmp.bmHeight;
+	dwLen = width * height * 4;
+	p = (BYTE *)malloc(dwLen);
+    if (p != NULL) 
+	{
+        GetBitmapBits(hBitmap, dwLen, p);
+
+        for (y = 0; y < height; ++y) 
+		{
+            BYTE *px = p + width * 4 * y;
+
+            for (x = 0; x < width; ++x) 
+			{
+                alpha = px[3];
+
+				if (alpha < 255) 
+				{
+					transp  = TRUE;
+
+					px[0] = px[0] * alpha/255;
+					px[1] = px[1] * alpha/255;
+					px[2] = px[2] * alpha/255;
+				}
+
+                px += 4;
+            }
+        }
+
+		if (transp)
+			dwLen = SetBitmapBits(hBitmap, dwLen, p);
+        free(p);
+    }
+
+	return transp;
+}
+
