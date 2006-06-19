@@ -341,7 +341,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\mir_dblists.c"
+				RelativePath=".\mir_dblists.cpp"
 				>
 			</File>
 			<File

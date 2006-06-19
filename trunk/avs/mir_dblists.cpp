@@ -20,7 +20,6 @@ Boston, MA 02111-1307, USA.
 
 #include "commonheaders.h"
 
-
 struct LIST_INTERFACE list_interface = {0};
 
 

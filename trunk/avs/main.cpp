@@ -1140,22 +1140,25 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
     }
 }
 
-CacheNode *GetContactNode(HANDLE hContact)
+CacheNode *GetContactNode(HANDLE hContact, int needToLock)
 {
 	struct CacheNode *pNode = g_Cache;
 
 	if(g_shutDown)
 		return NULL;
 
-	EnterCriticalSection(&cachecs);
+    if(needToLock)
+        EnterCriticalSection(&cachecs);
 	while(pNode) {
         if(pNode->ace.hContact == hContact) {
-			LeaveCriticalSection(&cachecs);
+            if(needToLock)
+                LeaveCriticalSection(&cachecs);
 			return pNode;
         }
 		pNode = pNode->pNextNode;
     }
-	LeaveCriticalSection(&cachecs);
+    if(needToLock)
+        LeaveCriticalSection(&cachecs);
 	return NULL;
 }
 
@@ -1168,8 +1171,7 @@ void DeleteAvatarFromCache(HANDLE hContact)
 		return;
 
 	EnterCriticalSection(&cachecs);
-
-	struct CacheNode *pNode = GetContactNode(hContact);
+	struct CacheNode *pNode = GetContactNode(hContact, 0);
 	if (pNode != NULL)
 	{
 		if(pNode->ace.hbmPic != NULL)
@@ -1179,7 +1181,6 @@ void DeleteAvatarFromCache(HANDLE hContact)
 			pNode->ace.hContact = hContact;								// Mark that this contact is beeing handled
         }
     }
-
 	LeaveCriticalSection(&cachecs);
 }
 
@@ -1341,7 +1342,8 @@ static void ReloadMyAvatar(LPVOID lpParam)
 {
 	char *szProto = (char *)lpParam;
 	
-	for(int i = 0; i < g_protocount; i++) {
+    Sleep(5000);
+    for(int i = 0; i < g_protocount; i++) {
 		if(!strcmp(g_MyAvatars[i].szProtoname, szProto)) {
 			if(g_MyAvatars[i].hbmPic)
 				DeleteObject(g_MyAvatars[i].hbmPic);
@@ -1411,7 +1413,7 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 				if (szProto != NULL 
 					&& DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1) 
 					&& !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-					&& GetContactNode(hContact) != NULL)
+					&& GetContactNode(hContact, 1) != NULL)
 				{
 					ChangeAvatar(hContact);
 				}
@@ -1424,7 +1426,7 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 				if (szProto != NULL 
 					&& DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1) 
 					&& !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-					&& GetContactNode(hContact) != NULL)
+					&& GetContactNode(hContact, 1) != NULL)
 				{
 					ChangeAvatar(hContact);
 				}

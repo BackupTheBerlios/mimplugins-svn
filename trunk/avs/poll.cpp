@@ -52,7 +52,7 @@ DWORD WINAPI RequestThread(LPVOID vParam);
 
 extern char *g_szMetaName;
 extern int ChangeAvatar(HANDLE hContact);
-extern CacheNode *GetContactNode(HANDLE hContact);
+extern CacheNode *GetContactNode(HANDLE hContact, int needToLock);
 
 
 // Functions ////////////////////////////////////////////////////////////////////////////
@@ -72,11 +72,11 @@ void InitPolls()
 	requestQueue.queue = List_Create(0, 20);
 	requestQueue.queue->sortFunc = QueueSortItems;
 	requestQueue.bThreadRunning = TRUE;
+    InitializeCriticalSection(&requestQueue.cs);
 	requestQueue.hThread = CreateThread(NULL, 16000, RequestThread, NULL, 0, &requestQueue.dwThreadID);
 	mir_sntprintf(requestQueue.eventName, 128, _T("evt_avscache_%d"), GetCurrentThreadId());
 	requestQueue.hEvent = CreateEvent(NULL, TRUE, FALSE, requestQueue.eventName);
 	requestQueue.waitTime = REQUEST_WAIT_TIME;
-	InitializeCriticalSection(&requestQueue.cs);
 
 	/*
 	// Init cache queue
@@ -84,10 +84,10 @@ void InitPolls()
 	cacheQueue.queue = List_Create(0, 20);
 	cacheQueue.queue->sortFunc = QueueSortItems;
 	cacheQueue.bThreadRunning = TRUE;
+	InitializeCriticalSection(&cacheQueue.cs);
 	cacheQueue.hThread = CreateThread(NULL, 16000, CacheThread, NULL, 0, &cacheQueue.dwThreadID);
 	cacheQueue.hEvent = CreateEvent(NULL, TRUE, FALSE, _T("evt_avscache"));
 	cacheQueue.waitTime = CACHE_WAIT_TIME;
-	InitializeCriticalSection(&cacheQueue.cs);
 	*/
 }
 
@@ -147,7 +147,7 @@ BOOL PollCheckContact(HANDLE hContact, const char *szProto)
 		&& !DBGetContactSettingByte(hContact,"CList","NotOnList",0)
 		&& DBGetContactSettingByte(hContact,"CList","ApparentMode",0) != ID_STATUS_OFFLINE
 		&& !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-		&& GetContactNode(hContact) != NULL;
+		&& GetContactNode(hContact, 1) != NULL;
 }
 
 /*
@@ -160,8 +160,8 @@ BOOL PollCacheContact(HANDLE hContact, const char *szProto)
 */
 void QueueRemove(ThreadQueue &queue, HANDLE hContact)
 {
-	EnterCriticalSection(&queue.cs);
-
+	//EnterCriticalSection(&queue.cs);   // may not be needed (called only from within the same crit sect)
+    
 	if (queue.queue->items != NULL)
 	{
 		for (int i = queue.queue->realCount - 1 ; i >= 0 ; i-- )
@@ -176,7 +176,7 @@ void QueueRemove(ThreadQueue &queue, HANDLE hContact)
 		}
 	}
 
-	LeaveCriticalSection(&queue.cs);
+	//LeaveCriticalSection(&queue.cs);
 }
 
 // Add an contact to a queue
@@ -251,8 +251,7 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 				mir_free(qi);
 
 				QueueRemove(requestQueue, hContact);
-
-				LeaveCriticalSection(&requestQueue.cs);
+                LeaveCriticalSection(&requestQueue.cs);
 
 				if (!requestQueue.bThreadRunning)
 					break;
