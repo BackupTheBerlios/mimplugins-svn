@@ -206,11 +206,11 @@ void QueueAdd(ThreadQueue &queue, HANDLE hContact)
 		item->check_time = GetTickCount() + queue.waitTime;
 
 		List_InsertOrdered(queue.queue, item);
-
+		LeaveCriticalSection(&queue.cs);
 		ResumeThread(queue.hThread);
 	}
-
-	LeaveCriticalSection(&queue.cs);
+	else
+		LeaveCriticalSection(&queue.cs);
 }
 
 
