@@ -803,6 +803,7 @@ static DWORD WINAPI AvatarUpdateThread(LPVOID vParam)
             }
         }
         WaitForSingleObject(hEvent, 5000);
+        ResetEvent(hEvent);
     } while ( bAvatarThreadRunning );
 
     return 0;
