@@ -618,16 +618,12 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 			if(pai == NULL)
 				return 0;
 
-			_DebugTrace(ack->hContact, "Got new avatar");
-
 			DBDeleteContactSetting(ack->hContact, "ContactPhoto", "NeedUpdate");
             DBWriteContactSettingString(ack->hContact, "ContactPhoto", "File", "");
             DBWriteContactSettingString(ack->hContact, "ContactPhoto", "File", pai->filename);
         }
         else if(ack->result == ACKRESULT_FAILED) 
 		{
-			_DebugTrace(ack->hContact, "ACKRESULT_FAILED");
-
 			if (DBGetContactSettingByte(NULL, AVS_MODULE, "RemoveAvatarOnFail", 1)) 
 			{
 				DBDeleteContactSetting(ack->hContact, "ContactPhoto", "File");
@@ -635,8 +631,6 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
         }
 		else if(ack->result == ACKRESULT_STATUS) 
 		{
-			_DebugTrace(ack->hContact, "Has new avatar");
-
 			DBWriteContactSettingByte(ack->hContact, "ContactPhoto", "NeedUpdate", 1);
 
 			QueueAdd(requestQueue, ack->hContact);
@@ -1413,36 +1407,11 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 				if (!DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
 					DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
 
-				_DebugTrace(hContact, "ContactPhoto\\File DBVT_DELETED");
-
 				CacheAdd(hContact);
-				/*
-				char *szProto = (char *) CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
-				if (szProto != NULL 
-					&& DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1) 
-					&& !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-					&& GetContactNode(hContact, 1) != NULL)
-				{
-					ChangeAvatar(hContact);
-				}
-				*/
 			}
 			else if (cws->value.pszVal[0] != '\0') 
 			{
-				_DebugTrace((HANDLE) wParam, "ContactPhoto\\File %s", cws->value.pszVal);
-
 				CacheAdd(wParam);
-				/*
-				HANDLE hContact = (HANDLE) wParam;
-				char *szProto = (char *) CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
-				if (szProto != NULL 
-					&& DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1) 
-					&& !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-					&& GetContactNode(hContact, 1) != NULL)
-				{
-					ChangeAvatar(hContact);
-				}
-				*/
 			}
         }
 		return 0;

@@ -266,28 +266,20 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 					pai_s.format = PA_FORMAT_UNKNOWN;
 					pai_s.filename[0] = '\0';
 
-					_DebugTrace(hContact, "Requesting...");
-
 					int result = CallProtoService(szProto, PS_GETAVATARINFO, GAIF_FORCE, (LPARAM)&pai_s);
 					if (result == GAIR_SUCCESS) 
 					{
-						_DebugTrace(hContact, "GAIR_SUCCESS");
-
 						DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
 						DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
 						DBWriteContactSettingString(hContact, "ContactPhoto", "File", pai_s.filename);
 					}
 					else if (result == GAIR_NOAVATAR) 
 					{
-						_DebugTrace(hContact, "GAIR_NOAVATAR");
-
 						DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
 						DBDeleteContactSetting(hContact, "ContactPhoto", "File");
 					}
 					else if (result == GAIR_WAITFOR) 
 					{
-						_DebugTrace(hContact, "GAIR_WAITFOR");
-
 						// Wait a little until requesting again
 						if (requestQueue.bThreadRunning)
 							WaitForSingleObject(hEvent, REQUEST_DELAY);
@@ -346,8 +338,6 @@ DWORD WINAPI CacheThread(LPVOID vParam)
 				char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
 				if (szProto != NULL && PollCacheProtocol(szProto) && PollCacheContact(hContact, szProto))
 				{
-					_DebugTrace(hContact, "Recaching...");
-
 					ChangeAvatar(hContact);
 				}
 			}
