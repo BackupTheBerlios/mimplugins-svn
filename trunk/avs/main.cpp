@@ -271,7 +271,6 @@ int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode)
     return 0;
 }
 
-/*
 // Add a contact to the cache queue
 #define CacheAdd(_hContact_) _beginthread(CacheAddThread, 0, (LPVOID) (HANDLE) _hContact_);
 static void CacheAddThread(LPVOID lpParam)
@@ -280,7 +279,6 @@ static void CacheAddThread(LPVOID lpParam)
 	
 	_endthread();
 }
-*/
 
 // Add a contact to the request queue
 #define RequestAdd(_hContact_) _beginthread(RequestAddThread, 0, (LPVOID) (HANDLE) _hContact_);
@@ -619,12 +617,16 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 			if(pai == NULL)
 				return 0;
 
+			_DebugTrace(ack->hContact, "Got new avatar");
+
 			DBDeleteContactSetting(ack->hContact, "ContactPhoto", "NeedUpdate");
             DBWriteContactSettingString(ack->hContact, "ContactPhoto", "File", "");
             DBWriteContactSettingString(ack->hContact, "ContactPhoto", "File", pai->filename);
         }
         else if(ack->result == ACKRESULT_FAILED) 
 		{
+			_DebugTrace(ack->hContact, "ACKRESULT_FAILED");
+
 			if (DBGetContactSettingByte(NULL, AVS_MODULE, "RemoveAvatarOnFail", 1)) 
 			{
 				DBDeleteContactSetting(ack->hContact, "ContactPhoto", "File");
@@ -632,6 +634,8 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
         }
 		else if(ack->result == ACKRESULT_STATUS) 
 		{
+			_DebugTrace(ack->hContact, "Has new avatar");
+
 			DBWriteContactSettingByte(ack->hContact, "ContactPhoto", "NeedUpdate", 1);
 
 			QueueAdd(requestQueue, ack->hContact);
@@ -1408,7 +1412,8 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 				if (!DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
 					DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
 
-				//CacheAdd(hContact);
+				CacheAdd(hContact);
+				/*
 				char *szProto = (char *) CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
 				if (szProto != NULL 
 					&& DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1) 
@@ -1417,10 +1422,12 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 				{
 					ChangeAvatar(hContact);
 				}
+				*/
 			}
 			else if (cws->value.pszVal[0] != '\0') 
 			{
-				//CacheAdd(wParam);
+				CacheAdd(wParam);
+				/*
 				HANDLE hContact = (HANDLE) wParam;
 				char *szProto = (char *) CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
 				if (szProto != NULL 
@@ -1430,7 +1437,7 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 				{
 					ChangeAvatar(hContact);
 				}
-
+				*/
 			}
         }
 		return 0;

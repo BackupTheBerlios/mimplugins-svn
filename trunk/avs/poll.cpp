@@ -31,28 +31,33 @@ It has 2 queues:
    This is fired by any change in the db key ContactPhoto\File
 */
 
-#define REQUEST_WAIT_TIME 1000
+#define REQUEST_WAIT_TIME 3000
 #define CACHE_WAIT_TIME 2000
 
 // Number of mileseconds the threads wait until take a look if it is time to request another item
 #define POOL_DELAY 1000
 
 // Number of mileseconds the threads wait after a GAIR_WAITFOR is returned
-#define REQUEST_DELAY 5000
+#define REQUEST_DELAY 6000
 
 
 // Prototypes ///////////////////////////////////////////////////////////////////////////
 
 ThreadQueue requestQueue = {0};
-//ThreadQueue cacheQueue = {0};
+ThreadQueue cacheQueue = {0};
 
 DWORD WINAPI RequestThread(LPVOID vParam);
-//DWORD WINAPI CacheThread(LPVOID vParam);
+DWORD WINAPI CacheThread(LPVOID vParam);
 
 
 extern char *g_szMetaName;
 extern int ChangeAvatar(HANDLE hContact);
 extern CacheNode *GetContactNode(HANDLE hContact, int needToLock);
+
+#ifdef _DEBUG
+int _DebugTrace(const char *fmt, ...);
+int _DebugTrace(HANDLE hContact, const char *fmt, ...);
+#endif
 
 
 // Functions ////////////////////////////////////////////////////////////////////////////
@@ -74,11 +79,10 @@ void InitPolls()
 	requestQueue.bThreadRunning = TRUE;
     InitializeCriticalSection(&requestQueue.cs);
 	requestQueue.hThread = CreateThread(NULL, 16000, RequestThread, NULL, 0, &requestQueue.dwThreadID);
-	mir_sntprintf(requestQueue.eventName, 128, _T("evt_avscache_%d"), GetCurrentThreadId());
+	mir_sntprintf(requestQueue.eventName, 128, _T("evt_avscache_request_%d"), GetCurrentThreadId());
 	requestQueue.hEvent = CreateEvent(NULL, TRUE, FALSE, requestQueue.eventName);
 	requestQueue.waitTime = REQUEST_WAIT_TIME;
 
-	/*
 	// Init cache queue
 	ZeroMemory(&cacheQueue, sizeof(cacheQueue));
 	cacheQueue.queue = List_Create(0, 20);
@@ -86,9 +90,9 @@ void InitPolls()
 	cacheQueue.bThreadRunning = TRUE;
 	InitializeCriticalSection(&cacheQueue.cs);
 	cacheQueue.hThread = CreateThread(NULL, 16000, CacheThread, NULL, 0, &cacheQueue.dwThreadID);
-	cacheQueue.hEvent = CreateEvent(NULL, TRUE, FALSE, _T("evt_avscache"));
+	mir_sntprintf(cacheQueue.eventName, 128, _T("evt_avscache_cache_%d"), GetCurrentThreadId());
+	cacheQueue.hEvent = CreateEvent(NULL, TRUE, FALSE, cacheQueue.eventName);
 	cacheQueue.waitTime = CACHE_WAIT_TIME;
-	*/
 }
 
 
@@ -105,7 +109,6 @@ void FreePolls()
 	List_DestroyFreeContents(requestQueue.queue);
 	mir_free(requestQueue.queue);
 
-	/*
 	// Stop cache queue
     cacheQueue.bThreadRunning = FALSE;
     SetEvent(cacheQueue.hEvent);
@@ -116,7 +119,6 @@ void FreePolls()
 	DeleteCriticalSection(&cacheQueue.cs);
 	List_DestroyFreeContents(cacheQueue.queue);
 	mir_free(cacheQueue.queue);
-	*/
 }
 
 
@@ -131,13 +133,11 @@ BOOL PollCheckProtocol(const char *szProto)
 		&& DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1);
 }
 
-/*
 // Return true if this protocol has to be checked
 BOOL PollCacheProtocol(const char *szProto)
 {
 	return DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1);
 }
-*/
 
 // Return true if this contact has to be checked
 BOOL PollCheckContact(HANDLE hContact, const char *szProto)
@@ -150,14 +150,13 @@ BOOL PollCheckContact(HANDLE hContact, const char *szProto)
 		&& GetContactNode(hContact, 1) != NULL;
 }
 
-/*
 // Return true if this contact has to be checked
 BOOL PollCacheContact(HANDLE hContact, const char *szProto)
 {
 	return !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-		&& GetContactNode(hContact) != NULL;
+		&& GetContactNode(hContact, 1) != NULL;
 }
-*/
+
 void QueueRemove(ThreadQueue &queue, HANDLE hContact)
 {
 	//EnterCriticalSection(&queue.cs);   // may not be needed (called only from within the same crit sect)
@@ -251,6 +250,7 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 				mir_free(qi);
 
 				QueueRemove(requestQueue, hContact);
+
                 LeaveCriticalSection(&requestQueue.cs);
 
 				if (!requestQueue.bThreadRunning)
@@ -266,20 +266,28 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 					pai_s.format = PA_FORMAT_UNKNOWN;
 					pai_s.filename[0] = '\0';
 
+					_DebugTrace(hContact, "Requesting...");
+
 					int result = CallProtoService(szProto, PS_GETAVATARINFO, GAIF_FORCE, (LPARAM)&pai_s);
 					if (result == GAIR_SUCCESS) 
 					{
+						_DebugTrace(hContact, "GAIR_SUCCESS");
+
 						DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
 						DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
 						DBWriteContactSettingString(hContact, "ContactPhoto", "File", pai_s.filename);
 					}
 					else if (result == GAIR_NOAVATAR) 
 					{
+						_DebugTrace(hContact, "GAIR_NOAVATAR");
+
 						DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
 						DBDeleteContactSetting(hContact, "ContactPhoto", "File");
 					}
 					else if (result == GAIR_WAITFOR) 
 					{
+						_DebugTrace(hContact, "GAIR_WAITFOR");
+
 						// Wait a little until requesting again
 						if (requestQueue.bThreadRunning)
 							WaitForSingleObject(hEvent, REQUEST_DELAY);
@@ -291,10 +299,6 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 
 	return 0;
 }
-
-/*
- * This is causing miranda to freeze... not know why yeat, but thw workaround is call ChangeAvatar on db notification
- *
 
 DWORD WINAPI CacheThread(LPVOID vParam)
 {
@@ -340,6 +344,8 @@ DWORD WINAPI CacheThread(LPVOID vParam)
 				char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
 				if (szProto != NULL && PollCacheProtocol(szProto) && PollCacheContact(hContact, szProto))
 				{
+					_DebugTrace(hContact, "Recaching...");
+
 					ChangeAvatar(hContact);
 				}
 			}
@@ -348,6 +354,3 @@ DWORD WINAPI CacheThread(LPVOID vParam)
 
 	return 0;
 }
-
-
-*/

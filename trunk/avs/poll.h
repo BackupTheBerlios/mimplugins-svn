@@ -36,7 +36,7 @@ struct ThreadQueue
 };
 
 extern ThreadQueue requestQueue;
-//extern ThreadQueue cacheQueue;
+extern ThreadQueue cacheQueue;
 
 
 struct QueueItem
