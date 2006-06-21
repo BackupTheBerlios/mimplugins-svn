@@ -79,7 +79,7 @@ void InitPolls()
 	requestQueue.bThreadRunning = TRUE;
     InitializeCriticalSection(&requestQueue.cs);
 	requestQueue.hThread = CreateThread(NULL, 16000, RequestThread, NULL, 0, &requestQueue.dwThreadID);
-	mir_sntprintf(requestQueue.eventName, 128, _T("evt_avscache_request_%d"), GetCurrentThreadId());
+	mir_sntprintf(requestQueue.eventName, 128, _T("evt_avscache_request_%d"), requestQueue.dwThreadID);
 	requestQueue.hEvent = CreateEvent(NULL, TRUE, FALSE, requestQueue.eventName);
 	requestQueue.waitTime = REQUEST_WAIT_TIME;
 
@@ -90,7 +90,7 @@ void InitPolls()
 	cacheQueue.bThreadRunning = TRUE;
 	InitializeCriticalSection(&cacheQueue.cs);
 	cacheQueue.hThread = CreateThread(NULL, 16000, CacheThread, NULL, 0, &cacheQueue.dwThreadID);
-	mir_sntprintf(cacheQueue.eventName, 128, _T("evt_avscache_cache_%d"), GetCurrentThreadId());
+	mir_sntprintf(cacheQueue.eventName, 128, _T("evt_avscache_cache_%d"), cacheQueue.dwThreadID);
 	cacheQueue.hEvent = CreateEvent(NULL, TRUE, FALSE, cacheQueue.eventName);
 	cacheQueue.waitTime = CACHE_WAIT_TIME;
 }
@@ -302,6 +302,8 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 
 DWORD WINAPI CacheThread(LPVOID vParam)
 {
+	HANDLE hEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, requestQueue.eventName);
+
 	while (cacheQueue.bThreadRunning)
 	{
 		EnterCriticalSection(&cacheQueue.cs);
@@ -325,7 +327,7 @@ DWORD WINAPI CacheThread(LPVOID vParam)
 				LeaveCriticalSection(&cacheQueue.cs);
 
 				if (cacheQueue.bThreadRunning)
-					WaitForSingleObject(cacheQueue.hEvent, POOL_DELAY);
+					WaitForSingleObject(hEvent, POOL_DELAY);
 			}
 			else
 			{

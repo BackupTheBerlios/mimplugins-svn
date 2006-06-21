@@ -65,7 +65,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 0), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 1), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -193,6 +193,7 @@ int _DebugTrace(HANDLE hContact, const char *fmt, ...)
 
 	return 0;
 }
+
 #endif
 
 static int g_maxBlock = 0, g_curBlock = 0;
@@ -1412,6 +1413,8 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 				if (!DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
 					DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
 
+				_DebugTrace(hContact, "ContactPhoto\\File DBVT_DELETED");
+
 				CacheAdd(hContact);
 				/*
 				char *szProto = (char *) CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
@@ -1426,6 +1429,8 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 			}
 			else if (cws->value.pszVal[0] != '\0') 
 			{
+				_DebugTrace((HANDLE) wParam, "ContactPhoto\\File %s", cws->value.pszVal);
+
 				CacheAdd(wParam);
 				/*
 				HANDLE hContact = (HANDLE) wParam;
