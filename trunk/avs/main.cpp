@@ -44,6 +44,7 @@ struct protoPicCacheEntry *g_ProtoPictures = 0;
 struct protoPicCacheEntry *g_MyAvatars = 0;
 
 CRITICAL_SECTION cachecs;
+DWORD            dwMainThreadID;
 
 BOOL g_MetaAvail = FALSE;
 char *g_szMetaName = NULL;
@@ -598,11 +599,18 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL realoadAvatar)
 	if(g_shutDown)
 		return NULL;
 
-    bCS = TryEnterCriticalSection(&cachecs);
-    if(bCS == FALSE) {
-        _DebugTrace(hContact, "FindAvatarInCache(): attempt to obtain cachecs lock by thread-id %d (cs owned by: %d)", GetCurrentThreadId(), cachecs.OwningThread);
-        return NULL;
+    if(GetCurrentThreadId() != dwMainThreadID) {
+        bCS = TryEnterCriticalSection(&cachecs);
+        if(bCS == FALSE) {
+#ifdef _DEBUG
+            _DebugTrace(hContact, "FindAvatarInCache(): attempt to obtain cachecs lock by thread-id %d (cs owned by: %d)", GetCurrentThreadId(), cachecs.OwningThread);
+#endif
+            return NULL;
+        }
     }
+    else
+        EnterCriticalSection(&cachecs);
+
 	while(cacheNode) {
 		if(cacheNode->ace.hContact == hContact) {
 			if (realoadAvatar) {
@@ -1782,7 +1790,8 @@ extern "C" __declspec(dllexport) PLUGININFO * MirandaPluginInfo(DWORD mirandaVer
 extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)
 {
     pluginLink = link;
-    
+    dwMainThreadID = GetCurrentThreadId();
+
 	LoadGdiPlus();
 
     return(LoadAvatarModule());
