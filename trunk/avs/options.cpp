@@ -171,6 +171,11 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 			EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_TRANSP_PROPORTIONAL), enabled);
 			EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP), enabled);
 
+			if (ServiceExists("AvatarHistory/IsEnabled"))
+	            CheckDlgButton(hwndDlg, IDC_HISTORY, DBGetContactSettingByte(NULL, "AvatarHistory", "Enable", 1) ? TRUE : FALSE);
+			else
+				ShowWindow(GetDlgItem(hwndDlg, IDC_HISTORY), FALSE);
+
             dialoginit = FALSE;
             return TRUE;
         }
@@ -309,6 +314,9 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 							DBWriteContactSettingWord(NULL, AVS_MODULE, "TranspBkgNumPoints", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0));
 							DBWriteContactSettingWord(NULL, AVS_MODULE, "TranspBkgColorDiff", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0));
 							DBWriteContactSettingByte(NULL, AVS_MODULE, "SetAllwaysMakeSquare", IsDlgButtonChecked(hwndDlg, IDC_SET_MAKE_SQUARE) ? 1 : 0);
+
+							if (ServiceExists("AvatarHistory/IsEnabled"))
+								DBWriteContactSettingByte(NULL, "AvatarHistory", "Enable", IsDlgButtonChecked(hwndDlg, IDC_HISTORY) ? 1 : 0);
                         }
                     }
             }
@@ -501,14 +509,38 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 
             if(dis->CtlType == ODT_BUTTON && dis->CtlID == IDC_PROTOPIC) {
                 AVATARDRAWREQUEST avdrq = {0};
+				GetClientRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), &avdrq.rcDraw);
+
+				FillRect(dis->hDC, &avdrq.rcDraw, GetSysColorBrush(COLOR_BTNFACE));
+
                 avdrq.hContact = hContact;
                 avdrq.cbSize = sizeof(avdrq);
                 avdrq.hTargetDC = dis->hDC;
                 avdrq.dwFlags |= AVDRQ_DRAWBORDER;
                 avdrq.clrBorder = GetSysColor(COLOR_BTNTEXT);
                 avdrq.radius = 6;
-                GetClientRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), &avdrq.rcDraw);
-                CallService(MS_AV_DRAWAVATAR, 0, (LPARAM)&avdrq);
+				if (!CallService(MS_AV_DRAWAVATAR, 0, (LPARAM)&avdrq)) 
+				{
+					// Get text rectangle
+					RECT rc = avdrq.rcDraw;
+					rc.top += 10;
+					rc.bottom -= 10;
+					rc.left += 10;
+					rc.right -= 10;
+
+					// Calc text size
+					RECT rc_ret = rc;
+					DrawText(dis->hDC, TranslateT("Contact has no avatar"), -1, &rc_ret, 
+							DT_WORDBREAK | DT_NOPREFIX | DT_CENTER | DT_CALCRECT);
+					
+					// Calc needed size
+					rc.top += ((rc.bottom - rc.top) - (rc_ret.bottom - rc_ret.top)) / 2;
+					rc.bottom = rc.top + (rc_ret.bottom - rc_ret.top);
+					DrawText(dis->hDC, TranslateT("Contact has no avatar"), -1, &rc, 
+							DT_WORDBREAK | DT_NOPREFIX | DT_CENTER);
+				}
+
+				FrameRect(dis->hDC, &avdrq.rcDraw, GetSysColorBrush(COLOR_BTNSHADOW));
             }
             return TRUE;
         }
@@ -535,6 +567,182 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
             szFinalName[MAX_PATH - 1] = 0;
             SetDlgItemTextA(hwndDlg, IDC_AVATARNAME, szFinalName);
             break;
+        }
+        case DM_REALODAVATAR:
+        {
+			SaveTransparentData(hwndDlg, hContact);
+            ChangeAvatar(hContact);
+			InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
+            break;
+        }
+    }
+    return FALSE;
+}
+
+BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    HANDLE hContact = (HANDLE)GetWindowLongPtr(hwndDlg, (LONG)GWL_USERDATA);
+
+    switch(msg) {
+        case WM_INITDIALOG:
+        {
+            SetWindowLong(hwndDlg, GWL_USERDATA, (LONG)lParam);
+            hContact = (HANDLE)lParam;
+            TranslateDialogDefault(hwndDlg);
+            SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
+            InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, FALSE);
+            CheckDlgButton(hwndDlg, IDC_PROTECTAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0) ? TRUE : FALSE);
+            CheckDlgButton(hwndDlg, IDC_HIDEAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0) ? TRUE : FALSE);
+
+			SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETBUDDY, (WPARAM)GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS), 0);
+			SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_SETRANGE, 0, MAKELONG(8, 2));
+
+			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETBUDDY, (WPARAM)GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE), 0);
+			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
+
+			LoadTransparentData(hwndDlg, hContact);
+            return TRUE;
+        }
+        case WM_COMMAND:
+            switch(LOWORD(wParam)) {
+				case ID_USE_DEFAULTS:
+				{
+					DBDeleteContactSetting(hContact, "ContactPhoto", "MakeTransparentBkg");
+					DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgNumPoints");
+					DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgColorDiff");
+
+					LoadTransparentData(hwndDlg, hContact);
+
+					SendMessage(hwndDlg, DM_REALODAVATAR, 0, 0);
+					break;
+				}
+                case IDC_CHANGE:
+				{
+                    SetAvatar((WPARAM)hContact, 0);
+                    SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
+                    InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
+                    CheckDlgButton(hwndDlg, IDC_PROTECTAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0) ? TRUE : FALSE);
+                    break;
+				}
+				case IDC_HIDEAVATAR:
+				{
+                    int hidden = IsDlgButtonChecked(hwndDlg, IDC_HIDEAVATAR) ? 1 : 0;
+                    SetAvatarAttribute(hContact, AVS_HIDEONCLIST, hidden);
+                    if(hidden != DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0))
+						DBWriteContactSettingByte(hContact, "ContactPhoto", "Hidden", hidden);
+					break;
+				}
+				case IDC_PROTECTAVATAR:
+				{
+					BOOL locked = IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR);
+                    ProtectAvatar((WPARAM)hContact, locked ? 1 : 0);
+					break;
+				}
+				case IDC_BKG_NUM_POINTS:
+				case IDC_BKG_COLOR_DIFFERENCE:
+					if (HIWORD(wParam)!=EN_CHANGE || (HWND)lParam!=GetFocus())
+						break;
+				case IDC_MAKETRANSPBKG:
+				{
+					BOOL enable = IsDlgButtonChecked(hwndDlg, IDC_MAKETRANSPBKG);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_L), enable);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS_SPIN), enable);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_NUM_POINTS), enable);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_L), enable);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN), enable);
+					EnableWindow(GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE), enable);
+
+                    SendMessage(hwndDlg, DM_REALODAVATAR, 0, 0);
+                    break;
+				}
+                case IDC_RESET:
+                {
+                    char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
+					DBVARIANT dbv = {0};
+
+					EnterCriticalSection(&cachecs);
+                    ProtectAvatar((WPARAM)hContact, 0);
+					if(MessageBox(0, TranslateT("Delete picture file from disk (may be necessary to force a reload, but will delete local pictures)?"), TranslateT("Reset contact picture"), MB_YESNO) == IDYES) {
+						if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
+							DeleteFileA(dbv.pszVal);
+							DBFreeVariant(&dbv);
+						}
+					}
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Locked");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+                    DBDeleteContactSetting(hContact, szProto, "AvatarHash");
+                    DBDeleteContactSetting(hContact, szProto, "AvatarSaved");
+					LeaveCriticalSection(&cachecs);
+
+					QueueAdd(requestQueue, hContact);
+
+                    DestroyWindow(hwndDlg);
+                    break;
+                }
+                case IDC_DELETE:
+				{
+					DBVARIANT dbv = {0};
+					EnterCriticalSection(&cachecs);
+                    ProtectAvatar((WPARAM)hContact, 0);
+					if(MessageBox(0, TranslateT("Delete picture file from disk (may be necessary to force a reload, but will delete local pictures)?"), TranslateT("Reset contact picture"), MB_YESNO) == IDYES) {
+						if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
+							DeleteFileA(dbv.pszVal);
+							DBFreeVariant(&dbv);
+						}
+					}
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Locked");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+                    SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
+                    InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
+					LeaveCriticalSection(&cachecs);
+                    break;
+				}
+            }
+            break;
+        case WM_DRAWITEM:
+        {
+            LPDRAWITEMSTRUCT dis = (LPDRAWITEMSTRUCT) lParam;
+
+            if(dis->CtlType == ODT_BUTTON && dis->CtlID == IDC_PROTOPIC) {
+                AVATARDRAWREQUEST avdrq = {0};
+				GetClientRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), &avdrq.rcDraw);
+
+				FillRect(dis->hDC, &avdrq.rcDraw, GetSysColorBrush(COLOR_BTNFACE));
+
+                avdrq.hContact = hContact;
+                avdrq.cbSize = sizeof(avdrq);
+                avdrq.hTargetDC = dis->hDC;
+                avdrq.dwFlags |= AVDRQ_DRAWBORDER;
+                avdrq.clrBorder = GetSysColor(COLOR_BTNTEXT);
+                avdrq.radius = 6;
+				if (!CallService(MS_AV_DRAWAVATAR, 0, (LPARAM)&avdrq)) 
+				{
+					// Get text rectangle
+					RECT rc = avdrq.rcDraw;
+					rc.top += 10;
+					rc.bottom -= 10;
+					rc.left += 10;
+					rc.right -= 10;
+
+					// Calc text size
+					RECT rc_ret = rc;
+					DrawText(dis->hDC, TranslateT("Contact has no avatar"), -1, &rc_ret, 
+							DT_WORDBREAK | DT_NOPREFIX | DT_CENTER | DT_CALCRECT);
+					
+					// Calc needed size
+					rc.top += ((rc.bottom - rc.top) - (rc_ret.bottom - rc_ret.top)) / 2;
+					rc.bottom = rc.top + (rc_ret.bottom - rc_ret.top);
+					DrawText(dis->hDC, TranslateT("Contact has no avatar"), -1, &rc, 
+							DT_WORDBREAK | DT_NOPREFIX | DT_CENTER);
+				}
+
+				FrameRect(dis->hDC, &avdrq.rcDraw, GetSysColorBrush(COLOR_BTNSHADOW));
+            }
+            return TRUE;
         }
         case DM_REALODAVATAR:
         {

@@ -7,6 +7,8 @@
 #define IDD_OPENSUBCLASS                102
 #define IDD_AVATAROPTIONS               103
 #define IDI_AVATAR                      104
+#define IDD_DIALOG1                     106
+#define IDD_USER_AVATAR                 106
 #define IDC_PROTOCOLS                   1001
 #define IDC_CLIST                       1002
 #define IDC_SETPROTOPIC                 1003
@@ -39,14 +41,16 @@
 #define IDC_BKG_COLOR_DIFFERENCE_L      1019
 #define IDC_MAKE_TRANSP_PROPORTIONAL    1020
 #define IDC_MAKE_MY_AVATARS_TRANSP      1021
+#define IDC_CHECK2                      1022
+#define IDC_HISTORY                     1022
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        106
+#define _APS_NEXT_RESOURCE_VALUE        107
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1021
+#define _APS_NEXT_CONTROL_VALUE         1023
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

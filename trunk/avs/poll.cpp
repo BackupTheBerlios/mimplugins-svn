@@ -51,6 +51,7 @@ DWORD WINAPI CacheThread(LPVOID vParam);
 
 
 extern char *g_szMetaName;
+extern HANDLE hEventContactAvatarChanged;
 extern int ChangeAvatar(HANDLE hContact);
 extern CacheNode *GetContactNode(HANDLE hContact, int needToLock);
 
@@ -257,7 +258,9 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 					break;
 
 				char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
-				if (szProto != NULL && PollCheckProtocol(szProto) && PollCheckContact(hContact, szProto))
+				if (szProto != NULL && 
+					((ServiceExists("AvatarHistory/IsEnabled") && CallService("AvatarHistory/IsEnabled", 0, 0))
+					 || (PollCheckProtocol(szProto) && PollCheckContact(hContact, szProto))))
 				{
 					// Request it
 					PROTO_AVATAR_INFORMATION pai_s;
@@ -277,6 +280,8 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 					{
 						DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
 						DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+
+						NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)hContact, NULL);
 					}
 					else if (result == GAIR_WAITFOR) 
 					{

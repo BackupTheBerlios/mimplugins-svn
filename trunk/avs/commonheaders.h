@@ -67,6 +67,7 @@ extern "C"
 #include <m_file.h>
 #include <m_addcontact.h>
 #include <m_png.h>
+#include <m_userinfo.h>
 #include "m_folders.h"
 
 #include "m_avatars.h"

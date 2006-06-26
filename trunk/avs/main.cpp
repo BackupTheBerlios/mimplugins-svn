@@ -35,7 +35,8 @@ char g_installed_protos[1030];
 
 static char g_szDBPath[MAX_PATH];		// database profile path (read at startup only)
 
-HANDLE hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hMyAvatarChanged = 0, hEventDeleted = 0;
+HANDLE hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hEventContactAvatarChanged = 0,
+		hMyAvatarChanged = 0, hEventDeleted = 0, hUserInfoInitHook = 0;
 HICON g_hIcon = 0;
 
 static struct CacheNode *g_Cache = 0;
@@ -57,6 +58,7 @@ long hwndSetMyAvatar = 0;
 int			ChangeAvatar(HANDLE hContact);
 static int	ShutdownProc(WPARAM wParam, LPARAM lParam);
 static int  OkToExitProc(WPARAM wParam, LPARAM lParam);
+static int  OnDetailsInit(WPARAM wParam, LPARAM lParam);
 
 PLUGININFO pluginInfo = {
     sizeof(PLUGININFO), 
@@ -77,6 +79,8 @@ PLUGININFO pluginInfo = {
 
 extern BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+extern BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+
 
 int SetProtoMyAvatar(char *protocol, HBITMAP hBmp);
 int DeleteAvatar(HANDLE hContact);
@@ -251,6 +255,28 @@ int _DebugPopup(HANDLE hContact, const char *fmt, ...)
         ppd.colorBack = RGB(255,0,0);
         CallService(MS_POPUP_ADDPOPUP, (WPARAM)&ppd, 0);
     }
+    return 0;
+}
+
+int _TracePopup(HANDLE hContact, const char *fmt, ...)
+{
+    POPUPDATA ppd;
+    va_list va;
+    char    debug[1024];
+    int     ibsize = 1023;
+    
+    va_start(va, fmt);
+    _vsnprintf(debug, ibsize, fmt, va);
+    
+    ZeroMemory((void *)&ppd, sizeof(ppd));
+    ppd.lchContact = hContact;
+	ppd.lchIcon = g_hIcon;
+    strncpy(ppd.lpzContactName, "Avatar Service TRACE:", MAX_CONTACTNAME);
+    mir_snprintf(ppd.lpzText, MAX_SECONDLINE - 5, "%s\nAffected contact: %s", debug, hContact != 0 ? (char *)CallService(MS_CLIST_GETCONTACTDISPLAYNAME, (WPARAM)hContact, 0) : "Global");
+    ppd.colorText = RGB(0,0,0);
+    ppd.colorBack = RGB(255,0,0);
+    CallService(MS_POPUP_ADDPOPUP, (WPARAM)&ppd, 0);
+    
     return 0;
 }
 
@@ -481,7 +507,7 @@ done:
         ace->szFilename[MAX_PATH - 1] = 0;
 
 		// Calc image hash
-		if ((hContact != 0 && hContact != (HANDLE)-1))
+		if (hContact != 0 && hContact != (HANDLE)-1)
 		{
 			// Have to reset settings? -> do it if image changed
 			DWORD imgHash = GetImgHash(ace->hbmPic);
@@ -494,7 +520,7 @@ done:
 
 			// Make transparent?
 			if (DBGetContactSettingByte(hContact, "ContactPhoto", "MakeTransparentBkg", 
-					DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0)) )
+					DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0)))
 			{
 				if (MakeTransparentBkg(hContact, &ace->hbmPic))
 				{
@@ -503,7 +529,8 @@ done:
 				}
 			}
 		}
-		else {
+		else if (hContact == (HANDLE)-1) // My avatars
+		{
 			if (DBGetContactSettingByte(0, AVS_MODULE, "MakeTransparentBkg", 0)
 				&& DBGetContactSettingByte(0, AVS_MODULE, "MakeMyAvatarsTransparent", 0))
 			{
@@ -518,6 +545,11 @@ done:
 		if (DBGetContactSettingByte(0, AVS_MODULE, "MakeGrayscale", 0))
 		{
 			MakeGrayscale(hContact, &ace->hbmPic);
+		}
+
+		if (DBGetContactSettingByte(0, AVS_MODULE, "RemoveAllTransparency", 0))
+		{
+			CorrectBitmap32Alpha(ace->hbmPic, TRUE);
 		}
 
 		if (bminfo.bmBitsPixel == 32)
@@ -604,6 +636,24 @@ static struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL realoadAvatar)
 }
 
 
+static void ProtoAvatarChanged(LPVOID lpParam)
+{
+	CONTACTAVATARCHANGEDNOTIFICATION *cacn = (CONTACTAVATARCHANGEDNOTIFICATION *) lpParam;
+	
+    Sleep(1000);
+
+	DBDeleteContactSetting(cacn->hContact, "ContactPhoto", "NeedUpdate");
+	DBWriteContactSettingString(cacn->hContact, "ContactPhoto", "File", "");
+	DBWriteContactSettingString(cacn->hContact, "ContactPhoto", "File", cacn->filename);
+
+	// Fire the event
+	NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)cacn->hContact, (LPARAM)cacn);
+
+	free(lpParam);
+	_endthread();
+}
+
+
 static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 {
     ACKDATA *ack = (ACKDATA *) lParam;
@@ -618,9 +668,14 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 			if(pai == NULL)
 				return 0;
 
-			DBDeleteContactSetting(ack->hContact, "ContactPhoto", "NeedUpdate");
-            DBWriteContactSettingString(ack->hContact, "ContactPhoto", "File", "");
-            DBWriteContactSettingString(ack->hContact, "ContactPhoto", "File", pai->filename);
+			CONTACTAVATARCHANGEDNOTIFICATION *tmp = (CONTACTAVATARCHANGEDNOTIFICATION *)
+					mir_alloc0(sizeof(CONTACTAVATARCHANGEDNOTIFICATION));
+			tmp->cbSize = sizeof(CONTACTAVATARCHANGEDNOTIFICATION);
+			tmp->hContact = pai->hContact;
+			tmp->format = pai->format;
+			strcpy(tmp->filename, pai->filename);
+
+			_beginthread(ProtoAvatarChanged, 0, tmp);
         }
         else if(ack->result == ACKRESULT_FAILED) 
 		{
@@ -1332,8 +1387,11 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     mi.pszName = Translate("Contact picture...");
     mi.pszService = MS_AV_CONTACTOPTIONS;
     CallService(MS_CLIST_ADDCONTACTMENUITEM, 0, (LPARAM) &mi);
-	HANDLE hShutDown = HookEvent(ME_SYSTEM_PRESHUTDOWN, ShutdownProc);
-    HANDLE hOkToExit = HookEvent(ME_SYSTEM_OKTOEXIT, OkToExitProc);
+	
+	HookEvent(ME_SYSTEM_PRESHUTDOWN, ShutdownProc);
+    HookEvent(ME_SYSTEM_OKTOEXIT, OkToExitProc);
+	hUserInfoInitHook = HookEvent(ME_USERINFO_INITIALISE, OnDetailsInit);
+
 	return 0;
 }
 
@@ -1399,20 +1457,13 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 	{
 		if(!strcmp(cws->szSetting, "File")) 
 		{
-			if (cws->value.type == DBVT_DELETED) 
-			{
-				HANDLE hContact = (HANDLE) wParam;
+			HANDLE hContact = (HANDLE) wParam;
 
-				DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
-				if (!DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
-					DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
+			DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
+			if (!DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
+				DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
 
-				CacheAdd(hContact);
-			}
-			else if (cws->value.pszVal[0] != '\0') 
-			{
-				CacheAdd(wParam);
-			}
+			CacheAdd(hContact);
         }
 		return 0;
     }
@@ -1456,6 +1507,7 @@ static int OkToExitProc(WPARAM wParam, LPARAM lParam)
 
     UnhookEvent(hContactSettingChanged);
     UnhookEvent(hProtoAckHook);
+	UnhookEvent(hUserInfoInitHook);
 
     DestroyServiceFunction(hSvc_MS_AV_GETAVATARBITMAP);
     DestroyServiceFunction(hSvc_MS_AV_PROTECTAVATAR);
@@ -1472,8 +1524,10 @@ static int OkToExitProc(WPARAM wParam, LPARAM lParam)
     DestroyServiceFunction(hSvc_MS_AV_RESIZEBITMAP);
 
     DestroyHookableEvent(hEventChanged);
+	DestroyHookableEvent(hEventContactAvatarChanged);
     DestroyHookableEvent(hMyAvatarChanged);
     hEventChanged = 0;
+	hEventContactAvatarChanged = 0;
     hMyAvatarChanged = 0;
 	UnhookEvent(hEventDeleted);
 
@@ -1645,6 +1699,27 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
         return 0;
 }
 
+static int OnDetailsInit(WPARAM wParam, LPARAM lParam)
+{
+	HANDLE hContact = (HANDLE) lParam;
+	if (hContact == NULL) {
+		// Protocol dialog
+		return 0;
+	}
+
+	OPTIONSDIALOGPAGE odp = {0};
+	odp.cbSize = sizeof(odp);
+	odp.hIcon = g_hIcon;
+	odp.hInstance = g_hInst;
+	odp.pfnDlgProc = DlgProcAvatarUserInfo;
+	odp.position = -2000000000;
+	odp.pszTemplate = MAKEINTRESOURCEA(IDD_USER_AVATAR);
+	odp.pszTitle = Translate("Avatar");
+	CallService(MS_USERINFO_ADDPAGE, wParam, (LPARAM)&odp);
+
+	return 0;
+}
+
 static int LoadAvatarModule()
 {
 	init_mir_malloc();
@@ -1655,7 +1730,7 @@ static int LoadAvatarModule()
     HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
     hContactSettingChanged = HookEvent(ME_DB_CONTACT_SETTINGCHANGED, ContactSettingChanged);
     hEventDeleted = HookEvent(ME_DB_CONTACT_DELETED, ContactDeleted);
-    hProtoAckHook = (HANDLE) HookEvent(ME_PROTO_ACK, ProtocolAck);
+    hProtoAckHook = HookEvent(ME_PROTO_ACK, ProtocolAck);
 
     hSvc_MS_AV_GETAVATARBITMAP = CreateServiceFunction(MS_AV_GETAVATARBITMAP, GetAvatarBitmap);
     hSvc_MS_AV_PROTECTAVATAR = CreateServiceFunction(MS_AV_PROTECTAVATAR, ProtectAvatar);
@@ -1672,6 +1747,7 @@ static int LoadAvatarModule()
 	hSvc_MS_AV_RESIZEBITMAP =CreateServiceFunction(MS_AV_RESIZEBITMAP, BmpFilterResizeBitmap);
     
 	hEventChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
+	hEventContactAvatarChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
 	hMyAvatarChanged = CreateHookableEvent(ME_AV_MYAVATARCHANGED);
 
 	AllocCacheBlock();
@@ -1735,4 +1811,5 @@ extern "C" int __declspec(dllexport) Unload(void)
 	FreeGdiPlus();
     return 0;
 }
+
 

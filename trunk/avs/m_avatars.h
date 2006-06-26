@@ -190,7 +190,8 @@ typedef struct _avatarDrawRequest {
 
 #define MS_AV_DRAWAVATAR "SV_Avatars/Draw"
 
-// fired when the contacts avatar changes
+// fired when a contacts avatar cached by avs changes
+// it includes changes made by the user
 // wParam = hContact
 // lParam = struct avatarCacheEntry *cacheEntry
 // the event CAN pass a NULL pointer in lParam which means that the avatar has changed,
@@ -201,6 +202,22 @@ typedef struct _avatarDrawRequest {
 // a protocol picture (pseudo - avatar) has been changed. 
  
 #define ME_AV_AVATARCHANGED "SV_Avatars/AvatarChanged"
+
+
+typedef struct _contactAvatarChangedNotification {
+	int cbSize;					// sizeof()
+	HANDLE hContact;			// this might have to be set by the caller too
+	int format;					// PA_FORMAT_*
+	char filename[MAX_PATH];	// full path to filename which contains the avatar
+	char hash[128];				// avatar hash (always an empty string by now)
+} CONTACTAVATARCHANGEDNOTIFICATION;
+
+// fired when the contacts avatar is changed by the contact
+// wParam = hContact
+// lParam = struct CONTACTAVATARCHANGENOTIFICATION *cacn
+// the event CAN pass a NULL pointer in lParam which means that the contact deleted its avatar
+ 
+#define ME_AV_CONTACTAVATARCHANGED "SV_Avatars/ContactAvatarChanged"
 
 // fired when one of our own avatars was changed
 // wParam = (char *)szProto (protocol for which a new avatar was set)
