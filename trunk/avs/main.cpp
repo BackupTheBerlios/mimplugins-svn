@@ -593,11 +593,16 @@ static struct CacheNode *AddToList(struct CacheNode *node) {
 static struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL realoadAvatar)
 {
 	struct CacheNode *cacheNode = g_Cache, *foundNode = NULL;
-    
+    BOOL   bCS = FALSE;
+
 	if(g_shutDown)
 		return NULL;
 
-	EnterCriticalSection(&cachecs);
+    bCS = TryEnterCriticalSection(&cachecs);
+    if(bCS == FALSE) {
+        _DebugTrace(hContact, "FindAvatarInCache(): attempt to obtain cachecs lock by thread-id %d (cs owned by: %d)", GetCurrentThreadId(), cachecs.OwningThread);
+        return NULL;
+    }
 	while(cacheNode) {
 		if(cacheNode->ace.hContact == hContact) {
 			if (realoadAvatar) {
