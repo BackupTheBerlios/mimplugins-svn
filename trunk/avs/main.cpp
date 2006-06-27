@@ -1727,7 +1727,7 @@ static int OnDetailsInit(WPARAM wParam, LPARAM lParam)
 	odp.pfnDlgProc = DlgProcAvatarUserInfo;
 	odp.position = -2000000000;
 	odp.pszTemplate = MAKEINTRESOURCEA(IDD_USER_AVATAR);
-	odp.pszTitle = Translate("Avatar");
+	odp.pszTitle = Translate("Contact Picture");
 	CallService(MS_USERINFO_ADDPAGE, wParam, (LPARAM)&odp);
 
 	return 0;

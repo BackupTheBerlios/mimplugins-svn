@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define DM_SETAVATARNAME (WM_USER + 10)
 #define DM_REALODAVATAR (WM_USER + 11)
+#define DM_AVATARCHANGED (WM_USER + 12)
 
 extern int g_protocount;
 extern int _DebugPopup(HANDLE hContact, const char *fmt, ...);
@@ -44,6 +45,11 @@ extern int ChangeAvatar(HANDLE hContact);
 extern HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename);
 
 static BOOL dialoginit = TRUE;
+
+struct WindowData {
+    HANDLE hContact;
+    HANDLE hHook;
+};
 
 static void RemoveProtoPic(const char *szProto)
 {
@@ -366,15 +372,23 @@ void SaveTransparentData(HWND hwndDlg, HANDLE hContact)
 
 BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    HANDLE hContact = (HANDLE)GetWindowLongPtr(hwndDlg, (LONG)GWL_USERDATA);
+    HANDLE hContact;
+    struct WindowData *dat = (struct WindowData *)GetWindowLong(hwndDlg, GWL_USERDATA);
+
+    if(dat)
+        hContact = dat->hContact;
 
     switch(msg) {
         case WM_INITDIALOG:
         {
             TCHAR szTitle[512];
             TCHAR *szNick = NULL;
-            
-            SetWindowLong(hwndDlg, GWL_USERDATA, (LONG)lParam);
+            struct WindowData *dat = (struct WindowData *)malloc(sizeof(struct WindowData));
+
+            if(dat)
+                dat->hContact = (HANDLE)lParam;
+
+            SetWindowLong(hwndDlg, GWL_USERDATA, (LONG)dat);
             hContact = (HANDLE)lParam;
             TranslateDialogDefault(hwndDlg);
             if(hContact) {
@@ -395,7 +409,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
 
 			LoadTransparentData(hwndDlg, hContact);
-
+            dat->hHook = HookEventMessage(ME_AV_AVATARCHANGED, hwndDlg, DM_AVATARCHANGED);
             SendMessage(hwndDlg, WM_SETICON, IMAGE_ICON, (LPARAM)g_hIcon);
             return TRUE;
         }
@@ -434,7 +448,6 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 				{
                     SetAvatar((WPARAM)hContact, 0);
                     SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
-                    InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
                     CheckDlgButton(hwndDlg, IDC_PROTECTAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0) ? TRUE : FALSE);
                     break;
 				}
@@ -575,18 +588,39 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 			InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
             break;
         }
+        case DM_AVATARCHANGED:
+            InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
+            break;
+        case WM_NCDESTROY:
+        {
+            if(dat) {
+                UnhookEvent(dat->hHook);
+                free(dat);
+            }
+            SetWindowLong(hwndDlg, GWL_USERDATA, 0);
+            break;
+        }
     }
     return FALSE;
 }
 
 BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    HANDLE hContact = (HANDLE)GetWindowLongPtr(hwndDlg, (LONG)GWL_USERDATA);
+    HANDLE hContact;
+    struct WindowData *dat = (struct WindowData *)GetWindowLong(hwndDlg, GWL_USERDATA);
+
+    if(dat)
+        hContact = dat->hContact;
 
     switch(msg) {
         case WM_INITDIALOG:
         {
-            SetWindowLong(hwndDlg, GWL_USERDATA, (LONG)lParam);
+            struct WindowData *dat = (struct WindowData *)malloc(sizeof(struct WindowData));
+
+            if(dat)
+                dat->hContact = (HANDLE)lParam;
+
+            SetWindowLong(hwndDlg, GWL_USERDATA, (LONG)dat);
             hContact = (HANDLE)lParam;
             TranslateDialogDefault(hwndDlg);
             SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
@@ -601,6 +635,7 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
 
 			LoadTransparentData(hwndDlg, hContact);
+            dat->hHook = HookEventMessage(ME_AV_AVATARCHANGED, hwndDlg, DM_AVATARCHANGED);
             return TRUE;
         }
         case WM_COMMAND:
@@ -620,7 +655,6 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 				{
                     SetAvatar((WPARAM)hContact, 0);
                     SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
-                    InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
                     CheckDlgButton(hwndDlg, IDC_PROTECTAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0) ? TRUE : FALSE);
                     break;
 				}
@@ -749,6 +783,18 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			SaveTransparentData(hwndDlg, hContact);
             ChangeAvatar(hContact);
 			InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
+            break;
+        }
+        case DM_AVATARCHANGED:
+            InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
+            break;
+        case WM_NCDESTROY:
+        {
+            if(dat) {
+                UnhookEvent(dat->hHook);
+                free(dat);
+            }
+            SetWindowLong(hwndDlg, GWL_USERDATA, 0);
             break;
         }
     }
