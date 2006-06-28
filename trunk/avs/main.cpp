@@ -662,7 +662,7 @@ static void ProtoAvatarChanged(LPVOID lpParam)
 	// Fire the event
 	NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)cacn->hContact, (LPARAM)cacn);
 
-	free(lpParam);
+	mir_free(lpParam);
 	_endthread();
 }
 
@@ -692,7 +692,7 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
         }
         else if(ack->result == ACKRESULT_FAILED) 
 		{
-			if (DBGetContactSettingByte(NULL, AVS_MODULE, "RemoveAvatarOnFail", 1)) 
+			if (DBGetContactSettingByte(NULL, AVS_MODULE, "RemoveAvatarOnFail", 0)) 
 			{
 				DBDeleteContactSetting(ack->hContact, "ContactPhoto", "File");
 			}
