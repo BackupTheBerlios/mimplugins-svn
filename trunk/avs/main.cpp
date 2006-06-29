@@ -1760,7 +1760,8 @@ static int LoadAvatarModule()
 	hSvc_MS_AV_RESIZEBITMAP =CreateServiceFunction(MS_AV_RESIZEBITMAP, BmpFilterResizeBitmap);
     
 	hEventChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
-	hEventContactAvatarChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
+	//hEventContactAvatarChanged = CreateHookableEvent(ME_AV_AVATARCHANGED);
+    hEventContactAvatarChanged = CreateHookableEvent(ME_AV_CONTACTAVATARCHANGED);
 	hMyAvatarChanged = CreateHookableEvent(ME_AV_MYAVATARCHANGED);
 
 	AllocCacheBlock();
