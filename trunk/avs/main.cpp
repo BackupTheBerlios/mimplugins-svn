@@ -463,8 +463,10 @@ done:
     if(lstrlenA(szFilename) < 4)
         return -1;
 
-    if((hFile = CreateFileA(szFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE)
+    if((hFile = CreateFileA(szFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+        RequestAdd(hContact);
         return -1;
+    }
 
 	sizeLimit = DBGetContactSettingDword(0, AVS_MODULE, "SizeLimit", 70);
     dwFileSize = GetFileSize(hFile, &dwFileSizeHigh) / 1024;
