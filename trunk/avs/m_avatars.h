@@ -84,6 +84,8 @@ typedef struct avatarCacheEntry AVATARCACHEENTRY;
 struct CacheNode {
 	struct CacheNode *pNextNode;
 	struct avatarCacheEntry ace;
+	CRITICAL_SECTION cs;
+	BOOL loaded;
 };
 
 #define AVDRQ_FALLBACKPROTO 1              // use the protocol picture as fallback (currently not used)
@@ -93,6 +95,7 @@ struct CacheNode {
 #define AVDRQ_PROTOPICT  16                // draw a protocol picture (if available).
 #define AVDRQ_HIDEBORDERONTRANSPARENCY 32  // hide border if bitmap has transparency
 #define AVDRQ_OWNPIC	64				   // draw own avatar (szProto is valid)
+#define AVDRQ_RESPECTHIDDEN 128			   // don't draw images marked as hidden
 
 // request to draw a contacts picture. See MS_AV_DRAWAVATAR service description
 

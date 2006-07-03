@@ -106,8 +106,9 @@ __inline char * mir_strdup(const char *src)
     return p;
 }
 
+// The same fields as avatarCacheEntry + proto name
 struct protoPicCacheEntry {
-    DWORD cbSize;                   // set to sizeof(struct)
+	DWORD cbSize;                   // set to sizeof(struct)
     HANDLE hContact;                // contacts handle, 0, if it is a protocol avatar
     HBITMAP hbmPic;                 // bitmap handle of the picutre itself
     DWORD dwFlags;                  // see above for flag values
@@ -115,6 +116,7 @@ struct protoPicCacheEntry {
     time_t t_lastAccess;            // last access time (currently unused, but plugins should still
                                     // use it whenever they access the avatar. may be used in the future
                                     // to implement cache expiration
+    LPVOID lpDIBSection;			// unused field
     char szFilename[MAX_PATH];      // filename of the avatar (absolute path)
     char szProtoname[100];
 };

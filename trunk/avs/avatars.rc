@@ -214,8 +214,8 @@ LANGUAGE LANG_GERMAN, SUBLANG_GERMAN_AUSTRIAN
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,0,2,1
- PRODUCTVERSION 0,0,2,1
+ FILEVERSION 0,0,2,2
+ PRODUCTVERSION 0,0,2,2
  FILEFLAGSMASK 0x37L
 #ifdef _DEBUG
  FILEFLAGS 0x21L
@@ -233,13 +233,13 @@ BEGIN
             VALUE "Comments", "Service plugin to load and update avatars for Miranda IM"
             VALUE "CompanyName", "Written by Nightwish and Pescuma for Miranda IM project"
             VALUE "FileDescription", "loadavatars"
-            VALUE "FileVersion", "0, 0, 2, 1"
+            VALUE "FileVersion", "0, 0, 2, 2"
             VALUE "InternalName", "loadavatars"
             VALUE "LegalCopyright", "Copyright (C) 2006, Nightwish, Pescuma"
             VALUE "LegalTrademarks", "Licensed under the Gnu General Public License V2 or any later version"
             VALUE "OriginalFilename", "loadavatars.dll"
             VALUE "ProductName", "Miranda IM Avatar Service plugin"
-            VALUE "ProductVersion", "0, 0, 2, 1"
+            VALUE "ProductVersion", "0, 0, 2, 2"
             VALUE "SpecialBuild", "011"
         END
     END

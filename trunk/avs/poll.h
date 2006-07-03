@@ -26,18 +26,11 @@ Boston, MA 02111-1307, USA.
 struct ThreadQueue
 {
 	SortedList *queue;
-	HANDLE hThread;
-	TCHAR eventName[128];
-	HANDLE hEvent;
-	DWORD dwThreadID;
-	BOOL bThreadRunning;
 	CRITICAL_SECTION cs;
 	int waitTime;
 };
 
 extern ThreadQueue requestQueue;
-extern ThreadQueue cacheQueue;
-
 
 struct QueueItem
 {

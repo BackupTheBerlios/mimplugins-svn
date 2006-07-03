@@ -21,18 +21,12 @@ Boston, MA 02111-1307, USA.
 
 
 /*
-It has 2 queues:
-
-1. A queue to request items. One request is done at a time, REQUEST_WAIT_TIME miliseconts after it has beeing fired
+It has 1 queue:
+A queue to request items. One request is done at a time, REQUEST_WAIT_TIME miliseconts after it has beeing fired
    ACKRESULT_STATUS. This thread only requests the avatar (and maybe add it to the cache queue)
-
-2. A queue to cache items. It will cache each item CACHE_WAIT_TIME miliseconds after it has beeing added to the list.
-   This is done because some protos change the value of the "File" db setting some times before the final one.
-   This is fired by any change in the db key ContactPhoto\File
 */
 
 #define REQUEST_WAIT_TIME 3000
-#define CACHE_WAIT_TIME 2000
 
 // Number of mileseconds the threads wait until take a look if it is time to request another item
 #define POOL_DELAY 1000
@@ -44,21 +38,64 @@ It has 2 queues:
 // Prototypes ///////////////////////////////////////////////////////////////////////////
 
 ThreadQueue requestQueue = {0};
-ThreadQueue cacheQueue = {0};
 
-DWORD WINAPI RequestThread(LPVOID vParam);
-DWORD WINAPI CacheThread(LPVOID vParam);
-
+void RequestThread(void *vParam);
 
 extern char *g_szMetaName;
-extern HANDLE hEventContactAvatarChanged;
 extern int ChangeAvatar(HANDLE hContact);
-extern CacheNode *GetContactNode(HANDLE hContact, int needToLock);
+extern int DeleteAvatar(HANDLE hContact);
+struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL add);
+
+extern HANDLE hEventContactAvatarChanged;
 
 #ifdef _DEBUG
 int _DebugTrace(const char *fmt, ...);
 int _DebugTrace(HANDLE hContact, const char *fmt, ...);
 #endif
+
+
+// Forkthread ///////////////////////////////////////////////////////////////////////////
+
+struct FORK_ARG {
+	HANDLE hEvent;
+	void (__cdecl *threadcode)(void*);
+	unsigned (__stdcall *threadcodeex)(void*);
+	void *arg;
+};
+
+void __cdecl forkthread_r(void * arg)
+{	
+	struct FORK_ARG * fa = (struct FORK_ARG *) arg;
+	void (*callercode)(void*)=fa->threadcode;
+	void * cookie=fa->arg;
+	CallService(MS_SYSTEM_THREAD_PUSH,0,0);
+	SetEvent(fa->hEvent);
+	__try {
+		callercode(cookie);
+	} __finally {
+		CallService(MS_SYSTEM_THREAD_POP,0,0);
+	} 
+	return;
+}
+
+unsigned long forkthread (
+	void (__cdecl *threadcode)(void*),
+	unsigned long stacksize,
+	void *arg
+)
+{
+	unsigned long rc;
+	struct FORK_ARG fa;
+	fa.hEvent=CreateEvent(NULL,FALSE,FALSE,NULL);
+	fa.threadcode=threadcode;
+	fa.arg=arg;
+	rc=_beginthread(forkthread_r,stacksize,&fa);
+	if ((unsigned long)-1L != rc) {
+		WaitForSingleObject(fa.hEvent,INFINITE);
+	} //if
+	CloseHandle(fa.hEvent);
+	return rc;
+}
 
 
 // Functions ////////////////////////////////////////////////////////////////////////////
@@ -77,49 +114,14 @@ void InitPolls()
 	ZeroMemory(&requestQueue, sizeof(requestQueue));
 	requestQueue.queue = List_Create(0, 20);
 	requestQueue.queue->sortFunc = QueueSortItems;
-	requestQueue.bThreadRunning = TRUE;
-    InitializeCriticalSection(&requestQueue.cs);
-	requestQueue.hThread = CreateThread(NULL, 16000, RequestThread, NULL, 0, &requestQueue.dwThreadID);
-	mir_sntprintf(requestQueue.eventName, 128, _T("evt_avscache_request_%d"), requestQueue.dwThreadID);
-	requestQueue.hEvent = CreateEvent(NULL, TRUE, FALSE, requestQueue.eventName);
 	requestQueue.waitTime = REQUEST_WAIT_TIME;
-
-	// Init cache queue
-	ZeroMemory(&cacheQueue, sizeof(cacheQueue));
-	cacheQueue.queue = List_Create(0, 20);
-	cacheQueue.queue->sortFunc = QueueSortItems;
-	cacheQueue.bThreadRunning = TRUE;
-	InitializeCriticalSection(&cacheQueue.cs);
-	cacheQueue.hThread = CreateThread(NULL, 16000, CacheThread, NULL, 0, &cacheQueue.dwThreadID);
-	mir_sntprintf(cacheQueue.eventName, 128, _T("evt_avscache_cache_%d"), cacheQueue.dwThreadID);
-	cacheQueue.hEvent = CreateEvent(NULL, TRUE, FALSE, cacheQueue.eventName);
-	cacheQueue.waitTime = CACHE_WAIT_TIME;
+    InitializeCriticalSection(&requestQueue.cs);
+	forkthread(RequestThread, 0, NULL);
 }
 
 
 void FreePolls()
 {
-	// Stop request queue
-    requestQueue.bThreadRunning = FALSE;
-    SetEvent(requestQueue.hEvent);
-	ResumeThread(requestQueue.hThread);
-    WaitForSingleObject(requestQueue.hThread, 3000);
-    CloseHandle(requestQueue.hThread);
-    CloseHandle(requestQueue.hEvent);
-	DeleteCriticalSection(&requestQueue.cs);
-	List_DestroyFreeContents(requestQueue.queue);
-	mir_free(requestQueue.queue);
-
-	// Stop cache queue
-    cacheQueue.bThreadRunning = FALSE;
-    SetEvent(cacheQueue.hEvent);
-	ResumeThread(cacheQueue.hThread);
-    WaitForSingleObject(cacheQueue.hThread, 3000);
-    CloseHandle(cacheQueue.hThread);
-    CloseHandle(cacheQueue.hEvent);
-	DeleteCriticalSection(&cacheQueue.cs);
-	List_DestroyFreeContents(cacheQueue.queue);
-	mir_free(cacheQueue.queue);
 }
 
 
@@ -130,14 +132,8 @@ BOOL PollCheckProtocol(const char *szProto)
 	int status = CallProtoService(szProto, PS_GETSTATUS, 0, 0);
 	return (pCaps & PF4_AVATARS)
 		&& (g_szMetaName == NULL || strcmp(g_szMetaName, szProto))
-		&& status != ID_STATUS_OFFLINE && status != ID_STATUS_INVISIBLE
+		&& status > ID_STATUS_OFFLINE && status != ID_STATUS_INVISIBLE
 		&& DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1);
-}
-
-// Return true if this protocol has to be checked
-BOOL PollCacheProtocol(const char *szProto)
-{
-	return DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1);
 }
 
 // Return true if this contact has to be checked
@@ -145,23 +141,14 @@ BOOL PollCheckContact(HANDLE hContact, const char *szProto)
 {
 	int status = DBGetContactSettingWord(hContact, szProto, "Status", ID_STATUS_OFFLINE);
 	return status != ID_STATUS_OFFLINE
-		&& !DBGetContactSettingByte(hContact,"CList","NotOnList",0)
-		&& DBGetContactSettingByte(hContact,"CList","ApparentMode",0) != ID_STATUS_OFFLINE
+		&& !DBGetContactSettingByte(hContact, "CList", "NotOnList", 0)
+		&& DBGetContactSettingByte(hContact, "CList", "ApparentMode", 0) != ID_STATUS_OFFLINE
 		&& !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-		&& GetContactNode(hContact, 1) != NULL;
-}
-
-// Return true if this contact has to be checked
-BOOL PollCacheContact(HANDLE hContact, const char *szProto)
-{
-	return !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-		&& GetContactNode(hContact, 1) != NULL;
+		&& FindAvatarInCache(hContact, FALSE) != NULL;
 }
 
 void QueueRemove(ThreadQueue &queue, HANDLE hContact)
 {
-	//EnterCriticalSection(&queue.cs);   // may not be needed (called only from within the same crit sect)
-    
 	if (queue.queue->items != NULL)
 	{
 		for (int i = queue.queue->realCount - 1 ; i >= 0 ; i-- )
@@ -175,8 +162,6 @@ void QueueRemove(ThreadQueue &queue, HANDLE hContact)
 			}
 		}
 	}
-
-	//LeaveCriticalSection(&queue.cs);
 }
 
 // Add an contact to a queue
@@ -196,29 +181,22 @@ void QueueAdd(ThreadQueue &queue, HANDLE hContact)
 	{
 		QueueItem *item = (QueueItem *) mir_alloc0(sizeof(QueueItem));
 
-		if (item == NULL) 
+		if (item != NULL) 
 		{
-			LeaveCriticalSection(&queue.cs);
-			return;
+			item->hContact = hContact;
+			item->check_time = GetTickCount() + queue.waitTime;
+
+			List_InsertOrdered(queue.queue, item);
 		}
-
-		item->hContact = hContact;
-		item->check_time = GetTickCount() + queue.waitTime;
-
-		List_InsertOrdered(queue.queue, item);
-		LeaveCriticalSection(&queue.cs);
-		ResumeThread(queue.hThread);
 	}
-	else
-		LeaveCriticalSection(&queue.cs);
+
+	LeaveCriticalSection(&queue.cs);
 }
 
 
-DWORD WINAPI RequestThread(LPVOID vParam)
+void RequestThread(void *vParam)
 {
-	HANDLE hEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, requestQueue.eventName);
-
-	while (requestQueue.bThreadRunning)
+	while (!Miranda_Terminated())
 	{
 		EnterCriticalSection(&requestQueue.cs);
 
@@ -227,8 +205,7 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 			// No items, so supend thread
 			LeaveCriticalSection(&requestQueue.cs);
 
-			if (requestQueue.bThreadRunning)
-				SuspendThread(requestQueue.hThread);
+			SleepEx(POOL_DELAY, TRUE);
 		}
 		else
 		{
@@ -240,8 +217,7 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 				// Not time to request yeat, wait...
 				LeaveCriticalSection(&requestQueue.cs);
 
-				if (requestQueue.bThreadRunning)
-					WaitForSingleObject(hEvent, POOL_DELAY);
+				SleepEx(POOL_DELAY, TRUE);
 			}
 			else
 			{
@@ -254,7 +230,7 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 
                 LeaveCriticalSection(&requestQueue.cs);
 
-				if (!requestQueue.bThreadRunning)
+				if (Miranda_Terminated())
 					break;
 
 				char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
@@ -272,82 +248,46 @@ DWORD WINAPI RequestThread(LPVOID vParam)
 					int result = CallProtoService(szProto, PS_GETAVATARINFO, GAIF_FORCE, (LPARAM)&pai_s);
 					if (result == GAIR_SUCCESS) 
 					{
+						// Fix settings in DB
 						DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
+						DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
+						if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
+							DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
 						DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
 						DBWriteContactSettingString(hContact, "ContactPhoto", "File", pai_s.filename);
+
+						// Fix cache
+						ChangeAvatar(hContact);
 					}
 					else if (result == GAIR_NOAVATAR) 
 					{
-						DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
-						DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+						if (DBGetContactSettingByte(NULL, AVS_MODULE, "RemoveAvatarWhenContactRemoves", 1)) 
+						{
+							DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
+							DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
+							if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
+								DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
+							DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+
+							// Fix cache
+							ChangeAvatar(hContact);
+						}
 
 						NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)hContact, NULL);
 					}
 					else if (result == GAIR_WAITFOR) 
 					{
 						// Wait a little until requesting again
-						if (requestQueue.bThreadRunning)
-							WaitForSingleObject(hEvent, REQUEST_DELAY);
+						SleepEx(REQUEST_DELAY, TRUE);
 					}
 				}
 			}
 		}
 	}
 
-	return 0;
-}
+	DeleteCriticalSection(&requestQueue.cs);
+	List_DestroyFreeContents(requestQueue.queue);
+	mir_free(requestQueue.queue);
 
-DWORD WINAPI CacheThread(LPVOID vParam)
-{
-	HANDLE hEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, requestQueue.eventName);
-
-	while (cacheQueue.bThreadRunning)
-	{
-		EnterCriticalSection(&cacheQueue.cs);
-
-		if (!List_HasItens(cacheQueue.queue))
-		{
-			// No items, so supend thread
-			LeaveCriticalSection(&cacheQueue.cs);
-
-			if (cacheQueue.bThreadRunning)
-				SuspendThread(cacheQueue.hThread);
-		}
-		else
-		{
-			// Take a look at first item
-			QueueItem *qi = (QueueItem *) List_Peek(cacheQueue.queue);
-
-			if (qi->check_time > GetTickCount()) 
-			{
-				// Not time to request yeat, wait...
-				LeaveCriticalSection(&cacheQueue.cs);
-
-				if (cacheQueue.bThreadRunning)
-					WaitForSingleObject(hEvent, POOL_DELAY);
-			}
-			else
-			{
-				// Will cache this item
-				qi = (QueueItem *) List_Pop(cacheQueue.queue);
-				HANDLE hContact = qi->hContact;
-				mir_free(qi);
-
-				QueueRemove(cacheQueue, hContact);
-
-				LeaveCriticalSection(&cacheQueue.cs);
-
-				if (!cacheQueue.bThreadRunning)
-					break;
-
-				char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
-				if (szProto != NULL && PollCacheProtocol(szProto) && PollCacheContact(hContact, szProto))
-				{
-					ChangeAvatar(hContact);
-				}
-			}
-		}
-	}
-
-	return 0;
+	return;
 }

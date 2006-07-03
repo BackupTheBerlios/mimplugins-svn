@@ -40,7 +40,7 @@ extern CRITICAL_SECTION cachecs;
 extern int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szProto);
 extern int ProtectAvatar(WPARAM wParam, LPARAM lParam);
 extern int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode);
-extern int DeleteAvatarFromCache(HANDLE hContact);
+extern int DeleteAvatar(HANDLE hContact);
 extern int ChangeAvatar(HANDLE hContact);
 extern HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename);
 
@@ -473,7 +473,6 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                     char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
 					DBVARIANT dbv = {0};
 
-					EnterCriticalSection(&cachecs);
                     ProtectAvatar((WPARAM)hContact, 0);
 					if(MessageBox(0, TranslateT("Delete picture file from disk (may be necessary to force a reload, but will delete local pictures)?"), TranslateT("Reset contact picture"), MB_YESNO) == IDYES) {
 						if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
@@ -487,7 +486,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
                     DBDeleteContactSetting(hContact, szProto, "AvatarHash");
                     DBDeleteContactSetting(hContact, szProto, "AvatarSaved");
-					LeaveCriticalSection(&cachecs);
+					DeleteAvatar(hContact);
 
 					QueueAdd(requestQueue, hContact);
 
@@ -497,7 +496,6 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                 case IDC_DELETE:
 				{
 					DBVARIANT dbv = {0};
-					EnterCriticalSection(&cachecs);
                     ProtectAvatar((WPARAM)hContact, 0);
 					if(MessageBox(0, TranslateT("Delete picture file from disk (may be necessary to force a reload, but will delete local pictures)?"), TranslateT("Reset contact picture"), MB_YESNO) == IDYES) {
 						if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
@@ -509,9 +507,9 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                     DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+					DeleteAvatar(hContact);
                     SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
                     InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
-					LeaveCriticalSection(&cachecs);
                     break;
 				}
             }
@@ -694,7 +692,6 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                     char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
 					DBVARIANT dbv = {0};
 
-					EnterCriticalSection(&cachecs);
                     ProtectAvatar((WPARAM)hContact, 0);
 					if(MessageBox(0, TranslateT("Delete picture file from disk (may be necessary to force a reload, but will delete local pictures)?"), TranslateT("Reset contact picture"), MB_YESNO) == IDYES) {
 						if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
@@ -708,7 +705,7 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
                     DBDeleteContactSetting(hContact, szProto, "AvatarHash");
                     DBDeleteContactSetting(hContact, szProto, "AvatarSaved");
-					LeaveCriticalSection(&cachecs);
+					DeleteAvatar(hContact);
 
 					QueueAdd(requestQueue, hContact);
 
@@ -718,7 +715,7 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                 case IDC_DELETE:
 				{
 					DBVARIANT dbv = {0};
-					EnterCriticalSection(&cachecs);
+					
                     ProtectAvatar((WPARAM)hContact, 0);
 					if(MessageBox(0, TranslateT("Delete picture file from disk (may be necessary to force a reload, but will delete local pictures)?"), TranslateT("Reset contact picture"), MB_YESNO) == IDYES) {
 						if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
@@ -730,9 +727,9 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                     DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+					DeleteAvatar(hContact);
                     SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
                     InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
-					LeaveCriticalSection(&cachecs);
                     break;
 				}
             }
