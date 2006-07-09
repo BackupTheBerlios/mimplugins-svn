@@ -708,8 +708,6 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 					DeleteAvatar(hContact);
 
 					QueueAdd(requestQueue, hContact);
-
-                    DestroyWindow(hwndDlg);
                     break;
                 }
                 case IDC_DELETE:
