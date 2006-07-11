@@ -44,6 +44,9 @@ extern int DeleteAvatar(HANDLE hContact);
 extern int ChangeAvatar(HANDLE hContact);
 extern HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename);
 
+extern int AVS_pathToRelative(const char *sPrc, char *pOut);
+extern int AVS_pathToAbsolute(const char *pSrc, char *pOut);
+
 static BOOL dialoginit = TRUE;
 
 struct WindowData {
@@ -96,7 +99,7 @@ static void SetProtoPic(char *szProto)
             int i;
             
             CloseHandle(hFile);
-            CallService(MS_UTILS_PATHTORELATIVE, (WPARAM)FileName, (LPARAM)szNewPath);
+            AVS_pathToRelative(FileName, szNewPath);
             DBWriteContactSettingString(NULL, PPICT_MODULE, szProto, szNewPath);
             for(i = 0; i < g_protocount; i++) {
                 if(lstrlenA(g_ProtoPictures[i].szProtoname) == 0)
@@ -266,7 +269,7 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                             if(!DBGetContactSetting(NULL, PPICT_MODULE, g_selectedProto, &dbv)) {
                                 char szFinalPath[MAX_PATH];
                                 
-                                CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFinalPath);
+                                AVS_pathToAbsolute(dbv.pszVal, szFinalPath);
                                 SetWindowTextA(GetDlgItem(hwndDlg, IDC_PROTOAVATARNAME), szFinalPath);
                                 InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
                                 DBFreeVariant(&dbv);
@@ -564,15 +567,15 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
             szFinalName[0] = 0;
             
             if(is_locked && !DBGetContactSetting(hContact, "ContactPhoto", "Backup", &dbv)) {
-                CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFinalName);
+                AVS_pathToAbsolute(dbv.pszVal, szFinalName);
                 DBFreeVariant(&dbv);
             }
             else if(!DBGetContactSetting(hContact, "ContactPhoto", "RFile", &dbv)) {
-                CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFinalName);
+                AVS_pathToAbsolute(dbv.pszVal, szFinalName);
                 DBFreeVariant(&dbv);
             }
             else if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
-                CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFinalName);
+                AVS_pathToAbsolute(dbv.pszVal, szFinalName);
                 DBFreeVariant(&dbv);
             }
             szFinalName[MAX_PATH - 1] = 0;

@@ -43,6 +43,9 @@ Status (WINAPI *fGetImageEncodersSize)(UINT*, UINT*);
 Status (WINAPI *fGdipCreateBitmapFromHBITMAP)(HBITMAP hbm, HPALETTE hpal, GpBitmap** bitmap);
 Status (WINAPI *fGdipSaveImageToFile)(GpImage*, const WCHAR*, const CLSID*, const EncoderParameters*);
 
+extern int AVS_pathToRelative(const char *sPrc, char *pOut);
+extern int AVS_pathToAbsolute(const char *pSrc, char *pOut);
+
 void LoadGdiPlus(void)
 {
 	gdiPlusLoaded = false;
@@ -403,7 +406,7 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 	char szFilename[MAX_PATH];
 	int filenameLen;
     
-	if (!CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)szFile, (LPARAM)szFilename))
+    if (!AVS_pathToAbsolute(szFile, szFilename))
 		mir_snprintf(szFilename, SIZEOF(szFilename), "%s", szFile);
 	filenameLen=lstrlenA(szFilename);
 	if(filenameLen>4) {
@@ -851,7 +854,7 @@ int BmpFilterSaveBitmap(WPARAM wParam,LPARAM lParam)
 	char szFilename[MAX_PATH];
 	int filenameLen;
     
-	if (!CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)szFile, (LPARAM)szFilename))
+    if (!AVS_pathToAbsolute(szFile, szFilename))
 		mir_snprintf(szFilename, SIZEOF(szFilename), "%s", szFile);
 	filenameLen=lstrlenA(szFilename);
 	if(filenameLen>4) 

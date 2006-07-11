@@ -201,6 +201,67 @@ int _DebugTrace(HANDLE hContact, const char *fmt, ...)
 
 #endif
 
+/*
+ * path utilities (make avatar paths relative to *PROFILE* directory, not miranda directory.
+ * taken and modified from core services
+ */
+
+static int AVS_pathIsAbsolute(const char *path)
+{
+    if (!path || !(strlen(path) > 2)) 
+        return 0;
+    if ((path[1]==':'&&path[2]=='\\')||(path[0]=='\\'&&path[1]=='\\')) return 1;
+    return 0;
+}
+
+int AVS_pathToRelative(const char *pSrc, char *pOut)
+{
+    if (!pSrc||!strlen(pSrc)||strlen(pSrc)>MAX_PATH) return 0;
+    if (!AVS_pathIsAbsolute(pSrc)) {
+        mir_snprintf(pOut, MAX_PATH, "%s", pSrc);
+        return strlen(pOut);
+    }
+    else {
+        char szTmp[MAX_PATH];
+
+        mir_snprintf(szTmp, SIZEOF(szTmp), "%s", pSrc);
+        _strlwr(szTmp);
+        if (strstr(szTmp, g_szDBPath)) {
+            mir_snprintf(pOut, MAX_PATH, "%s", pSrc + strlen(g_szDBPath) + 1);
+            return strlen(pOut);
+        }
+        else {
+            mir_snprintf(pOut, MAX_PATH, "%s", pSrc);
+            return strlen(pOut);
+        }
+    }
+}
+
+int AVS_pathToAbsolute(const char *pSrc, char *pOut) 
+{
+    if (!pSrc||!strlen(pSrc)||strlen(pSrc)>MAX_PATH) return 0;
+    if (AVS_pathIsAbsolute(pSrc)||!isalnum(pSrc[0])) {
+        mir_snprintf(pOut, MAX_PATH, "%s", pSrc);
+        return strlen(pOut);
+    }
+    else {
+        mir_snprintf(pOut, MAX_PATH, "%s\\%s", g_szDBPath, pSrc);
+        return strlen(pOut);
+    }
+}
+
+void NotifyMetaAware(HANDLE hContact, AVATARCACHEENTRY *ace)
+{
+    NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)ace);
+    if(g_MetaAvail && DBGetContactSettingByte(NULL, g_szMetaName, "Enabled", 0)) {
+        if(DBGetContactSettingByte(hContact, g_szMetaName, "IsSubcontact", 0)) {
+            HANDLE hMasterContact = (HANDLE)DBGetContactSettingDword(hContact, g_szMetaName, "Handle", 0);
+            if(hMasterContact)
+                NotifyEventHooks(hEventChanged, (WPARAM)hMasterContact, (LPARAM)ace);
+        }
+    }
+}
+
 static int g_maxBlock = 0, g_curBlock = 0;
 static struct CacheNode **g_cacheBlocks = NULL;
 
@@ -295,7 +356,8 @@ int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode)
 
             cacheNode->ace.dwFlags = mode ? cacheNode->ace.dwFlags | attrib : cacheNode->ace.dwFlags & ~attrib;
             if(cacheNode->ace.dwFlags != dwFlags)
-                NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&cacheNode->ace);
+                NotifyMetaAware(hContact, &cacheNode->ace);
+                //NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&cacheNode->ace);
             break;
         }
 		cacheNode = cacheNode->pNextNode;
@@ -312,7 +374,7 @@ static void MakePathRelative(HANDLE hContact, char *path)
 	char szFinalPath[MAX_PATH];
 	szFinalPath[0] = '\0';
 
-	int result = CallService(MS_UTILS_PATHTORELATIVE, (WPARAM)path, (LPARAM)szFinalPath);
+	int result = AVS_pathToRelative(path, szFinalPath);
 	if(result && lstrlenA(szFinalPath) > 0) {
 	   DBWriteContactSettingString(hContact, "ContactPhoto", "RFile", szFinalPath);
 	   if(!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
@@ -361,25 +423,25 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
     if(szProto == NULL) {
         if(DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
 				&& !DBGetContactSetting(hContact, "ContactPhoto", "Backup", &dbv)) {
-            CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
+            AVS_pathToAbsolute(dbv.pszVal, szFilename);
             DBFreeVariant(&dbv);
         }
         else if(!DBGetContactSetting(hContact, "ContactPhoto", "RFile", &dbv)) {
-            CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
+            AVS_pathToAbsolute(dbv.pszVal, szFilename);
             DBFreeVariant(&dbv);
         }
         else if(!DBGetContactSetting(hContact, "ContactPhoto", "File", &dbv)) {
-            CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
+            AVS_pathToAbsolute(dbv.pszVal, szFilename);
             DBFreeVariant(&dbv);
         }
         else {
-            return -1;
+            return -2;
         }
     }
     else {
 		if(hContact == 0) {				// create a protocol picture in the proto picture cache
 			if(!DBGetContactSetting(NULL, PPICT_MODULE, szProto, &dbv)) {
-				CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
+                AVS_pathToAbsolute(dbv.pszVal, szFilename);
 				DBFreeVariant(&dbv);
 			}
 		}
@@ -390,7 +452,7 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
 					szFilename[0] = '\0';
 				}
 			} else if(!DBGetContactSetting(NULL, szProto, "AvatarFile", &dbv)) {
-				CallService(MS_UTILS_PATHTOABSOLUTE, (WPARAM)dbv.pszVal, (LPARAM)szFilename);
+                AVS_pathToAbsolute(dbv.pszVal, szFilename);
 				DBFreeVariant(&dbv);
 			}
 			else {
@@ -637,7 +699,6 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 				DBDeleteContactSetting(pai->hContact, "ContactPhoto", "Backup");
 			DBWriteContactSettingString(pai->hContact, "ContactPhoto", "File", "");
 			DBWriteContactSettingString(pai->hContact, "ContactPhoto", "File", pai->filename);
-
 			// Fix cache
 			ChangeAvatar(pai->hContact);
 
@@ -827,7 +888,7 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
 		DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
 	DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
     DBWriteContactSettingString(hContact, "ContactPhoto", "File", szFinalName);
-
+    MakePathRelative(hContact, szFinalName);
 	// Fix cache
 	ChangeAvatar(hContact);
 
@@ -1165,6 +1226,10 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
 
 	HANDLE hContact = (HANDLE) wParam;
 
+    if(g_MetaAvail && DBGetContactSettingByte(NULL, g_szMetaName, "Enabled", 0)) {
+        if(DBGetContactSettingDword(hContact, g_szMetaName, "NumContacts", 0) >= 1 && !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
+            hContact = (HANDLE)CallService(MS_MC_GETMOSTONLINECONTACT, (WPARAM)hContact, 0);
+    }
 	// Get the node
     struct CacheNode *node = FindAvatarInCache(hContact, TRUE);
 	if (node == NULL)
@@ -1231,7 +1296,8 @@ int DeleteAvatar(HANDLE hContact)
 
 	DeleteAvatarFromCache(hContact, FALSE);
 
-	NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)GetProtoDefaultAvatar(hContact));
+    NotifyMetaAware(hContact, (AVATARCACHEENTRY *) GetProtoDefaultAvatar(hContact));
+    //NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)GetProtoDefaultAvatar(hContact));
 
     return 0;
 }
@@ -1264,13 +1330,14 @@ int ChangeAvatar(HANDLE hContact)
 	{
 		LeaveCriticalSection(&node->cs);
 
-		NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)GetProtoDefaultAvatar(hContact));
+        NotifyMetaAware(hContact, (AVATARCACHEENTRY *)GetProtoDefaultAvatar(hContact));
+		//NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)GetProtoDefaultAvatar(hContact));
     }
     else 
 	{
 		LeaveCriticalSection(&node->cs);
-
-		NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&node->ace);
+        NotifyMetaAware(hContact, &node->ace);
+		//NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&node->ace);
     }
 
 	return 0;
@@ -1294,8 +1361,11 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     CLISTMENUITEM mi;
 
     g_MetaAvail = ServiceExists(MS_MC_GETPROTOCOLNAME) ? TRUE : FALSE;
-    if(g_MetaAvail)
+    if(g_MetaAvail) {
         g_szMetaName = (char *)CallService(MS_MC_GETPROTOCOLNAME, 0, 0);
+        if(g_szMetaName == NULL)
+            g_MetaAvail = FALSE;
+    }
 
 
     CallService(MS_PROTO_ENUMPROTOCOLS, (WPARAM)&g_protocount, (LPARAM)&g_protocols);
@@ -1431,8 +1501,7 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
     if(cws == NULL || g_shutDown)
         return 0;
 
-	if(wParam == 0) 
-	{
+	if(wParam == 0) {
 		if(!strcmp(cws->szSetting, "AvatarFile") 
 			|| !strcmp(cws->szSetting, "PictObject") 
 			|| !strcmp(cws->szSetting, "AvatarHash")) 
@@ -1441,7 +1510,6 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 		}
 		return 0;
 	}
-
 	return 0;
 }
 
@@ -1731,6 +1799,7 @@ static int LoadAvatarModule()
 	AllocCacheBlock();
 
     CallService(MS_DB_GETPROFILEPATH, MAX_PATH, (LPARAM)g_szDBPath);
+    _strlwr(g_szDBPath);
 
 	return 0;
 }
