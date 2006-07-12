@@ -1,58 +1,23 @@
 
         Version history:
 
-0.0.2.0 - 2006/06/19
+0.0.2.3 - 2006/07/11
 
-		+ New way to download avatars
+      * should now work better with metacontacts. Subcontact avatar changes are
+        "forwarded" to the master contact.
+        
+      * relative path names are now relative to the DATABASE directory, not
+        Mirandas root directory.
+        
+      * missing picture files and/or invalid database entries will now result
+        in a refresh request.                  
 
-0.0.1.24 - 2006/04/29
+0.0.2.0 introduced big internal changes. New request queue system (written by Pescuma)
+        loadavatars no longer depends on imgdecoder.dll, but needs a recent png2dib
+        plugin (supplied with Miranda 0.4.3.x nightly builds)
+        
+0.0.1.12 - 0.0.2.2 - released via nightlys (see SVN changelog)
 
-		* Loads GDI+ dynamically. With this the dll should load in Win98.
-
-0.0.1.23 - 2006/04/28
-
-		+ Services to load/resize/save images (Pescuma)
-		+ When doing a <reset> ask if the picture should be deleted from disk. (Nightwish)
-
-0.0.1.22 - 2006/04/26
-
-		+ service to protocol report it has changed my avatar
-		* fix for new folder service API
-		+ changed default Protocol Avatars Cache and now try to get avatars from 
-		  folder service and in db path
-		+ open set my avatar dialog in thumbnail view and only one at a time
-		+ open set contact avatar dialog in thumbnail view 
-
-0.0.1.21 - 2006/03/26
-
-		* fixes for image transparency
-
-0.0.1.19 - 2006/03/15
-
-		+ removed dependency of imagedecoder
-
-0.0.1.16 - 2006/02/11
-       
-		+ option to make all avatars square
-		
-		+ when contact change avatar, transparency settings are reset to defaults
-		
-		* fix in calcs of avatar size
-		
-0.0.1.15 - 2006/02/09
-       
-		+ make avatars grayscale
-		
-		+ service to set avatar
-		
-		+ if avatar changed, reset to defaults the transparency settings
-
-0.0.1.12 - 2005/11/10
-
-		+ improved filesystem searches for own avatar pictures at startup.
-		
-		* switched project and sources to C++ 
-		
 0.0.1.11 - 2005/11/10
 
         + added patch by pescuma for making normal avatars transparent (or semi-

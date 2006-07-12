@@ -34,8 +34,6 @@ extern struct protoPicCacheEntry *g_ProtoPictures;
 extern HANDLE hEventChanged;
 extern HINSTANCE g_hInst;
 extern HICON g_hIcon;
-extern BOOL g_imgDecoderAvail;
-extern CRITICAL_SECTION cachecs;
 
 extern int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szProto);
 extern int ProtectAvatar(WPARAM wParam, LPARAM lParam);

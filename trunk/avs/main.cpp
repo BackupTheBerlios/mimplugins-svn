@@ -23,38 +23,38 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "commonheaders.h"
 
-HINSTANCE g_hInst = 0;
-PLUGINLINK *pluginLink;
-HANDLE hMyAvatarsFolder = 0;
-HANDLE hProtocolAvatarsFolder = 0;
-int g_shutDown = FALSE;
+HINSTANCE   g_hInst = 0;
+PLUGINLINK  *pluginLink;
 
-PROTOCOLDESCRIPTOR **g_protocols = NULL;
+static int      g_shutDown = FALSE;
+static          PROTOCOLDESCRIPTOR **g_protocols = NULL;
+static char     g_installed_protos[1030];
+static char     g_szDBPath[MAX_PATH];		// database profile path (read at startup only)
+static DWORD    dwMainThreadID;
+static BOOL     g_MetaAvail = FALSE;
+static long     hwndSetMyAvatar = 0;
+static HANDLE   hMyAvatarsFolder = 0;
+static HANDLE   hProtocolAvatarsFolder = 0;
+
 int g_protocount = 0;
-char g_installed_protos[1030];
 
-static char g_szDBPath[MAX_PATH];		// database profile path (read at startup only)
-
-HANDLE hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hEventContactAvatarChanged = 0,
+HANDLE  hProtoAckHook = 0, hContactSettingChanged = 0, hEventChanged = 0, hEventContactAvatarChanged = 0,
 		hMyAvatarChanged = 0, hEventDeleted = 0, hUserInfoInitHook = 0;
-HICON g_hIcon = 0;
+HICON   g_hIcon = 0;
 
-static struct CacheNode *g_Cache = 0;
-struct protoPicCacheEntry *g_ProtoPictures = 0;
-struct protoPicCacheEntry *g_MyAvatars = 0;
+static struct   CacheNode *g_Cache = 0;
+struct          protoPicCacheEntry *g_ProtoPictures = 0;
+static struct   protoPicCacheEntry *g_MyAvatars = 0;
 
-CRITICAL_SECTION cachecs;
-DWORD            dwMainThreadID;
+static  CRITICAL_SECTION cachecs;
+char    *g_szMetaName = NULL;
 
-BOOL g_MetaAvail = FALSE;
-char *g_szMetaName = NULL;
 
 #ifndef SHVIEW_THUMBNAIL
 # define SHVIEW_THUMBNAIL 0x702D
 #endif
 
 // Stores the id of the dialog
-long hwndSetMyAvatar = 0;
 
 int			ChangeAvatar(HANDLE hContact);
 static int	ShutdownProc(WPARAM wParam, LPARAM lParam);
@@ -83,7 +83,7 @@ extern BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam,
 extern BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
-int SetProtoMyAvatar(char *protocol, HBITMAP hBmp);
+static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp);
 int DeleteAvatar(HANDLE hContact);
 
 
@@ -250,7 +250,7 @@ int AVS_pathToAbsolute(const char *pSrc, char *pOut)
     }
 }
 
-void NotifyMetaAware(HANDLE hContact, AVATARCACHEENTRY *ace)
+static void NotifyMetaAware(HANDLE hContact, AVATARCACHEENTRY *ace)
 {
     NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)ace);
     if(g_MetaAvail && DBGetContactSettingByte(NULL, g_szMetaName, "Enabled", 0)) {
@@ -400,7 +400,7 @@ static void MakePathRelative(HANDLE hContact)
 }
 
 
-void ResetTranspSettings(HANDLE hContact)
+static void ResetTranspSettings(HANDLE hContact)
 {
 	DBDeleteContactSetting(hContact, "ContactPhoto", "MakeTransparentBkg");
 	DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgNumPoints");
@@ -898,7 +898,7 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
 /*
  * see if is possible to set the avatar for the expecified protocol
  */
-int CanSetMyAvatar(WPARAM wParam, LPARAM lParam)
+static int CanSetMyAvatar(WPARAM wParam, LPARAM lParam)
 {
 	char *protocol = (char *) wParam;
     if(protocol == NULL)
@@ -911,7 +911,7 @@ int CanSetMyAvatar(WPARAM wParam, LPARAM lParam)
 /*
  * Callback to set thumbnaill view to open dialog
  */
-UINT_PTR CALLBACK OFNHookProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static UINT_PTR CALLBACK OFNHookProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch(msg)
 	{
@@ -954,7 +954,7 @@ UINT_PTR CALLBACK OFNHookProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
  * if lParam == NULL, a open file dialog will be opened, otherwise, lParam is taken as a FULL
  * image filename (will be checked for existance, though)
  */
-int SetMyAvatar(WPARAM wParam, LPARAM lParam)
+static int SetMyAvatar(WPARAM wParam, LPARAM lParam)
 {
 	char *protocol;
     char FileName[MAX_PATH];
@@ -1078,7 +1078,7 @@ int SetMyAvatar(WPARAM wParam, LPARAM lParam)
 	return ret;
 }
 	
-int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
+static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 {
 	// Protocol has max size?
 	int width = -1, height = -1;
@@ -1271,7 +1271,7 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
 // Just delete an avatar from cache
 // An cache entry is never deleted. What is deleted is the image handle inside it
 // This is done this way to keep track of which avatars avs have to keep track
-void DeleteAvatarFromCache(HANDLE hContact, BOOL forever)
+static void DeleteAvatarFromCache(HANDLE hContact, BOOL forever)
 {
 	struct CacheNode *node = FindAvatarInCache(hContact, FALSE);
 	if (node == NULL)
@@ -1409,8 +1409,13 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 	{
 		Update upd = {0};
 		char szCurrentVersion[30];
+#if defined(_UNICODE)
+        char *szVersionUrl = "http://miranda.or.at/files/avs/versionW.txt";
+        char *szUpdateUrl = "http://miranda.or.at/files/avs/avsW.zip";
+#else
 		char *szVersionUrl = "http://miranda.or.at/files/avs/version.txt";
 		char *szUpdateUrl = "http://miranda.or.at/files/avs/avs.zip";
+#endif
 		char *szFLVersionUrl = "http://www.miranda-im.org/download/details.php?action=viewfile&id=2361";
 		char *szFLUpdateurl = "http://www.miranda-im.org/download/feed.php?dlfile=2361";
 		char *szPrefix = "avs ";

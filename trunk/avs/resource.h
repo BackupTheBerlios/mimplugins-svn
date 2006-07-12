@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by avatars.rc
+// Used by version.rc
 //
 #define ID_USE_DEFAULTS                 3
 #define IDD_OPTIONS                     101
