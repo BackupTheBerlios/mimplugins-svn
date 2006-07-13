@@ -32,6 +32,7 @@ static char     g_installed_protos[1030];
 static char     g_szDBPath[MAX_PATH];		// database profile path (read at startup only)
 static DWORD    dwMainThreadID;
 static BOOL     g_MetaAvail = FALSE;
+BOOL            g_AvatarHistoryAvail = FALSE;
 static long     hwndSetMyAvatar = 0;
 static HANDLE   hMyAvatarsFolder = 0;
 static HANDLE   hProtocolAvatarsFolder = 0;
@@ -369,7 +370,7 @@ int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode)
  * convert the avatar image path to a relative one...
  * given: contact handle, path to image
  */
-static void MakePathRelative(HANDLE hContact, char *path) 
+void MakePathRelative(HANDLE hContact, char *path) 
 {
 	char szFinalPath[MAX_PATH];
 	szFinalPath[0] = '\0';
@@ -697,8 +698,9 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 			DBDeleteContactSetting(pai->hContact, "ContactPhoto", "RFile");
 			if (!DBGetContactSettingByte(pai->hContact, "ContactPhoto", "Locked", 0))
 				DBDeleteContactSetting(pai->hContact, "ContactPhoto", "Backup");
-			DBWriteContactSettingString(pai->hContact, "ContactPhoto", "File", "");
+			//DBWriteContactSettingString(pai->hContact, "ContactPhoto", "File", "");
 			DBWriteContactSettingString(pai->hContact, "ContactPhoto", "File", pai->filename);
+            MakePathRelative(pai->hContact, pai->filename);
 			// Fix cache
 			ChangeAvatar(pai->hContact);
 
@@ -886,7 +888,7 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
 	DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
 	if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
 		DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
-	DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
+	//DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
     DBWriteContactSettingString(hContact, "ContactPhoto", "File", szFinalName);
     MakePathRelative(hContact, szFinalName);
 	// Fix cache
@@ -1361,6 +1363,7 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     CLISTMENUITEM mi;
 
     g_MetaAvail = ServiceExists(MS_MC_GETPROTOCOLNAME) ? TRUE : FALSE;
+    g_AvatarHistoryAvail = ServiceExists("AvatarHistory/IsEnabled");
     if(g_MetaAvail) {
         g_szMetaName = (char *)CallService(MS_MC_GETPROTOCOLNAME, 0, 0);
         if(g_szMetaName == NULL)

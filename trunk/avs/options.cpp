@@ -44,6 +44,7 @@ extern HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename);
 
 extern int AVS_pathToRelative(const char *sPrc, char *pOut);
 extern int AVS_pathToAbsolute(const char *pSrc, char *pOut);
+extern void MakePathRelative(HANDLE hContact, char *path);
 
 static BOOL dialoginit = TRUE;
 

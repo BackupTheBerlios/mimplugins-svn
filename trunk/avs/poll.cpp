@@ -39,14 +39,17 @@ A queue to request items. One request is done at a time, REQUEST_WAIT_TIME milis
 
 ThreadQueue requestQueue = {0};
 
-void RequestThread(void *vParam);
+static void RequestThread(void *vParam);
 
 extern char *g_szMetaName;
 extern int ChangeAvatar(HANDLE hContact);
 extern int DeleteAvatar(HANDLE hContact);
+extern void MakePathRelative(HANDLE hContact, char *path);
+
 struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL add);
 
-extern HANDLE hEventContactAvatarChanged;
+extern HANDLE   hEventContactAvatarChanged;
+extern BOOL     g_AvatarHistoryAvail;
 
 #ifdef _DEBUG
 int _DebugTrace(const char *fmt, ...);
@@ -102,7 +105,7 @@ unsigned long forkthread (
 
 
 // Itens with higher priority at end
-int QueueSortItems(void *i1, void *i2)
+static int QueueSortItems(void *i1, void *i2)
 {
 	return ((QueueItem*)i2)->check_time - ((QueueItem*)i1)->check_time;
 }
@@ -126,7 +129,7 @@ void FreePolls()
 
 
 // Return true if this protocol has to be checked
-BOOL PollCheckProtocol(const char *szProto)
+static BOOL PollCheckProtocol(const char *szProto)
 {
 	int pCaps = CallProtoService(szProto, PS_GETCAPS, PFLAGNUM_4, 0);
 	int status = CallProtoService(szProto, PS_GETSTATUS, 0, 0);
@@ -137,17 +140,24 @@ BOOL PollCheckProtocol(const char *szProto)
 }
 
 // Return true if this contact has to be checked
-BOOL PollCheckContact(HANDLE hContact, const char *szProto)
+static BOOL PollCheckContact(HANDLE hContact, const char *szProto)
 {
 	int status = DBGetContactSettingWord(hContact, szProto, "Status", ID_STATUS_OFFLINE);
-	return status != ID_STATUS_OFFLINE
-		&& !DBGetContactSettingByte(hContact, "CList", "NotOnList", 0)
-		&& DBGetContactSettingByte(hContact, "CList", "ApparentMode", 0) != ID_STATUS_OFFLINE
-		&& !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-		&& FindAvatarInCache(hContact, FALSE) != NULL;
+    if(g_AvatarHistoryAvail && CallService("AvatarHistory/IsEnabled", 0, 0))
+        return status != ID_STATUS_OFFLINE
+            && !DBGetContactSettingByte(hContact, "CList", "NotOnList", 0)
+            && DBGetContactSettingByte(hContact, "CList", "ApparentMode", 0) != ID_STATUS_OFFLINE
+            && !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
+            && FindAvatarInCache(hContact, TRUE) != NULL;
+    else
+        return status != ID_STATUS_OFFLINE
+		    && !DBGetContactSettingByte(hContact, "CList", "NotOnList", 0)
+		    && DBGetContactSettingByte(hContact, "CList", "ApparentMode", 0) != ID_STATUS_OFFLINE
+		    && !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
+		    && FindAvatarInCache(hContact, FALSE) != NULL;
 }
 
-void QueueRemove(ThreadQueue &queue, HANDLE hContact)
+static void QueueRemove(ThreadQueue &queue, HANDLE hContact)
 {
 	if (queue.queue->items != NULL)
 	{
@@ -194,7 +204,7 @@ void QueueAdd(ThreadQueue &queue, HANDLE hContact)
 }
 
 
-void RequestThread(void *vParam)
+static void RequestThread(void *vParam)
 {
 	while (!Miranda_Terminated())
 	{
@@ -234,10 +244,14 @@ void RequestThread(void *vParam)
 					break;
 
 				char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
+                /*
 				if (szProto != NULL && 
 					((ServiceExists("AvatarHistory/IsEnabled") && CallService("AvatarHistory/IsEnabled", 0, 0))
 					 || (PollCheckProtocol(szProto) && PollCheckContact(hContact, szProto))))
-				{
+				{*/
+
+                if (szProto != NULL && PollCheckProtocol(szProto) && PollCheckContact(hContact, szProto))
+                {
 					// Request it
 					PROTO_AVATAR_INFORMATION pai_s;
 					pai_s.cbSize = sizeof(pai_s);
@@ -253,9 +267,9 @@ void RequestThread(void *vParam)
 						DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
 						if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
 							DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
-						DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
+						//DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
 						DBWriteContactSettingString(hContact, "ContactPhoto", "File", pai_s.filename);
-
+                        MakePathRelative(hContact, pai_s.filename);
 						// Fix cache
 						ChangeAvatar(hContact);
 					}
