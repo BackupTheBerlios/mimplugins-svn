@@ -68,7 +68,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 3), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 4), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -1395,18 +1395,19 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     for(i = 0; i < g_protocount; i++) {
         if(g_protocols[i]->type != PROTOTYPE_PROTOCOL)
             continue;
-        if(CreateAvatarInCache(0, (struct avatarCacheEntry *)&g_ProtoPictures[j], g_protocols[i]->szName) != -1)
+        if(CreateAvatarInCache(0, (struct avatarCacheEntry *)&g_ProtoPictures[j], g_protocols[i]->szName) == 1)
             j++;
         else {
             strncpy(g_ProtoPictures[j].szProtoname, g_protocols[i]->szName, 100);
             g_ProtoPictures[j++].szProtoname[99] = 0;
+            DBDeleteContactSetting(0, PPICT_MODULE, g_protocols[i]->szName);
         }
     }
 	j = 0;
     for(i = 0; i < g_protocount; i++) {
         if(g_protocols[i]->type != PROTOTYPE_PROTOCOL)
             continue;
-        if(CreateAvatarInCache((HANDLE)-1, (struct avatarCacheEntry *)&g_MyAvatars[j], g_protocols[i]->szName) != -1)
+        if(CreateAvatarInCache((HANDLE)-1, (struct avatarCacheEntry *)&g_MyAvatars[j], g_protocols[i]->szName) == 1)
             j++;
         else {
             strncpy(g_MyAvatars[j].szProtoname, g_protocols[i]->szName, 100);
