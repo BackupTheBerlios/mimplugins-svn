@@ -34,7 +34,7 @@ BEGIN
     GROUPBOX        "Active Protocols",IDC_STATIC,30,1,250,125
     PUSHBUTTON      "Set proto picture",IDC_SETPROTOPIC,168,12,106,14
     PUSHBUTTON      "Delete proto picture",IDC_REMOVEPROTOPIC,168,28,106,14
-    EDITTEXT        IDC_PROTOAVATARNAME,38,98,236,25,ES_READONLY,WS_EX_CLIENTEDGE
+    EDITTEXT        IDC_PROTOAVATARNAME,38,98,236,25,ES_MULTILINE | ES_READONLY,WS_EX_CLIENTEDGE
     CONTROL         "",IDC_PROTOPIC,"Button",BS_OWNERDRAW,193,45,56,50
     CONTROL         "Show warning messages (popup plugin required)",IDC_SHOWWARNINGS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,126,241,13
@@ -157,7 +157,6 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_AVATAR              ICON                    "res/avatar.ico"
-
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 

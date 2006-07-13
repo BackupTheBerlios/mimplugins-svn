@@ -28,7 +28,6 @@ PLUGINLINK  *pluginLink;
 
 static int      g_shutDown = FALSE;
 static          PROTOCOLDESCRIPTOR **g_protocols = NULL;
-static char     g_installed_protos[1030];
 static char     g_szDBPath[MAX_PATH];		// database profile path (read at startup only)
 static DWORD    dwMainThreadID;
 static BOOL     g_MetaAvail = FALSE;
@@ -1392,14 +1391,10 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 	g_MyAvatars = (struct protoPicCacheEntry *)malloc(sizeof(struct protoPicCacheEntry) * (g_protocount + 1));
     ZeroMemory((void *)g_MyAvatars, sizeof(struct protoPicCacheEntry) * (g_protocount + 1));
     
-    g_installed_protos[0] = '\0';
     j = 0;
     for(i = 0; i < g_protocount; i++) {
         if(g_protocols[i]->type != PROTOTYPE_PROTOCOL)
             continue;
-        strncat(g_installed_protos, "[", 1024);
-        strncat(g_installed_protos, g_protocols[i]->szName, 1024);
-        strncat(g_installed_protos, "] ", 1024);
         if(CreateAvatarInCache(0, (struct avatarCacheEntry *)&g_ProtoPictures[j], g_protocols[i]->szName) != -1)
             j++;
         else {
@@ -1418,7 +1413,6 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
             g_MyAvatars[j++].szProtoname[99] = 0;
         }
     }
-    DBWriteContactSettingString(NULL, AVS_MODULE, "InstalledProtos", g_installed_protos);
 
 
     // updater plugin support
