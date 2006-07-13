@@ -28,6 +28,22 @@ extern SESSION_INFO g_TabSession;
 extern MYGLOBALS	myGlobals;
 extern NEN_OPTIONS  nen_options;
 
+static void Chat_PlaySound(const char *szSound, HWND hWnd, struct MessageWindowData *dat)
+{
+    BOOL fPlay = TRUE;
+
+    if(nen_options.iNoSounds)
+        return;
+
+    if(dat) {
+        DWORD dwFlags = dat->pContainer->dwFlags;
+        fPlay = dwFlags & CNT_NOSOUND ? FALSE : TRUE;
+    }
+
+    if(fPlay)
+        SkinPlaySound(szSound);
+}
+
 int GetRichTextLength(HWND hwnd)
 {
 	GETTEXTLENGTHEX gtl;
@@ -424,33 +440,33 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 		switch (iEvent) {
 		case GC_EVENT_JOIN:
 			if(bInactive || !g_Settings.SoundsFocus)
-				SkinPlaySound("ChatJoin");
+				Chat_PlaySound("ChatJoin", si->hWnd, dat);
             hNotifyIcon = hIcons[ICON_JOIN];
 			break;
 		case GC_EVENT_PART:
 			if(bInactive || !g_Settings.SoundsFocus)
-				SkinPlaySound("ChatPart");
+				Chat_PlaySound("ChatPart", si->hWnd, dat);
             hNotifyIcon = hIcons[ICON_PART];
 			break;
 		case GC_EVENT_QUIT:
 			if(bInactive || !g_Settings.SoundsFocus)
-				SkinPlaySound("ChatQuit");
+				Chat_PlaySound("ChatQuit", si->hWnd, dat);
             hNotifyIcon = hIcons[ICON_QUIT];
 			break;
 		case GC_EVENT_ADDSTATUS:
 		case GC_EVENT_REMOVESTATUS:
 			if(bInactive || !g_Settings.SoundsFocus)
-				SkinPlaySound("ChatMode");
+				Chat_PlaySound("ChatMode", si->hWnd, dat);
             hNotifyIcon = hIcons[iEvent == GC_EVENT_ADDSTATUS ? ICON_ADDSTATUS : ICON_REMSTATUS];
 			break;
 		case GC_EVENT_KICK:
 			if(bInactive || !g_Settings.SoundsFocus)
-				SkinPlaySound("ChatKick");
+				Chat_PlaySound("ChatKick", si->hWnd, dat);
             hNotifyIcon = hIcons[ICON_KICK];
 			break;
 		case GC_EVENT_MESSAGE:
 			if(bInactive || !g_Settings.SoundsFocus)
-				SkinPlaySound("ChatMessage");
+				Chat_PlaySound("ChatMessage", si->hWnd, dat);
 			if(bInactive && !(si->wState&STATE_TALK)) {
 				si->wState |= STATE_TALK;
 				DBWriteContactSettingWord(si->hContact, si->pszModule,"ApparentMode",(LPARAM)(WORD) 40071);
@@ -458,22 +474,22 @@ BOOL DoSoundsFlashPopupTrayStuff(SESSION_INFO * si, GCEVENT * gce, BOOL bHighlig
 			break;
 		case GC_EVENT_ACTION:
 			if(bInactive || !g_Settings.SoundsFocus)
-				SkinPlaySound("ChatAction");
+				Chat_PlaySound("ChatAction", si->hWnd, dat);
             hNotifyIcon = hIcons[ICON_ACTION];
 			break;
 		case GC_EVENT_NICK:
 			if(bInactive || !g_Settings.SoundsFocus)
-				SkinPlaySound("ChatNick");
+				Chat_PlaySound("ChatNick", si->hWnd, dat);
             hNotifyIcon = hIcons[ICON_NICK];
 			break;
 		case GC_EVENT_NOTICE:
 			if(bInactive || !g_Settings.SoundsFocus)
-				SkinPlaySound("ChatNotice");
+				Chat_PlaySound("ChatNotice", si->hWnd, dat);
             hNotifyIcon = hIcons[ICON_NOTICE];
 			break;
 		case GC_EVENT_TOPIC:
 			if(bInactive || !g_Settings.SoundsFocus)
-				SkinPlaySound("ChatTopic");
+				Chat_PlaySound("ChatTopic", si->hWnd, dat);
             hNotifyIcon = hIcons[ICON_TOPIC];
             break;
 		default:break;
@@ -526,18 +542,21 @@ flash_and_switch:
     if(si->hWnd) {
         if(dat) {
             HWND hwndTab = GetParent(si->hWnd);
+            BOOL bForcedIcon = (hNotifyIcon == hIcons[ICON_HIGHLIGHT] || hNotifyIcon == hIcons[ICON_MESSAGE]);
 
-            if(IsIconic(dat->pContainer->hwnd) || 1) { //dat->pContainer->hwndActive != si->hWnd) {
-                
-                if(hNotifyIcon == hIcons[ICON_HIGHLIGHT])
-                    dat->iFlashIcon = hNotifyIcon;
-                else {
-                    if(dat->iFlashIcon != hIcons[ICON_HIGHLIGHT] && dat->iFlashIcon != hIcons[ICON_MESSAGE])
+            //if(IsIconic(dat->pContainer->hwnd) || 1) { //dat->pContainer->hwndActive != si->hWnd) {
+            if(iEvent & g_Settings.dwTrayIconFlags || bForcedIcon) { //dat->pContainer->hwndActive != si->hWnd) {
+                if(!bActiveTab) {
+                    if(hNotifyIcon == hIcons[ICON_HIGHLIGHT])
                         dat->iFlashIcon = hNotifyIcon;
-                }
-                if(bMustFlash) {
-                    SetTimer(si->hWnd, TIMERID_FLASHWND, TIMEOUT_FLASHWND, NULL);
-                    dat->mayFlashTab = TRUE;
+                    else {
+                        if(dat->iFlashIcon != hIcons[ICON_HIGHLIGHT] && dat->iFlashIcon != hIcons[ICON_MESSAGE])
+                            dat->iFlashIcon = hNotifyIcon;
+                    }
+                    if(bMustFlash) {
+                        SetTimer(si->hWnd, TIMERID_FLASHWND, TIMEOUT_FLASHWND, NULL);
+                        dat->mayFlashTab = TRUE;
+                    }
                 }
             }
 
@@ -561,10 +580,10 @@ flash_and_switch:
                 if (!(dat->pContainer->dwFlags & CNT_NOFLASH))
                     FlashContainer(dat->pContainer, 1, 0);
             }
-            if(hNotifyIcon && bInactive) {
+            if(hNotifyIcon && bInactive && (iEvent && g_Settings.dwTrayIconFlags || bForcedIcon)) {
                 HICON hIcon;
                 
-                if(/* !bActiveTab && */bMustFlash)
+                if(bMustFlash)
                     dat->hTabIcon = hNotifyIcon;
                 else if(dat->iFlashIcon) { //if(!bActiveTab) {
                     TCITEM item = {0};
@@ -916,11 +935,6 @@ BOOL LogToFile(SESSION_INFO * si, GCEVENT * gce)
 	return FALSE;
 }
 
-
-
-
-
-
 UINT CreateGCMenu(HWND hwndDlg, HMENU *hMenu, int iIndex, POINT pt, SESSION_INFO * si, char * pszUID, char * pszWordText)
 {
 	GCMENUITEMS gcmi = {0};
@@ -958,49 +972,88 @@ UINT CreateGCMenu(HWND hwndDlg, HMENU *hMenu, int iIndex, POINT pt, SESSION_INFO
 			ModifyMenuA(*hMenu, 4, MF_STRING|MF_BYPOSITION, 4, szMenuText); 
 		}
 		else
-			ModifyMenuA(*hMenu, 4, MF_STRING|MF_GRAYED|MF_BYPOSITION, 4, "No word to look up"); 
+			ModifyMenu(*hMenu, 4, MF_STRING|MF_GRAYED|MF_BYPOSITION, 4, TranslateT("No word to look up"));
 		gcmi.Type = MENU_ON_LOG;
 	}
 	else if(iIndex == 0)
 	{
-		char szTemp[30];
-		char szTemp2[30];
-		lstrcpynA(szTemp, Translate("&Message"), 24);
-		if(pszUID)
-			mir_snprintf(szTemp2, 29, "%s %s", szTemp, pszUID);
+		TCHAR szTemp[30];
+		TCHAR szTemp2[30], *szTemp4 = NULL;
+		lstrcpyn(szTemp, TranslateT("&Message"), 24);
+		if(pszUID) {
+#if defined(_UNICODE)
+            szTemp4 = (TCHAR *)CallService(MS_LANGPACK_PCHARTOTCHAR, 0, (LPARAM)pszUID);
+			mir_sntprintf(szTemp2, 29, _T("%s %s"), szTemp, szTemp4);
+            if(szTemp4)
+                mir_free(szTemp4);
+#else
+            mir_sntprintf(szTemp2, 29, _T("%s %s"), szTemp, pszUID);
+#endif
+        }
 		else
-			lstrcpynA(szTemp2, szTemp, 24);
-		if(lstrlenA(szTemp2) > 22)
-			lstrcpynA(szTemp2+22, "...", 4);
-		ModifyMenuA(*hMenu, ID_MESS, MF_STRING|MF_BYCOMMAND, ID_MESS, szTemp2); 
+			lstrcpyn(szTemp2, szTemp, 24);
+		if(lstrlen(szTemp2) > 22)
+			lstrcpyn(szTemp2+22, _T("..."), 4);
+		ModifyMenu(*hMenu, ID_MESS, MF_STRING|MF_BYCOMMAND, ID_MESS, szTemp2); 
 		gcmi.Type = MENU_ON_NICKLIST;
 	}
 	NotifyEventHooks(hBuildMenuEvent, 0, (WPARAM)&gcmi);
 	if (gcmi.nItems > 0)
 		AppendMenu(*hMenu, MF_SEPARATOR, 0, 0);
-	for(i = 0; i < gcmi.nItems; i++)
-	{
+	for(i = 0; i < gcmi.nItems; i++) {
+        TCHAR *tzTemp;
+
 		if(gcmi.Item[i].uType == MENU_NEWPOPUP)
 		{
 			hSubMenu = CreateMenu();
-			AppendMenuA(*hMenu, gcmi.Item[i].bDisabled?MF_POPUP|MF_GRAYED:MF_POPUP, (UINT)hSubMenu, gcmi.Item[i].pszDesc);
+#if defined(_UNICODE)
+            tzTemp = (TCHAR *)CallService(MS_LANGPACK_PCHARTOTCHAR, 0, (LPARAM)gcmi.Item[i].pszDesc);
+            AppendMenu(*hMenu, gcmi.Item[i].bDisabled?MF_POPUP|MF_GRAYED:MF_POPUP, (UINT)hSubMenu, tzTemp);
+            mir_free(tzTemp);
+#else
+            AppendMenu(*hMenu, gcmi.Item[i].bDisabled?MF_POPUP|MF_GRAYED:MF_POPUP, (UINT)hSubMenu, gcmi.Item[i].pszDesc);
+#endif
 		}
-		else if(gcmi.Item[i].uType == MENU_POPUPITEM)
-			AppendMenuA(hSubMenu==0?*hMenu:hSubMenu, gcmi.Item[i].bDisabled?MF_STRING|MF_GRAYED:MF_STRING, gcmi.Item[i].dwID, gcmi.Item[i].pszDesc);
-		else if(gcmi.Item[i].uType == MENU_POPUPSEPARATOR)
-			AppendMenuA(hSubMenu==0?*hMenu:hSubMenu, MF_SEPARATOR, 0, gcmi.Item[i].pszDesc);
-		else if(gcmi.Item[i].uType == MENU_SEPARATOR)
-			AppendMenuA(*hMenu, MF_SEPARATOR, 0, gcmi.Item[i].pszDesc);
-		else if(gcmi.Item[i].uType == MENU_ITEM)
-			AppendMenuA(*hMenu, gcmi.Item[i].bDisabled?MF_STRING|MF_GRAYED:MF_STRING, gcmi.Item[i].dwID, gcmi.Item[i].pszDesc);
+		else if(gcmi.Item[i].uType == MENU_POPUPITEM) {
+#if defined(_UNICODE)
+            tzTemp = (TCHAR *)CallService(MS_LANGPACK_PCHARTOTCHAR, 0, (LPARAM)gcmi.Item[i].pszDesc);
+            AppendMenu(hSubMenu==0?*hMenu:hSubMenu, gcmi.Item[i].bDisabled?MF_STRING|MF_GRAYED:MF_STRING, gcmi.Item[i].dwID, tzTemp);
+            mir_free(tzTemp);
+#else
+            AppendMenu(hSubMenu==0?*hMenu:hSubMenu, gcmi.Item[i].bDisabled?MF_STRING|MF_GRAYED:MF_STRING, gcmi.Item[i].dwID, gcmi.Item[i].pszDesc);
+#endif
+        }
+		else if(gcmi.Item[i].uType == MENU_POPUPSEPARATOR) {
+#if defined(_UNICODE)
+            tzTemp = (TCHAR *)CallService(MS_LANGPACK_PCHARTOTCHAR, 0, (LPARAM)gcmi.Item[i].pszDesc);
+            AppendMenu(hSubMenu==0?*hMenu:hSubMenu, MF_SEPARATOR, 0, tzTemp);
+            mir_free(tzTemp);
+#else
+            AppendMenu(hSubMenu==0?*hMenu:hSubMenu, MF_SEPARATOR, 0, gcmi.Item[i].pszDesc);
+#endif
+        }
+		else if(gcmi.Item[i].uType == MENU_SEPARATOR) {
+#if defined(_UNICODE)
+            tzTemp = (TCHAR *)CallService(MS_LANGPACK_PCHARTOTCHAR, 0, (LPARAM)gcmi.Item[i].pszDesc);
+            AppendMenu(*hMenu, MF_SEPARATOR, 0, tzTemp);
+            mir_free(tzTemp);
+#else
+            AppendMenu(*hMenu, MF_SEPARATOR, 0, gcmi.Item[i].pszDesc);
+#endif
+        }
+		else if(gcmi.Item[i].uType == MENU_ITEM) {
+#if defined(_UNICODE)
+            tzTemp = (TCHAR *)CallService(MS_LANGPACK_PCHARTOTCHAR, 0,  (LPARAM)gcmi.Item[i].pszDesc);
+            AppendMenu(*hMenu, gcmi.Item[i].bDisabled?MF_STRING|MF_GRAYED:MF_STRING, gcmi.Item[i].dwID, tzTemp);
+            mir_free(tzTemp);
+#else
+            AppendMenu(*hMenu, gcmi.Item[i].bDisabled?MF_STRING|MF_GRAYED:MF_STRING, gcmi.Item[i].dwID, gcmi.Item[i].pszDesc);
+#endif
+        }
 	}
 	return TrackPopupMenu(*hMenu, TPM_RETURNCMD, pt.x, pt.y, 0, hwndDlg, NULL);
 
 }
-
-
-
-
 
 void DestroyGCMenu(HMENU *hMenu, int iIndex)
 {
@@ -1014,11 +1067,6 @@ void DestroyGCMenu(HMENU *hMenu, int iIndex)
 		RemoveMenu(*hMenu, iIndex, MF_BYPOSITION);
 	}
 }
-
-
-
-
-
 
 BOOL DoEventHookAsync(HWND hwnd, char * pszID, char * pszModule, int iType, char * pszUID, char * pszText, DWORD dwItem)
 {

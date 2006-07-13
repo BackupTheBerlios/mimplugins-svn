@@ -28,7 +28,6 @@ HMENU			g_hMenu = NULL;
 FONTINFO		aFonts[OPTIONS_FONTCOUNT];
 HICON			hIcons[30];
 BOOL			IEviewInstalled = FALSE;
-HBRUSH			hEditBkgBrush = NULL;
 HBRUSH			hListBkgBrush = NULL;
 
 struct GlobalLogSettings_t g_Settings;
@@ -43,12 +42,6 @@ int             g_chat_fully_initialized = 0;
 int Chat_Load(PLUGINLINK *link)
 {
 	BOOL bFlag = FALSE;
-
-	#ifndef NDEBUG //mem leak detector :-) Thanks Tornado!
-	int flag = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG); // Get current flag
-	flag |= _CRTDBG_LEAK_CHECK_DF; // Turn on leak-checking bit
-	_CrtSetDbgFlag(flag); // Set flag to the new value
-	#endif
 
     if(!DBGetContactSettingByte(NULL, SRMSGMOD_T, "enable_chat", 0))
         return 0;

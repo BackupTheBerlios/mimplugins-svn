@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 containeroptions.c  dialog implementaion for setting the container options.
                     part of tabSRMM
-$Id: containeroptions.c,v 1.22 2006/01/13 23:21:58 ghazan Exp $
+$Id: containeroptions.c 3262 2006-07-02 02:49:08Z nightwish2004 $
 */
 
 #include "commonheaders.h"
@@ -31,6 +31,7 @@ $Id: containeroptions.c,v 1.22 2006/01/13 23:21:58 ghazan Exp $
 extern      struct ContainerWindowData *pFirstContainer;
 extern      MYGLOBALS myGlobals;
 extern      NEN_OPTIONS nen_options;
+extern      BOOL g_skinnedContainers;
 
 static void ReloadGlobalContainerSettings()
 {
@@ -91,6 +92,7 @@ BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
                 TCHAR szNewTitle[128];
                 struct ContainerWindowData *pContainer = 0;
 				DWORD dwFlags = 0;
+                DWORD dwTemp[2];
 
                 SetWindowLong(hwndDlg, GWL_USERDATA, (LONG) lParam);
                 pContainer = (struct ContainerWindowData *) lParam;
@@ -102,7 +104,11 @@ BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
                 ShowWindow(hwndDlg, SW_SHOWNORMAL);
                 CheckDlgButton(hwndDlg, IDC_CNTPRIVATE, !(pContainer->dwPrivateFlags & CNT_GLOBALSETTINGS));
                 EnableWindow(GetDlgItem(hwndDlg, IDC_TITLEFORMAT), IsDlgButtonChecked(hwndDlg, IDC_USEPRIVATETITLE));
-                SendMessage(hwndDlg, DM_SC_INITDIALOG, (WPARAM)(pContainer->dwPrivateFlags & CNT_GLOBALSETTINGS ? myGlobals.m_GlobalContainerFlags : pContainer->dwPrivateFlags), (LPARAM)pContainer->dwTransparency);
+
+                dwTemp[0] = (pContainer->dwPrivateFlags & CNT_GLOBALSETTINGS ? myGlobals.m_GlobalContainerFlags : pContainer->dwPrivateFlags);
+                dwTemp[1] = pContainer->dwTransparency;
+
+                SendMessage(hwndDlg, DM_SC_INITDIALOG, (WPARAM)0, (LPARAM)dwTemp);
                 CheckDlgButton(hwndDlg, IDC_USEPRIVATETITLE, pContainer->dwFlags & CNT_TITLE_PRIVATE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_TITLEFORMAT), IsDlgButtonChecked(hwndDlg, IDC_USEPRIVATETITLE));
                 SendDlgItemMessage(hwndDlg, IDC_TITLEFORMAT, EM_LIMITTEXT, TITLE_FORMATLEN - 1, 0);
@@ -126,11 +132,21 @@ BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
                 case IDC_CNTPRIVATE:
-                    if(IsDlgButtonChecked(hwndDlg, IDC_CNTPRIVATE)) 
-                        SendMessage(hwndDlg, DM_SC_INITDIALOG, pContainer->dwPrivateFlags, pContainer->dwTransparency);
-                    else
-                        SendMessage(hwndDlg, DM_SC_INITDIALOG, myGlobals.m_GlobalContainerFlags, pContainer->dwTransparency);
+                {
+                    DWORD dwTemp[2];
+
+                    if(IsDlgButtonChecked(hwndDlg, IDC_CNTPRIVATE)) {
+                        dwTemp[0] = pContainer->dwPrivateFlags;
+                        dwTemp[1] = pContainer->dwTransparency;
+                        SendMessage(hwndDlg, DM_SC_INITDIALOG, 0, (LPARAM)dwTemp);
+                    }
+                    else {
+                        dwTemp[0] = myGlobals.m_GlobalContainerFlags;;
+                        dwTemp[1] = pContainer->dwTransparency;
+                        SendMessage(hwndDlg, DM_SC_INITDIALOG, 0, (LPARAM)dwTemp);
+                    }
                     break;
+                }
                 case IDC_SAVESIZEASGLOBAL:
                 {
                     WINDOWPLACEMENT wp = {0};
@@ -226,9 +242,11 @@ BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
                     break;
             }
             break;
-        case DM_SC_INITDIALOG: {
-            DWORD dwFlags = (DWORD) wParam;
-            DWORD dwTransparency = (DWORD)lParam;
+            case DM_SC_INITDIALOG: {
+            DWORD *dwTemp = (DWORD *)lParam;
+
+            DWORD dwFlags = dwTemp[0];
+            DWORD dwTransparency = dwTemp[1];
             char szBuf[20];
             
             CheckDlgButton(hwndDlg, IDC_O_HIDETITLE, dwFlags & CNT_NOTITLE);
@@ -253,7 +271,7 @@ BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
             CheckDlgButton(hwndDlg, IDC_INFOPANEL, dwFlags & CNT_INFOPANEL);
             CheckDlgButton(hwndDlg, IDC_USEGLOBALSIZE, dwFlags & CNT_GLOBALSIZE);
             
-            if (LOBYTE(LOWORD(GetVersion())) >= 5 ) {
+            if (LOBYTE(LOWORD(GetVersion())) >= 5 && !g_skinnedContainers) {
                 CheckDlgButton(hwndDlg, IDC_TRANSPARENCY, dwFlags & CNT_TRANSPARENCY);
             } else {
                 EnableWindow(GetDlgItem(hwndDlg, IDC_TRANSPARENCY), 0);

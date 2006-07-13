@@ -227,7 +227,7 @@ BOOL SM_SetOffline(char *pszID, char * pszModule)
 	}
 	return TRUE;
 }
-BOOL SM_SetStatusEx(char *pszID, char * pszModule, char * pszText)
+BOOL SM_SetStatusEx(char *pszID, char * pszModule, char * pszText, int flags )
 {
 	SESSION_INFO *pTemp = m_WndList, *pLast = NULL;
 
@@ -238,7 +238,7 @@ BOOL SM_SetStatusEx(char *pszID, char * pszModule, char * pszText)
 	{
 		if ((!pszID || !lstrcmpiA(pTemp->pszID,pszID)) && !lstrcmpiA(pTemp->pszModule,pszModule))
 		{
-			UM_SetStatusEx(pTemp->pUsers, pszText);	
+			UM_SetStatusEx(pTemp->pUsers, pszText, flags);
 			if(pTemp->hWnd)
 				RedrawWindow(GetDlgItem(pTemp->hWnd, IDC_LIST), NULL, NULL, RDW_INVALIDATE);
 			if(pszID)
@@ -249,6 +249,7 @@ BOOL SM_SetStatusEx(char *pszID, char * pszModule, char * pszText)
 	}
 	return TRUE;
 }
+
 HICON SM_GetStatusIcon(SESSION_INFO * si, USERINFO * ui, char *szIndicator)
 {
 	STATUSINFO * ti;
@@ -374,11 +375,12 @@ BOOL SM_AddEvent(char *pszID, char * pszModule, GCEVENT * gce, BOOL bIsHighlight
 			li->time = gce->time;
 			li->bIsHighlighted = bIsHighlighted;
 			
-			if (g_Settings.iEventLimit > 0 && pTemp->iEventCount > g_Settings.iEventLimit + 20)
+			if(g_Settings.iEventLimit > 0 && pTemp->iEventCount > g_Settings.iEventLimit + 20)
 			{
 				LM_TrimLog(&pTemp->pLog, &pTemp->pLogEnd, pTemp->iEventCount - g_Settings.iEventLimit);
+                pTemp->wasTrimmed = TRUE;
 				pTemp->iEventCount = g_Settings.iEventLimit;
-				return FALSE;
+				return TRUE; // FALSE
 			}
 			return TRUE;
 		}
@@ -1517,33 +1519,25 @@ USERINFO* UM_GiveStatus(USERINFO* pUserList, char* pszUID, WORD status)
 	}
 	return 0;
 }
-BOOL UM_SetStatusEx(USERINFO* pUserList, char* pszText)
+BOOL UM_SetStatusEx(USERINFO* pUserList, char* pszText, int flags )
 {
 	USERINFO *pTemp = pUserList, *pLast = NULL;
+	int bOnlyMe = ( flags & 1 ) != 0, bSetStatus = ( flags & 2 ) != 0;
 
 	while (pTemp != NULL)
 	{
-		char * s;
-		pTemp->iStatusEx = 0;
+		if ( !bOnlyMe )
+			pTemp->iStatusEx = 0;
 
-		if(!pszText)
-		{
-			pLast = pTemp;
-			pTemp = pTemp->next;
-			continue;
-		}
-		s = strstr(pszText, pTemp->pszUID);
-		if (s)
-		{
-			if(s == pszText || s[-1] == ' ')
-			{
-				if(s[lstrlenA(pTemp->pszUID)] == ' ' || s[lstrlenA(pTemp->pszUID)] == '\0')
-				{
-					pTemp->iStatusEx = 1;
+		if ( pszText != NULL ) {
+			char* s = strstr(pszText, pTemp->pszUID);
+			if ( s ) {
+				pTemp->iStatusEx = 0;
+				if ( s == pszText || s[-1] == ' ' )
+					if ( s[lstrlenA(pTemp->pszUID)] == ' ' || s[lstrlenA(pTemp->pszUID)] == '\0' )
+						pTemp->iStatusEx = ( !bOnlyMe || bSetStatus ) ? 1 : 0;
+		}	}
 
-				}
-			}	
-		}
 		pLast = pTemp;
 		pTemp = pTemp->next;
 	}

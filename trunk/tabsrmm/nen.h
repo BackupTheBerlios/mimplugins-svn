@@ -21,7 +21,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-$Id: nen.h,v 1.16 2005/07/01 00:39:11 nightwish2004 Exp $
+$Id: nen.h 2869 2006-05-16 18:43:45Z nightwish2004 $
 
 Event popups for tabSRMM - most of the code taken from NewEventNotify (see copyright above)
 

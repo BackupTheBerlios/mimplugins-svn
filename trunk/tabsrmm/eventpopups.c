@@ -21,7 +21,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-$Id: eventpopups.c 2942 2006-05-23 19:29:50Z nightwish2004 $
+$Id: eventpopups.c 3291 2006-07-08 05:12:53Z nightwish2004 $
 
 Event popups for tabSRMM - most of the code taken from NewEventNotify (see copyright above)
 
@@ -48,7 +48,8 @@ extern      HANDLE hTrayAnimThread, g_hEvent;
 PLUGIN_DATA *PopUpList[20];
 static int PopupCount = 0;
 
-BOOL bWmNotify = TRUE;
+BOOL        bWmNotify = TRUE;
+extern int  safe_wcslen(wchar_t *msg, int chars);
 
 static void CheckForRemoveMask()
 {
@@ -1226,7 +1227,7 @@ static int PopupShowW(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent
 
 #endif
 
-int PopupPreview(NEN_OPTIONS *pluginOptions)
+static int PopupPreview(NEN_OPTIONS *pluginOptions)
 {
     PopupShow(pluginOptions, NULL, NULL, EVENTTYPE_MESSAGE);
     PopupShow(pluginOptions, NULL, NULL, EVENTTYPE_URL);
@@ -1243,7 +1244,7 @@ int PopupPreview(NEN_OPTIONS *pluginOptions)
  * truncates the announce string at 255 characters (balloon tooltip limitation)
  */
 
-int tabSRMM_ShowBalloon(WPARAM wParam, LPARAM lParam, UINT eventType)
+static int tabSRMM_ShowBalloon(WPARAM wParam, LPARAM lParam, UINT eventType)
 {
     DBEVENTINFO dbei = {0};
     char *szPreview;
@@ -1337,11 +1338,8 @@ nounicode:
     if(nen_options.iAnnounceMethod == 3) {                          // announce via OSD service
         int iLen = _tcslen(nim.szInfo) + _tcslen(nim.szInfoTitle) + 30;
         TCHAR *finalOSDString = malloc(iLen * sizeof(TCHAR));
-#if defined(_UNICODE)
-        mir_snprintfW(finalOSDString, iLen, L"Message from %s: %s", nim.szInfoTitle, nim.szInfo);
-#else
-        mir_snprintf(finalOSDString, iLen, Translate("Message from %s: %s"), nim.szInfoTitle, nim.szInfo);
-#endif        
+
+        mir_sntprintf(finalOSDString, iLen, TranslateT("Message from %s: %s"), nim.szInfoTitle, nim.szInfo);
         CallService("OSD/Announce", (WPARAM)finalOSDString, 0);
         free(finalOSDString);
     }
@@ -1381,7 +1379,7 @@ void UpdateTrayMenuState(struct MessageWindowData *dat, BOOL bForced)
             mii.fMask |= MIIM_STRING;
 #if defined(_UNICODE)
 			mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", dat->bIsMeta ? dat->szMetaProto : dat->szProto, "%nick%", dat->szStatus[0] ? dat->szStatus : "(undef)", mii.dwItemData & 0x0000ffff);
-            szMenuEntryW = EncodeWithNickname(szMenuEntry, dat->szNickname, dat->codePage);
+            szMenuEntryW = EncodeWithNickname(szMenuEntry, dat->szNickname, myGlobals.m_LangPackCP);
             mii.dwTypeData = (LPWSTR)szMenuEntryW;
             mii.cch = lstrlenW(szMenuEntryW) + 1;
 #else
@@ -1429,7 +1427,7 @@ int UpdateTrayMenu(struct MessageWindowData *dat, WORD wStatus, char *szProto, c
             DeleteMenu(myGlobals.g_hMenuTrayUnread, (UINT_PTR)hContact, MF_BYCOMMAND);
 #if defined(_UNICODE)
             mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", szProto, "%nick%", szMyStatus, mii.dwItemData & 0x0000ffff);
-            szMenuEntryW = (WCHAR *)EncodeWithNickname((const char *)szMenuEntry, (const wchar_t *)szNick, dat->codePage);
+            szMenuEntryW = (WCHAR *)EncodeWithNickname((const char *)szMenuEntry, (const wchar_t *)szNick, myGlobals.m_LangPackCP);
             AppendMenuW(myGlobals.g_hMenuTrayUnread, MF_BYCOMMAND | MF_STRING, (UINT_PTR)hContact, szMenuEntryW);
 #else
             mir_snprintf(szMenuEntry, sizeof(szMenuEntry), "%s: %s (%s) [%d]", szProto, szNick, szMyStatus, mii.dwItemData & 0x0000ffff);

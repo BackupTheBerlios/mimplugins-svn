@@ -51,6 +51,7 @@
 				AdditionalIncludeDirectories="..\..\include"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="commonheaders.h"
 				AssemblerListingLocation=".\Debug/"
@@ -145,12 +146,16 @@
 				InlineFunctionExpansion="1"
 				FavorSizeOrSpeed="2"
 				OmitFramePointers="true"
+				WholeProgramOptimization="false"
 				AdditionalIncludeDirectories="..\..\include"
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
+				ExceptionHandling="1"
 				RuntimeLibrary="2"
-				EnableFunctionLevelLinking="true"
+				BufferSecurityCheck="false"
+				EnableFunctionLevelLinking="false"
 				FloatingPointModel="1"
+				RuntimeTypeInfo="false"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="commonheaders.h"
 				WarningLevel="3"
@@ -220,6 +225,7 @@
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
+			WholeProgramOptimization="0"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -246,12 +252,15 @@
 				Name="VCCLCompilerTool"
 				Optimization="1"
 				InlineFunctionExpansion="1"
+				WholeProgramOptimization="false"
 				AdditionalIncludeDirectories="..\..\include"
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
 				ExceptionHandling="0"
 				RuntimeLibrary="2"
-				EnableFunctionLevelLinking="true"
+				BufferSecurityCheck="false"
+				EnableFunctionLevelLinking="false"
+				RuntimeTypeInfo="false"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="commonheaders.h"
 				AssemblerListingLocation=".\Release/"
@@ -351,6 +360,7 @@
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="commonheaders.h"
 				BrowseInformation="1"
@@ -377,6 +387,8 @@
 				SuppressStartupBanner="true"
 				DelayLoadDLLs=""
 				GenerateDebugInformation="true"
+				GenerateMapFile="true"
+				MapFileName="$(TargetDir)$(TargetName).map"
 				ImportLibrary="$(IntDir)/$(TargetName).lib"
 				TargetMachine="1"
 			/>
@@ -464,8 +476,21 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\generic_msghandlers.c"
+				>
+			</File>
+			<File
 				RelativePath=".\hotkeyhandler.c"
 				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						FavorSizeOrSpeed="2"
+						WholeProgramOptimization="true"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="ImageDataObject.cpp"
@@ -719,6 +744,15 @@
 			<File
 				RelativePath=".\tabctrl.c"
 				>
+				<FileConfiguration
+					Name="Release Unicode|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="2"
+						CompileAs="0"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="templates.c"
@@ -732,9 +766,9 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						Optimization="2"
+						Optimization="1"
 						InlineFunctionExpansion="0"
-						FavorSizeOrSpeed="1"
+						FavorSizeOrSpeed="2"
 						UsePrecompiledHeader="0"
 					/>
 				</FileConfiguration>
@@ -1075,6 +1109,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\generic_msghandlers.h"
+				>
+			</File>
+			<File
 				RelativePath="IcoLib.h"
 				>
 			</File>
@@ -1087,15 +1125,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\m_cln_skinedit.h"
+				>
+			</File>
+			<File
 				RelativePath=".\m_fingerprint.h"
 				>
 			</File>
 			<File
 				RelativePath=".\m_flash.h"
-				>
-			</File>
-			<File
-				RelativePath="m_fontservice.h"
 				>
 			</File>
 			<File
@@ -1156,14 +1194,6 @@
 			</File>
 			<File
 				RelativePath="resource.h"
-				>
-			</File>
-			<File
-				RelativePath=".\chat\resource.h"
-				>
-			</File>
-			<File
-				RelativePath=".\resrc1.h"
 				>
 			</File>
 			<File
@@ -1288,11 +1318,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Miranda-IM\res\dropuser.cur"
+				RelativePath="..\..\src\res\dropuser.cur"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\res\dropuser.cur"
+				RelativePath="..\..\Miranda-IM\res\dropuser.cur"
 				>
 			</File>
 			<File
@@ -1316,11 +1346,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Miranda-IM\res\history.ico"
+				RelativePath=".\res\angeli-icons\History.ico"
 				>
 			</File>
 			<File
-				RelativePath=".\res\angeli-icons\History.ico"
+				RelativePath="..\..\Miranda-IM\res\history.ico"
 				>
 			</File>
 			<File
@@ -1344,11 +1374,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\res\icon1.ico"
+				RelativePath="..\..\src\res\icon1.ico"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\res\icon1.ico"
+				RelativePath=".\res\icon1.ico"
 				>
 			</File>
 			<File
@@ -1520,11 +1550,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\res\angeli-icons\Save.ico"
+				RelativePath=".\res\save.ico"
 				>
 			</File>
 			<File
-				RelativePath=".\res\save.ico"
+				RelativePath=".\res\angeli-icons\Save.ico"
 				>
 			</File>
 			<File
@@ -1549,14 +1579,6 @@
 			</File>
 			<File
 				RelativePath=".\res\status.ico"
-				>
-			</File>
-			<File
-				RelativePath=".\chat\Icons\tag1.ico"
-				>
-			</File>
-			<File
-				RelativePath=".\chat\Icons\tag2.ico"
 				>
 			</File>
 			<File
@@ -1595,20 +1617,12 @@
 				RelativePath=".\chat\Icons\window.ico"
 				>
 			</File>
-			<File
-				RelativePath=".\res\xstatus.bmp"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Misc Files"
 			>
 			<File
 				RelativePath=".\docs\changelog.txt"
-				>
-			</File>
-			<File
-				RelativePath=".\hotkeyhandler.c"
 				>
 			</File>
 			<File

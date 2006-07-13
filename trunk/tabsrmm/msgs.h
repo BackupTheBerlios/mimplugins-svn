@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define _MSGS_H
 
 #define __MATHMOD_SUPPORT 1
-// #define _RELEASE_BUILD 1
 
 #ifdef __GNUWIN32__
 #define COLOR_HOTLIGHT 26
@@ -41,7 +40,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define CFM_ALL (CFM_EFFECTS | CFM_SIZE | CFM_FACE | CFM_OFFSET | CFM_CHARSET)
 #define SES_EXTENDBACKCOLOR 4           // missing from the mingw32 headers
-
+#define MIM_BACKGROUND              0x00000002
 #define GT_SELECTION 2
 #define ST_SELECTION 2
 #define ST_DEFAULT 0
@@ -88,11 +87,11 @@ typedef struct __gettextex
 
 #ifndef _WIN32_IE
 typedef struct tagNMMOUSE {
-    NMHDR   hdr;
-    DWORD_PTR dwItemSpec;
-    DWORD_PTR dwItemData;
-    POINT   pt;
-    LPARAM  dwHitInfo; // any specifics about where on the item or control the mouse is
+    NMHDR       hdr;
+    DWORD_PTR   dwItemSpec;
+    DWORD_PTR   dwItemData;
+    POINT       pt;
+    LPARAM      dwHitInfo; // any specifics about where on the item or control the mouse is
 } NMMOUSE, *LPNMMOUSE;
 #endif
 
@@ -132,16 +131,16 @@ typedef struct _settextex {
 #define HISTORY_INITIAL_ALLOCSIZE 300
 
 struct NewMessageWindowLParam {
-	HANDLE hContact;
-	int isSend;
-	const char *szInitialText;
-	int iTabID;				// XXX mod: tab support
-	int iTabImage;			// XXX mod tabs...
-    int iActivate;
-    TCITEM item;
-	struct ContainerWindowData *pContainer;		// parent container description
-    BOOL bWantPopup;
-    HANDLE hdbEvent;
+	HANDLE  hContact;
+	int     isWchar;
+	const   char *szInitialText;
+	int     iTabID;				// XXX mod: tab support
+	int     iTabImage;			// XXX mod tabs...
+    int     iActivate;
+    TCITEM  item;
+	struct  ContainerWindowData *pContainer;		// parent container description
+    BOOL    bWantPopup;
+    HANDLE  hdbEvent;
 };
 
 // flags for the container dwFlags 
@@ -184,22 +183,24 @@ struct NewMessageWindowLParam {
 #define CNT_CREATEFLAG_CLONED 1
 #define CNT_CREATEFLAG_MINIMIZED 2
 
-#define MWF_LOG_ALL (MWF_LOG_SHOWNICK | MWF_LOG_SHOWTIME | MWF_LOG_SHOWSECONDS | \
+#define MWF_LOG_ALL (MWF_LOG_NORMALTEMPLATES | MWF_LOG_SHOWTIME | MWF_LOG_SHOWSECONDS | \
         MWF_LOG_SHOWDATES | MWF_LOG_INDENT | MWF_LOG_TEXTFORMAT | MWF_LOG_SYMBOLS | MWF_LOG_INOUTICONS | \
         MWF_LOG_SHOWICONS | MWF_LOG_GRID | MWF_LOG_INDIVIDUALBKG | MWF_LOG_GROUPMODE)
         
-#define MWF_LOG_DEFAULT (MWF_LOG_SHOWTIME | MWF_LOG_SHOWNICK | MWF_LOG_SHOWDATES | MWF_LOG_SYMBOLS | MWF_LOG_INDIVIDUALBKG | MWF_LOG_GRID | MWF_LOG_GROUPMODE)
+#define MWF_LOG_DEFAULT (MWF_LOG_SHOWTIME | MWF_LOG_NORMALTEMPLATES | MWF_LOG_SHOWDATES | MWF_LOG_SYMBOLS | MWF_LOG_INDIVIDUALBKG | MWF_LOG_GRID | MWF_LOG_GROUPMODE)
 
+/*
 struct ProtocolData {
     char szName[30];
     int  iFirstIconID;
-};
+};*/
 
 #define EM_SUBCLASSED             (WM_USER+0x101)
 #define EM_SEARCHSCROLLER         (WM_USER+0x103)
 #define EM_VALIDATEBOTTOM         (WM_USER+0x104)
 #define EM_THEMECHANGED           (WM_USER+0x105)
 #define EM_UNSUBCLASSED			  (WM_USER+0x106)
+#define EM_REFRESHWITHOUTCLIP     (WM_USER+0x107)
 
 #define HM_EVENTSENT         (WM_USER+10)
 #define DM_REMAKELOG         (WM_USER+11)
@@ -210,19 +211,19 @@ struct ProtocolData {
 #define DM_UPDATETITLE       (WM_USER+16)
 #define DM_APPENDTOLOG       (WM_USER+17)
 #define DM_ERRORDECIDED      (WM_USER+18)
-#define DM_SCROLLLOGTOBOTTOM (WM_USER+19)
+#define DM_SPLITSENDACK      (WM_USER+19)
 #define DM_TYPING            (WM_USER+20)
 #define DM_UPDATEWINICON     (WM_USER+21)
-#define DM_UPDATELASTMESSAGE (WM_USER+22)
+#define DM_UPDATELASTMESSAGE (WM_USER+22) 
 
 #define DM_SELECTTAB		 (WM_USER+23)
 #define DM_CLOSETABATMOUSE   (WM_USER+24)
-#define DM_SAVELOCALE        (WM_USER+25)
+//#define DM_SAVELOCALE        (WM_USER+25) *free*
 #define DM_SETLOCALE         (WM_USER+26)
 #define DM_SESSIONLIST       (WM_USER+27)
 #define DM_QUERYLASTUNREAD   (WM_USER+28)
 #define DM_QUERYPENDING      (WM_USER+29)
-#define DM_UPDATEPICLAYOUT   (WM_USER+30)
+//#define DM_UPDATEPICLAYOUT   (WM_USER+30) ** FREE **
 #define DM_QUERYCONTAINER    (WM_USER+31)
 #define DM_QUERYCONTAINERHWND    (WM_USER+32)
 #define DM_CALCMINHEIGHT     (WM_USER+33)       // msgdialog asked to recalculate its minimum height
@@ -245,7 +246,7 @@ struct ProtocolData {
 #define DM_ADDDIVIDER        (WM_USER+50)
 #define DM_STATUSMASKSET     (WM_USER+51)       
 #define DM_CONTACTSETTINGCHANGED (WM_USER+52)
-//#define DM_PICTURECHANGED    (WM_USER+53) **free**
+#define DM_UPDATESTATUSMSG   (WM_USER+53)
 #define DM_PROTOACK          (WM_USER+54)
 //#define DM_RETRIEVEAVATAR    (WM_USER+55) **free**
 #define DM_CONFIGURETOOLBAR  (WM_USER+56)
@@ -253,7 +254,7 @@ struct ProtocolData {
 #define DM_ACTIVATETOOLTIP   (WM_USER+58)
 #define DM_UINTOCLIPBOARD   (WM_USER+59)
 #define DM_SPLITTEREMERGENCY (WM_USER+60)
-#define DM_RECALCPICTURESIZE (WM_USER+61)
+#define DM_RECALCPICTURESIZE (WM_USER+61) **FREE**
 #define DM_FORCEDREMAKELOG   (WM_USER+62)
 #define DM_QUERYFLAGS        (WM_USER+63)
 #define DM_STATUSBARCHANGED  (WM_USER+64)
@@ -270,7 +271,7 @@ struct ProtocolData {
 #define DM_REMOVECLISTEVENT  (WM_USER+75)
 #define DM_GETWINDOWSTATE    (WM_USER+76)
 #define DM_DOCREATETAB       (WM_USER+77)
-#define DM_LOADLOCALE        (WM_USER+78)
+#define DM_DELAYEDSCROLL     (WM_USER+78)
 #define DM_REPLAYQUEUE       (WM_USER+79)
 #define DM_HKDETACH          (WM_USER+80)
 #define DM_HKSAVESIZE        (WM_USER+81)
@@ -394,20 +395,22 @@ extern const int msgDlgFontCount;
 #define TIMERID_HEARTBEAT    2
 #define TIMEOUT_HEARTBEAT    20000
 #define TIMERID_HOVER 10
+#define TIMERID_SCROLL 20
 
 #define SRMSGMOD "SRMsg"
 #define SRMSGMOD_T "Tab_SRMsg"
 #define FONTMODULE "TabSRMM_Fonts"
+#define CHAT_FONTMODULE "TabSRMM_chat_Fonts"
 
 #define IDM_STAYONTOP (WM_USER + 1)
 #define IDM_NOTITLE (WM_USER + 2)
 #define IDM_MOREOPTIONS (WM_USER +4)
 
-typedef DWORD (WINAPI *PSLWA)(HWND, DWORD, BYTE, DWORD);
-typedef BOOL (WINAPI *PULW)(HWND, HDC, POINT *, SIZE *, HDC, POINT *, COLORREF, BLENDFUNCTION *, DWORD);
-typedef BOOL (WINAPI *PFWEX)(FLASHWINFO *);
-typedef BOOL (WINAPI *PAB)(HDC, int, int, int, int, HDC, int, int, int, int, BLENDFUNCTION);
-typedef BOOL (WINAPI *PGF)(HDC, PTRIVERTEX, ULONG, PVOID, ULONG, ULONG);
+typedef DWORD   (WINAPI *PSLWA)(HWND, DWORD, BYTE, DWORD);
+typedef BOOL    (WINAPI *PULW)(HWND, HDC, POINT *, SIZE *, HDC, POINT *, COLORREF, BLENDFUNCTION *, DWORD);
+typedef BOOL    (WINAPI *PFWEX)(FLASHWINFO *);
+typedef BOOL    (WINAPI *PAB)(HDC, int, int, int, int, HDC, int, int, int, int, BLENDFUNCTION);
+typedef BOOL    (WINAPI *PGF)(HDC, PTRIVERTEX, ULONG, PVOID, ULONG, ULONG);
 
 // constants for the container management functions
 
@@ -427,8 +430,6 @@ typedef BOOL (WINAPI *PGF)(HDC, PTRIVERTEX, ULONG, PVOID, ULONG, ULONG);
 #define HOTKEY_MODIFIERS_CTRLALT 1
 #define HOTKEY_MODIFIERS_ALTSHIFT 2
 
-#define BUDDYPOUNCE_SERVICENAME "BuddyPounce/AddToPounce"
-
 struct MsgLogIcon {
     HBITMAP hBmp, hoBmp;
     HDC hdc, hdcMem;
@@ -442,7 +443,7 @@ char *Utf8_Encode(const WCHAR *str);
 
 struct CPTABLE {
     UINT cpId;
-    char *cpName;
+    TCHAR *cpName;
 };
 
 #define LOI_TYPE_FLAG 1
@@ -469,8 +470,9 @@ struct LISTOPTIONSITEM {
 #define SBI_HIDDEN 4
 #define SBI_DISABLED 8
 #define SBI_TOGGLE   16
+#define SBI_HANDLEBYCLIENT 32
 
-// fixed sidebaritem identifiers
+// fixed stock button identifiers
 
 #define IDC_SBAR_SLIST                  1111
 #define IDC_SBAR_FAVORITES              1112
@@ -478,12 +480,16 @@ struct LISTOPTIONSITEM {
 #define IDC_SBAR_SETUP                  1114
 #define IDC_SBAR_USERPREFS              1115
 #define IDC_SBAR_TOGGLEFORMAT           1117
+#define IDC_SBAR_CANCEL                 1118
 
 struct SIDEBARITEM {
-    UINT uId;
-    DWORD dwFlags;
-    HICON *hIcon;
-    TCHAR  szTip[128];
+    UINT    uId;
+    DWORD   dwFlags;
+    HICON   *hIcon, *hIconPressed, *hIconHover;
+    char    *szName;
+    void    (*pfnAction)(ButtonItem *item, HWND hwndDlg, struct MessageWindowData *dat, HWND hwndItem);
+    void    (*pfnCallback)(ButtonItem *item, HWND hwndDlg, struct MessageWindowData *dat, HWND hwndItem);
+    TCHAR   *tszTip;
 };
 
 #if defined(_UNICODE)
@@ -504,54 +510,6 @@ static __inline int mir_snprintfW(wchar_t *buffer, size_t count, const wchar_t* 
 #define FONTF_UNDERLINE 4
 
 #define RTFCACHELINESIZE 128
-
-/*
- * skinning stuff - most is taken from clist_nicer as I'am using basically the same skinning engine
- */
-
-typedef struct _tagImageItem {
-    char szName[40];
-    HBITMAP hbm;
-    BYTE bLeft, bRight, bTop, bBottom;      // sizing margins
-    BYTE alpha;
-    DWORD dwFlags;
-    HDC hdc;
-    HBITMAP hbmOld;
-    LONG inner_height, inner_width;
-    LONG width, height;
-    BLENDFUNCTION bf;
-    BYTE bStretch;
-	LONG glyphMetrics[4];
-    struct _tagImageItem *nextItem;
-	HBRUSH fillBrush;
-} ImageItem;
-
-typedef struct {
-    char szName[40];
-    char szDBname[40];
-    int statusID;
-
-    BYTE GRADIENT;
-    BYTE CORNER;
-
-    DWORD COLOR;
-    DWORD COLOR2;
-
-    BYTE COLOR2_TRANSPARENT;
-
-    DWORD TEXTCOLOR;
-
-    int ALPHA;
-
-    int MARGIN_LEFT;
-    int MARGIN_TOP;
-    int MARGIN_RIGHT;
-    int MARGIN_BOTTOM;
-
-    BYTE IGNORED;
-    BYTE RADIUS;
-    ImageItem *imageItem;
-} StatusItems_t;
 
 #define ID_EXTBKCONTAINER 0
 #define ID_EXTBKBUTTONBAR 1
@@ -574,63 +532,20 @@ typedef struct {
 #define ID_EXTBKTABITEMHOTTRACK 18
 #define ID_EXTBKTABITEMHOTTRACKBOTTOM 19
 #define ID_EXTBKSTATUSBARPANEL 20
-#define ID_EXTBK_LAST 20
-
-#define CLCDEFAULT_GRADIENT 0
-#define CLCDEFAULT_CORNER 0
-
-#define CLCDEFAULT_COLOR 0xE0E0E0
-#define CLCDEFAULT_COLOR2 0xE0E0E0
-
-#define CLCDEFAULT_TEXTCOLOR 0x000000
-
-#define CLCDEFAULT_COLOR2_TRANSPARENT 1
-
-#define CLCDEFAULT_ALPHA 85
-#define CLCDEFAULT_MRGN_LEFT 0
-#define CLCDEFAULT_MRGN_TOP 0
-#define CLCDEFAULT_MRGN_RIGHT 0
-#define CLCDEFAULT_MRGN_BOTTOM 0
-#define CLCDEFAULT_IGNORE 1
-
-// FLAGS
-#define CORNER_NONE 0
-#define CORNER_ACTIVE 1
-#define CORNER_TL 2
-#define CORNER_TR 4
-#define CORNER_BR 8
-#define CORNER_BL 16
-
-#define GRADIENT_NONE 0
-#define GRADIENT_ACTIVE 1
-#define GRADIENT_LR 2
-#define GRADIENT_RL 4
-#define GRADIENT_TB 8
-#define GRADIENT_BT 16
-
-#define IMAGE_PERPIXEL_ALPHA 1
-#define IMAGE_FLAG_DIVIDED 2
-#define IMAGE_FILLSOLID 4
-#define IMAGE_GLYPH 8
-
-#define IMAGE_STRETCH_V 1
-#define IMAGE_STRETCH_H 2
-#define IMAGE_STRETCH_B 4
+#define ID_EXTBKSTATUSBAR      21
+#define ID_EXTBKUSERLIST       22
+#define ID_EXTBK_LAST 22
 
 #define SESSIONTYPE_IM 1
 #define SESSIONTYPE_CHAT 2
 
-#define SIDEBARWIDTH         30
+#define DEFAULT_SIDEBARWIDTH         30
 
-static void __fastcall IMG_RenderImageItem(HDC hdc, ImageItem *item, RECT *rc);
-void IMG_InitDecoder();
-static void LoadSkinItems(char *file);
-static void IMG_CreateItem(ImageItem *item, const char *fileName, HDC hdc);
-static void IMG_LoadItems(char *szFileName);
-void IMG_DeleteItems();
-void DrawAlpha(HDC hdcwnd, PRECT rc, DWORD basecolor, BYTE alpha, DWORD basecolor2, BOOL transparent, DWORD FLG_GRADIENT, DWORD FLG_CORNER, BYTE RADIUS, ImageItem *imageItem);
-void SkinDrawBG(HWND hwndClient, HWND hwnd, struct ContainerWindowData *pContainer, RECT *rcClient, HDC hdcTarget);
+#define THEME_READ_FONTS 1
+#define THEME_READ_TEMPLATES 2
+#define THEME_READ_ALL (THEME_READ_FONTS | THEME_READ_TEMPLATES)
 
-void ReloadContainerSkin();
+#define BUDDYPOUNCE_SERVICENAME "BuddyPounce/AddToPounce"
+#define IDC_TBFIRSTUID 10000            // first uId for custom buttons
 
 #endif

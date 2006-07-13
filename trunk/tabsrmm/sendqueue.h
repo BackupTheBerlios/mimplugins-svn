@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: sendqueue.h,v 1.8 2005/06/20 03:29:04 nightwish2004 Exp $
+$Id: sendqueue.h 3102 2006-06-09 01:38:44Z nightwish2004 $
 
 */
 
@@ -48,7 +48,7 @@ $Id: sendqueue.h,v 1.8 2005/06/20 03:29:04 nightwish2004 Exp $
 void ClearSendJob(int iIndex);
 int FindNextFailedMsg(HWND hwndDlg, struct MessageWindowData *dat);
 void HandleQueueError(HWND hwndDlg, struct MessageWindowData *dat, int iEntry);
-int AddToSendQueue(HWND hwndDlg, struct MessageWindowData *dat, int iLen, int isUnicode);
+int AddToSendQueue(HWND hwndDlg, struct MessageWindowData *dat, int iLen, int dwFlags);
 static int SendQueuedMessage(HWND hwndDlg, struct MessageWindowData *dat, int iEntry);
 void CheckSendQueue(HWND hwndDlg, struct MessageWindowData *dat);
 void LogErrorMessage(HWND hwndDlg, struct MessageWindowData *dat, int iSendJobIndex, char *szErrMsg);
@@ -66,4 +66,5 @@ int ActivateExistingTab(struct ContainerWindowData *pContainer, HWND hwndChild);
 static int CALLBACK PopupDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 char *MsgServiceName(HANDLE hContact, struct MessageWindowData *dat, int isUnicode);
+int RTL_Detect(WCHAR *pszwText);
 

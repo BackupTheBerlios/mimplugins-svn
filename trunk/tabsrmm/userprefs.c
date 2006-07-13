@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: userprefs.c,v 1.11 2005/10/23 12:07:39 nightwish2004 Exp $
+$Id: userprefs.c 3179 2006-06-20 02:15:23Z nightwish2004 $
 
 Dialog to setup per contact (user) prefs.
 Invoked by the contact menu entry, handled by the SetUserPrefs Service
@@ -44,15 +44,15 @@ extern struct CPTABLE cpTable[];
 
 static HWND hCpCombo;
 
-static BOOL CALLBACK FillCpCombo(LPCSTR str)
+static BOOL CALLBACK FillCpCombo(LPCTSTR str)
 {
 	int i;
 	UINT cp;
 
-    cp = atoi(str);
+    cp = _ttoi(str);
 	for (i=0; cpTable[i].cpName != NULL && cpTable[i].cpId!=cp; i++);
 	if (cpTable[i].cpName != NULL) {
-        LRESULT iIndex = SendMessageA(hCpCombo, CB_ADDSTRING, -1, (LPARAM) Translate(cpTable[i].cpName));
+        LRESULT iIndex = SendMessage(hCpCombo, CB_ADDSTRING, -1, (LPARAM) TranslateTS(cpTable[i].cpName));
         SendMessage(hCpCombo, CB_SETITEMDATA, (WPARAM)iIndex, cpTable[i].cpId);
     }
 	return TRUE;
@@ -67,7 +67,11 @@ BOOL CALLBACK DlgProcUserPrefs(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
         {
             DBVARIANT dbv;
             TCHAR szBuffer[180];
-            DWORD sCodePage, contact_gmt_diff;
+#if defined(_UNICODE)
+            TCHAR contactName[100];
+            DWORD sCodePage;
+#endif
+			DWORD contact_gmt_diff;
             int i, offset;
 			DWORD maxhist = DBGetContactSettingDword((HANDLE)lParam, SRMSGMOD_T, "maxhist", 0);
             BYTE bOverride = DBGetContactSettingByte((HANDLE)lParam, SRMSGMOD_T, "mwoverride", 0);
@@ -77,7 +81,6 @@ BOOL CALLBACK DlgProcUserPrefs(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
             BYTE bLTR = DBGetContactSettingByte((HANDLE)lParam, SRMSGMOD_T, "RTL", 1);
             BYTE bSplit = DBGetContactSettingByte((HANDLE)lParam, SRMSGMOD_T, "splitoverride", 0);
 			BYTE bInfoPanel = DBGetContactSettingByte((HANDLE)lParam, SRMSGMOD_T, "infopanel", 0);
-            TCHAR contactName[100];
             char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)lParam, 0);
 
             hContact = (HANDLE)lParam;
@@ -128,7 +131,7 @@ BOOL CALLBACK DlgProcUserPrefs(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 #if defined(_UNICODE)
             hCpCombo = GetDlgItem(hwndDlg, IDC_CODEPAGES);
             sCodePage = DBGetContactSettingDword(hContact, SRMSGMOD_T, "ANSIcodepage", 0);
-            EnumSystemCodePagesA(FillCpCombo, CP_INSTALLED);
+            EnumSystemCodePages(FillCpCombo, CP_INSTALLED);
             SendDlgItemMessage(hwndDlg, IDC_CODEPAGES, CB_INSERTSTRING, 0, (LPARAM)TranslateT("Use default codepage"));
             if(sCodePage == 0)
                 SendDlgItemMessage(hwndDlg, IDC_CODEPAGES, CB_SETCURSEL, (WPARAM)0, 0);

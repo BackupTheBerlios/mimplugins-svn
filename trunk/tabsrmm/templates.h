@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-$Id: templates.h,v 1.6 2005/06/22 19:00:37 nightwish2004 Exp $
+$Id: templates.h 2878 2006-05-17 08:07:11Z nightwish2004 $
 
 /*
  * templates for the message log...

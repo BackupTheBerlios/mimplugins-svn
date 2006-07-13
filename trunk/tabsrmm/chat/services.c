@@ -113,7 +113,7 @@ int Chat_ModulesLoaded(WPARAM wParam,LPARAM lParam)
         return 0;
     
     { 
-		char * mods[3] = {"Chat","ChatFonts"};
+		char * mods[3] = {"Chat",CHAT_FONTMODULE};
 		CallService("DBEditorpp/RegisterModule",(WPARAM)mods,(LPARAM)2);
 	}
 
@@ -302,7 +302,6 @@ int Service_NewChat(WPARAM wParam, LPARAM lParam)
 			}
 			si->iSplitterX = g_Settings.iSplitterX;
 			si->iSplitterY = g_Settings.iSplitterY;
-			si->iLogFilterFlags = (int)DBGetContactSettingDword(NULL, "Chat", "FilterFlags", 0x03E0);
 			si->bFilterEnabled = DBGetContactSettingByte(NULL, "Chat", "FilterEnabled", 0);
 			si->bNicklistEnabled = DBGetContactSettingByte(NULL, "Chat", "ShowNicklist", 1);
 			if((MODULEINFO *)MM_FindModule((char *)gcw->pszModule)->bColor)
@@ -320,6 +319,9 @@ int Service_NewChat(WPARAM wParam, LPARAM lParam)
 			else
 				mir_snprintf(szTemp, sizeof(szTemp), "%s", gcw->pszName);
 			si->hContact = CList_AddRoom((char *)gcw->pszModule, (char *)gcw->pszID, szTemp, si->iType); 
+
+            si->iLogFilterFlags = (int)DBGetContactSettingDword(si->hContact, "Chat", "FilterFlags", DBGetContactSettingDword(NULL, "Chat", "FilterFlags", 0x03E0));
+
 			DBWriteContactSettingString(si->hContact, si->pszModule , "Topic", "");
 			DBDeleteContactSetting(si->hContact, "CList", "StatusMsg");
 			if(si->pszStatusbarText)
@@ -512,7 +514,7 @@ static int DoControl(GCEVENT * gce, WPARAM wp)
 	}
 	else if(gce->pDest->iType == GC_EVENT_SETSTATUSEX)
 	{
-		SM_SetStatusEx((char *)gce->pDest->pszID, (char *)gce->pDest->pszModule, (char *)gce->pszText);
+		SM_SetStatusEx((char *)gce->pDest->pszID, (char *)gce->pDest->pszModule, (char *)gce->pszText, gce->dwItemData);
 	}
 	else 
 		return 1;
@@ -579,6 +581,7 @@ HWND CreateNewRoom(struct ContainerWindowData *pContainer, SESSION_INFO *si, BOO
     HWND hwndNew = 0;
     struct NewMessageWindowLParam newData = {0};
     HANDLE hContact = si->hContact;
+    HWND hwndTab;
 #if defined(_UNICODE)
     WCHAR contactNameW[100];
 #endif    
@@ -595,7 +598,7 @@ HWND CreateNewRoom(struct ContainerWindowData *pContainer, SESSION_INFO *si, BOO
         }
     }
 	newData.hContact = hContact;
-    newData.isSend = 0;
+    newData.isWchar = 0;
     newData.szInitialText = NULL;
     szProto = (char *) CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM) newData.hContact, 0);
 
@@ -646,13 +649,41 @@ HWND CreateNewRoom(struct ContainerWindowData *pContainer, SESSION_INFO *si, BOO
 	newData.item.mask = TCIF_TEXT | TCIF_IMAGE | TCIF_PARAM;
     newData.item.iImage = 0;
 
+    hwndTab = GetDlgItem(pContainer->hwnd, 1159);
+
 	// hide the active tab
-	if(pContainer->hwndActive && bActivateTab) {
+	if(pContainer->hwndActive && bActivateTab)
 		ShowWindow(pContainer->hwndActive, SW_HIDE);
-	}
-	newItem = TabCtrl_InsertItem(GetDlgItem(pContainer->hwnd, 1159), pContainer->iTabIndex++, &newData.item);
+
+    {
+        int iTabIndex_wanted = DBGetContactSettingDword(hContact, SRMSGMOD_T, "tabindex", pContainer->iChilds * 100);
+        int iCount = TabCtrl_GetItemCount(hwndTab);
+        TCITEM item = {0};
+        HWND hwnd;
+        struct MessageWindowData *dat;
+        int relPos;
+        int i;
+
+        pContainer->iTabIndex = iCount;
+        if(iCount > 0) {
+            for(i = iCount - 1; i >= 0; i--) {
+                item.mask = TCIF_PARAM;
+                TabCtrl_GetItem(hwndTab, i, &item);
+                hwnd = (HWND)item.lParam;
+                dat = (struct MessageWindowData *)GetWindowLong(hwnd, GWL_USERDATA);
+                if(dat) {
+                    relPos = DBGetContactSettingDword(dat->hContact, SRMSGMOD_T, "tabindex", i * 100);
+                    if(iTabIndex_wanted <= relPos)
+                        pContainer->iTabIndex = i;
+                }
+            }
+        }
+    }
+
+	newItem = TabCtrl_InsertItem(hwndTab, pContainer->iTabIndex, &newData.item);
+    SendMessage(hwndTab, EM_REFRESHWITHOUTCLIP, 0, 0);
 	if (bActivateTab)
-        TabCtrl_SetCurSel(GetDlgItem(pContainer->hwnd, 1159), newItem);
+        TabCtrl_SetCurSel(hwndTab, newItem);
 	newData.iTabID = newItem;
 	newData.iTabImage = newData.item.iImage;
 	newData.pContainer = pContainer;

@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 The Hotkey-Handler is a hidden dialog window which needs to be in place for
 handling the global hotkeys registered by tabSRMM.
 
-$Id: hotkeyhandler.c 2959 2006-05-26 01:27:05Z nightwish2004 $
+$Id: hotkeyhandler.c 3291 2006-07-08 05:12:53Z nightwish2004 $
 
 The hotkeyhandler is a small, invisible window which cares about a few things:
 
@@ -39,6 +39,7 @@ The hotkeyhandler is a small, invisible window which cares about a few things:
 
 #include "commonheaders.h"
 #pragma hdrstop
+#include "sendqueue.h"
 
 extern struct       ContainerWindowData *pFirstContainer;
 extern HANDLE       hMessageWindowList;
@@ -59,13 +60,16 @@ void HandleMenuEntryFromhContact(int iSelection)
     HWND hWnd = WindowList_Find(hMessageWindowList, (HANDLE)iSelection);
     SESSION_INFO *si = NULL;
 
+    if(iSelection == 0)
+        return;
+
     if(hWnd && IsWindow(hWnd)) {
         struct ContainerWindowData *pContainer = 0;
         SendMessage(hWnd, DM_QUERYCONTAINER, 0, (LPARAM)&pContainer);
         if(pContainer) {
             ActivateExistingTab(pContainer, hWnd);
-            if(GetForegroundWindow() != pContainer->hwnd)
-                SetForegroundWindow(pContainer->hwnd);
+            pContainer->hwndSaved = 0;
+            SetForegroundWindow(pContainer->hwnd);
         }
         else
             CallService(MS_MSG_SENDMESSAGE, (WPARAM)iSelection, 0);
@@ -105,8 +109,7 @@ static void DrawMenuItem(DRAWITEMSTRUCT *dis, HICON hIcon, DWORD dwIdle)
         else if (dis->itemState & ODS_SELECTED)
             DrawEdge(dis->hDC, &dis->rcItem, BDR_SUNKENOUTER, BF_RECT);
         if(dwIdle) {
-            ImageList_ReplaceIcon(myGlobals.g_hImageList, 0, hIcon);
-            ImageList_DrawEx(myGlobals.g_hImageList, 0, dis->hDC, 2, (dis->rcItem.bottom + dis->rcItem.top - cy) / 2, 0, 0, CLR_NONE, CLR_NONE, ILD_SELECTED);
+            DrawDimmedIcon(dis->hDC, 2, (dis->rcItem.bottom + dis->rcItem.top - cy) / 2, 16, 16, hIcon, 180);
         }
         else
             DrawIconEx(dis->hDC, 2, (dis->rcItem.bottom + dis->rcItem.top - cy) / 2, hIcon, cx, cy, 0, 0, DI_NORMAL | DI_COMPAT);
@@ -128,8 +131,7 @@ static void DrawMenuItem(DRAWITEMSTRUCT *dis, HICON hIcon, DWORD dwIdle)
             }   //if
             /* draw the icon */
             if(dwIdle) {
-                ImageList_ReplaceIcon(myGlobals.g_hImageList, 0, hIcon);
-                ImageList_DrawEx(myGlobals.g_hImageList, 0, dis->hDC, 2, (dis->rcItem.bottom + dis->rcItem.top - cy) / 2, 0, 0, CLR_NONE, CLR_NONE, ILD_SELECTED);
+                DrawDimmedIcon(dis->hDC, 2, (dis->rcItem.bottom + dis->rcItem.top - cy) / 2, 16, 16, hIcon, 180);
             }
             else
                 DrawIconEx(dis->hDC, 2, (dis->rcItem.bottom + dis->rcItem.top - cy) / 2, hIcon, cx, cy, 0, 0, DI_NORMAL | DI_COMPAT);
@@ -144,8 +146,7 @@ static void DrawMenuItem(DRAWITEMSTRUCT *dis, HICON hIcon, DWORD dwIdle)
                 DrawEdge(dis->hDC, &dis->rcItem, BDR_SUNKENOUTER, BF_RECT);
             }
             if(dwIdle) {
-                ImageList_ReplaceIcon(myGlobals.g_hImageList, 0, hIcon);
-                ImageList_DrawEx(myGlobals.g_hImageList, 0, dis->hDC, 2, (dis->rcItem.bottom + dis->rcItem.top - cy) / 2, 0, 0, CLR_NONE, CLR_NONE, ILD_SELECTED);
+                DrawDimmedIcon(dis->hDC, 2, (dis->rcItem.bottom + dis->rcItem.top - cy) / 2, 16, 16, hIcon, 180);
             }
             else
                 DrawIconEx(dis->hDC, 2, (dis->rcItem.bottom + dis->rcItem.top - cy) / 2, hIcon, cx, cy, 0, 0, DI_NORMAL | DI_COMPAT);
@@ -595,6 +596,42 @@ BOOL CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
             ReloadTabConfig();
             while(pContainer) {
                 SendMessage(GetDlgItem(pContainer->hwnd, IDC_MSGTABS), EM_THEMECHANGED, 0, 0);
+                pContainer = pContainer->pNextContainer;
+            }
+            break;
+        }
+        case DM_SPLITSENDACK:
+        {
+            ACKDATA ack = {0};
+            struct SendJob *job = &sendJobs[wParam];
+
+            ack.hContact = sendJobs[wParam].hContact[0];
+            ack.hProcess = sendJobs[wParam].hSendId[0];
+            ack.type = ACKTYPE_MESSAGE;
+            ack.result = ACKRESULT_SUCCESS;
+            
+            if(job->hOwner && job->iAcksNeeded && job->hContact[0] && job->iStatus == SQ_INPROGRESS) {
+                if(IsWindow(job->hwndOwner))
+                    SendMessage(job->hwndOwner, HM_EVENTSENT, (WPARAM)MAKELONG(wParam, 0), (LPARAM)&ack);
+                else
+                    ClearSendJob((int)wParam);                                  // window already gone, clear and forget the job
+            }
+            return 0;
+        }
+        case WM_POWERBROADCAST:
+        case WM_DISPLAYCHANGE:
+        {
+            struct ContainerWindowData *pContainer = pFirstContainer;
+
+            while(pContainer) {
+                if(pContainer->bSkinned) {
+                    pContainer->oldDCSize.cx = pContainer->oldDCSize.cy = 0;
+                    SelectObject(pContainer->cachedDC, pContainer->oldHBM);
+                    DeleteObject(pContainer->cachedHBM);
+                    DeleteDC(pContainer->cachedDC);
+                    pContainer->cachedDC = 0;
+                }
+                RedrawWindow(pContainer->hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN | RDW_FRAME);
                 pContainer = pContainer->pNextContainer;
             }
             break;
