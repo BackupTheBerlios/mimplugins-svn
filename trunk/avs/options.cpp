@@ -41,6 +41,7 @@ extern int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode);
 extern int DeleteAvatar(HANDLE hContact);
 extern int ChangeAvatar(HANDLE hContact);
 extern HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename);
+extern HANDLE GetContactThatHaveTheAvatar(HANDLE hContact, int locked = -1);
 
 extern int AVS_pathToRelative(const char *sPrc, char *pOut);
 extern int AVS_pathToAbsolute(const char *pSrc, char *pOut);
@@ -372,6 +373,15 @@ void SaveTransparentData(HWND hwndDlg, HANDLE hContact)
 		DBWriteContactSettingWord(hContact, "ContactPhoto", "TranspBkgColorDiff", tmp);
 }
 
+void SaveTransparentData(HWND hwndDlg, HANDLE hContact, BOOL locked)
+{
+	SaveTransparentData(hwndDlg, hContact);
+
+	HANDLE tmp = GetContactThatHaveTheAvatar(hContact, locked);
+	if (tmp != hContact)
+		SaveTransparentData(hwndDlg, tmp);
+}
+
 BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     HANDLE hContact;
@@ -410,7 +420,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETBUDDY, (WPARAM)GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE), 0);
 			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
 
-			LoadTransparentData(hwndDlg, hContact);
+			LoadTransparentData(hwndDlg, GetContactThatHaveTheAvatar(hContact));
             dat->hHook = HookEventMessage(ME_AV_AVATARCHANGED, hwndDlg, DM_AVATARCHANGED);
             SendMessage(hwndDlg, WM_SETICON, IMAGE_ICON, (LPARAM)g_hIcon);
             return TRUE;
@@ -419,6 +429,8 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
             switch(LOWORD(wParam)) {
 				case ID_USE_DEFAULTS:
 				{
+					hContact = GetContactThatHaveTheAvatar(hContact);
+
 					DBDeleteContactSetting(hContact, "ContactPhoto", "MakeTransparentBkg");
 					DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgNumPoints");
 					DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgColorDiff");
@@ -429,21 +441,22 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 					break;
 				}
                 case IDOK:
+                {
+					BOOL locked = IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR);
+					SaveTransparentData(hwndDlg, hContact, locked);
+                    ProtectAvatar((WPARAM)hContact, locked ? 1 : 0);
+
+					int hidden = IsDlgButtonChecked(hwndDlg, IDC_HIDEAVATAR) ? 1 : 0;
+					SetAvatarAttribute(hContact, AVS_HIDEONCLIST, hidden);
+                    if(hidden != DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0))
+						DBWriteContactSettingByte(hContact, "ContactPhoto", "Hidden", hidden);
+
+					if (!locked && DBGetContactSettingByte(hContact, "ContactPhoto", "NeedUpdate", 0))
+						QueueAdd(requestQueue, hContact);
+
+					// Continue to the cancel handle
+                }
                 case IDCANCEL:
-                    if(LOWORD(wParam) == IDOK) {
-                        int hidden = IsDlgButtonChecked(hwndDlg, IDC_HIDEAVATAR) ? 1 : 0;
-
-						BOOL locked = IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR);
-                        ProtectAvatar((WPARAM)hContact, locked ? 1 : 0);
-                        SetAvatarAttribute(hContact, AVS_HIDEONCLIST, hidden);
-                        if(hidden != DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0))
-							DBWriteContactSettingByte(hContact, "ContactPhoto", "Hidden", hidden);
-
-						SaveTransparentData(hwndDlg, hContact);
-
-						if (!locked && DBGetContactSettingByte(hContact, "ContactPhoto", "NeedUpdate", 0))
-							QueueAdd(requestQueue, hContact);
-                    }
                     DestroyWindow(hwndDlg);
                     break;
                 case IDC_CHANGE:
@@ -583,7 +596,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
         }
         case DM_REALODAVATAR:
         {
-			SaveTransparentData(hwndDlg, hContact);
+			SaveTransparentData(hwndDlg, hContact, IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR));
             ChangeAvatar(hContact);
 			InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
             break;
@@ -634,7 +647,7 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETBUDDY, (WPARAM)GetDlgItem(hwndDlg, IDC_BKG_COLOR_DIFFERENCE), 0);
 			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
 
-			LoadTransparentData(hwndDlg, hContact);
+			LoadTransparentData(hwndDlg, GetContactThatHaveTheAvatar(hContact));
             dat->hHook = HookEventMessage(ME_AV_AVATARCHANGED, hwndDlg, DM_AVATARCHANGED);
             return TRUE;
         }
@@ -642,6 +655,8 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
             switch(LOWORD(wParam)) {
 				case ID_USE_DEFAULTS:
 				{
+					hContact = GetContactThatHaveTheAvatar(hContact);
+
 					DBDeleteContactSetting(hContact, "ContactPhoto", "MakeTransparentBkg");
 					DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgNumPoints");
 					DBDeleteContactSetting(hContact, "ContactPhoto", "TranspBkgColorDiff");
@@ -669,7 +684,9 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 				case IDC_PROTECTAVATAR:
 				{
 					BOOL locked = IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR);
+					SaveTransparentData(hwndDlg, hContact, locked);
                     ProtectAvatar((WPARAM)hContact, locked ? 1 : 0);
+
 					break;
 				}
 				case IDC_BKG_NUM_POINTS:
@@ -777,7 +794,7 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
         }
         case DM_REALODAVATAR:
         {
-			SaveTransparentData(hwndDlg, hContact);
+			SaveTransparentData(hwndDlg, hContact, IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR));
             ChangeAvatar(hContact);
 			InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
             break;

@@ -1221,17 +1221,28 @@ static protoPicCacheEntry *GetProtoDefaultAvatar(HANDLE hContact)
 	return NULL;
 }
 
+HANDLE GetContactThatHaveTheAvatar(HANDLE hContact, int locked = -1) {
+    if(g_MetaAvail && DBGetContactSettingByte(NULL, g_szMetaName, "Enabled", 0)) {
+		if(DBGetContactSettingDword(hContact, g_szMetaName, "NumContacts", 0) >= 1) {
+			if (locked == -1)
+				locked = DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0);
+
+			if (!locked)
+				hContact = (HANDLE)CallService(MS_MC_GETMOSTONLINECONTACT, (WPARAM)hContact, 0);
+		}
+    }
+
+	return hContact;
+}
+
 static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
 {
     if(wParam == 0 || g_shutDown)
 		return 0;
 
 	HANDLE hContact = (HANDLE) wParam;
+	hContact = GetContactThatHaveTheAvatar(hContact);
 
-    if(g_MetaAvail && DBGetContactSettingByte(NULL, g_szMetaName, "Enabled", 0)) {
-        if(DBGetContactSettingDword(hContact, g_szMetaName, "NumContacts", 0) >= 1 && !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
-            hContact = (HANDLE)CallService(MS_MC_GETMOSTONLINECONTACT, (WPARAM)hContact, 0);
-    }
 	// Get the node
     struct CacheNode *node = FindAvatarInCache(hContact, TRUE);
 	if (node == NULL)
@@ -1309,6 +1320,8 @@ int ChangeAvatar(HANDLE hContact)
     if(g_shutDown)
 		return 0;
 
+	hContact = GetContactThatHaveTheAvatar(hContact);
+
 	// Get the node
     struct CacheNode *node = FindAvatarInCache(hContact, FALSE);
 	if (node == NULL)
@@ -1362,8 +1375,9 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 
     CLISTMENUITEM mi;
 
-    g_MetaAvail = ServiceExists(MS_MC_GETPROTOCOLNAME) ? TRUE : FALSE;
     g_AvatarHistoryAvail = ServiceExists("AvatarHistory/IsEnabled");
+
+    g_MetaAvail = ServiceExists(MS_MC_GETPROTOCOLNAME) ? TRUE : FALSE;
     if(g_MetaAvail) {
         g_szMetaName = (char *)CallService(MS_MC_GETPROTOCOLNAME, 0, 0);
         if(g_szMetaName == NULL)

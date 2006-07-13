@@ -48,8 +48,8 @@ extern void MakePathRelative(HANDLE hContact, char *path);
 
 struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL add);
 
-extern HANDLE   hEventContactAvatarChanged;
-extern BOOL     g_AvatarHistoryAvail;
+extern HANDLE hEventContactAvatarChanged;
+extern BOOL g_AvatarHistoryAvail;
 
 #ifdef _DEBUG
 int _DebugTrace(const char *fmt, ...);
@@ -128,33 +128,36 @@ void FreePolls()
 }
 
 
-// Return true if this protocol has to be checked
-static BOOL PollCheckProtocol(const char *szProto)
+// Return true if this protocol can have avatar requested
+static BOOL PollProtocolCanHaveAvatar(const char *szProto)
 {
 	int pCaps = CallProtoService(szProto, PS_GETCAPS, PFLAGNUM_4, 0);
 	int status = CallProtoService(szProto, PS_GETSTATUS, 0, 0);
 	return (pCaps & PF4_AVATARS)
 		&& (g_szMetaName == NULL || strcmp(g_szMetaName, szProto))
-		&& status > ID_STATUS_OFFLINE && status != ID_STATUS_INVISIBLE
-		&& DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1);
+		&& status > ID_STATUS_OFFLINE && status != ID_STATUS_INVISIBLE;
+}
+
+// Return true if this protocol has to be checked
+static BOOL PollCheckProtocol(const char *szProto)
+{
+	return DBGetContactSettingByte(NULL, AVS_MODULE, szProto, 1);
+}
+
+// Return true if this contact can have avatar requested
+static BOOL PollContactCanHaveAvatar(HANDLE hContact, const char *szProto)
+{
+	int status = DBGetContactSettingWord(hContact, szProto, "Status", ID_STATUS_OFFLINE);
+	return status != ID_STATUS_OFFLINE
+		&& !DBGetContactSettingByte(hContact, "CList", "NotOnList", 0)
+		&& DBGetContactSettingByte(hContact, "CList", "ApparentMode", 0) != ID_STATUS_OFFLINE;
 }
 
 // Return true if this contact has to be checked
 static BOOL PollCheckContact(HANDLE hContact, const char *szProto)
 {
-	int status = DBGetContactSettingWord(hContact, szProto, "Status", ID_STATUS_OFFLINE);
-    if(g_AvatarHistoryAvail && CallService("AvatarHistory/IsEnabled", 0, 0))
-        return status != ID_STATUS_OFFLINE
-            && !DBGetContactSettingByte(hContact, "CList", "NotOnList", 0)
-            && DBGetContactSettingByte(hContact, "CList", "ApparentMode", 0) != ID_STATUS_OFFLINE
-            && !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-            && FindAvatarInCache(hContact, TRUE) != NULL;
-    else
-        return status != ID_STATUS_OFFLINE
-		    && !DBGetContactSettingByte(hContact, "CList", "NotOnList", 0)
-		    && DBGetContactSettingByte(hContact, "CList", "ApparentMode", 0) != ID_STATUS_OFFLINE
-		    && !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
-		    && FindAvatarInCache(hContact, FALSE) != NULL;
+	return !DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0)
+            && FindAvatarInCache(hContact, FALSE) != NULL;
 }
 
 static void QueueRemove(ThreadQueue &queue, HANDLE hContact)
@@ -244,55 +247,57 @@ static void RequestThread(void *vParam)
 					break;
 
 				char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
-                /*
-				if (szProto != NULL && 
-					((ServiceExists("AvatarHistory/IsEnabled") && CallService("AvatarHistory/IsEnabled", 0, 0))
-					 || (PollCheckProtocol(szProto) && PollCheckContact(hContact, szProto))))
-				{*/
-
-                if (szProto != NULL && PollCheckProtocol(szProto) && PollCheckContact(hContact, szProto))
-                {
-					// Request it
-					PROTO_AVATAR_INFORMATION pai_s;
-					pai_s.cbSize = sizeof(pai_s);
-					pai_s.hContact = hContact;
-					pai_s.format = PA_FORMAT_UNKNOWN;
-					pai_s.filename[0] = '\0';
-
-					int result = CallProtoService(szProto, PS_GETAVATARINFO, GAIF_FORCE, (LPARAM)&pai_s);
-					if (result == GAIR_SUCCESS) 
+                if (szProto != NULL && PollProtocolCanHaveAvatar(szProto) && PollContactCanHaveAvatar(hContact, szProto))
+				{
+					// Can have avatar, but must request it?
+					if (
+						(g_AvatarHistoryAvail && CallService("AvatarHistory/IsEnabled", (WPARAM) hContact, 0))
+						 || (PollCheckProtocol(szProto) && PollCheckContact(hContact, szProto))
+						)
 					{
-						// Fix settings in DB
-						DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
-						DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
-						if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
-							DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
-						//DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
-						DBWriteContactSettingString(hContact, "ContactPhoto", "File", pai_s.filename);
-                        MakePathRelative(hContact, pai_s.filename);
-						// Fix cache
-						ChangeAvatar(hContact);
-					}
-					else if (result == GAIR_NOAVATAR) 
-					{
-						if (DBGetContactSettingByte(NULL, AVS_MODULE, "RemoveAvatarWhenContactRemoves", 1)) 
+						// Request it
+						PROTO_AVATAR_INFORMATION pai_s;
+						pai_s.cbSize = sizeof(pai_s);
+						pai_s.hContact = hContact;
+						pai_s.format = PA_FORMAT_UNKNOWN;
+						pai_s.filename[0] = '\0';
+
+						int result = CallProtoService(szProto, PS_GETAVATARINFO, GAIF_FORCE, (LPARAM)&pai_s);
+						if (result == GAIR_SUCCESS) 
 						{
+							// Fix settings in DB
 							DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
 							DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
 							if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
 								DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
-							DBDeleteContactSetting(hContact, "ContactPhoto", "File");
-
+							//DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
+							DBWriteContactSettingString(hContact, "ContactPhoto", "File", pai_s.filename);
+							MakePathRelative(hContact, pai_s.filename);
 							// Fix cache
 							ChangeAvatar(hContact);
 						}
+						else if (result == GAIR_NOAVATAR) 
+						{
+							DBDeleteContactSetting(hContact, "ContactPhoto", "NeedUpdate");
 
-						NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)hContact, NULL);
-					}
-					else if (result == GAIR_WAITFOR) 
-					{
-						// Wait a little until requesting again
-						SleepEx(REQUEST_DELAY, TRUE);
+							if (DBGetContactSettingByte(NULL, AVS_MODULE, "RemoveAvatarWhenContactRemoves", 1)) 
+							{
+								DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
+								if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
+									DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
+								DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+
+								// Fix cache
+								ChangeAvatar(hContact);
+							}
+
+							NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)hContact, NULL);
+						}
+						else if (result == GAIR_WAITFOR) 
+						{
+							// Wait a little until requesting again
+							SleepEx(REQUEST_DELAY, TRUE);
+						}
 					}
 				}
 			}
