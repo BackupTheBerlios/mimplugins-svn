@@ -270,7 +270,7 @@ void CalcDynamicAvatarSize(HWND hwndDlg, struct MessageWindowData *dat, BITMAP *
 
     if(((rc.right) - (int)picProjectedWidth) > (dat->iButtonBarNeeds) && !myGlobals.m_AlwaysFullToolbarWidth) {
         dat->iRealAvatarHeight = dat->dynaSplitter + ((dat->showUIElements != 0) ? 31 : 6);
-        dat->iRealAvatarHeight += (myGlobals.m_visualMessageSizeIndicator ? 2 : 0);
+        //dat->iRealAvatarHeight += (myGlobals.m_visualMessageSizeIndicator ? 2 : 0);
     }
     else {
         dat->iRealAvatarHeight = dat->dynaSplitter + 6;
@@ -1567,6 +1567,14 @@ unsigned int GetIEViewMode(HWND hwndDlg, struct MessageWindowData *dat)
     return iWantIEView;
 }
 
+void GetRealIEViewWindow(HWND hwndDlg, struct MessageWindowData *dat)
+{
+    POINT pt;
+
+    pt.x = 10; pt.y = dat->panelHeight + 10;
+    dat->hwndIWebBrowserControl = ChildWindowFromPointEx(dat->hwndIEView, pt, CWP_SKIPDISABLED);
+}
+
 void SetMessageLog(HWND hwndDlg, struct MessageWindowData *dat)
 {
     unsigned int iWantIEView = GetIEViewMode(hwndDlg, dat);
@@ -1586,6 +1594,7 @@ void SetMessageLog(HWND hwndDlg, struct MessageWindowData *dat)
         dat->hwndIEView = ieWindow.hwnd;
         ShowWindow(GetDlgItem(hwndDlg, IDC_LOG), SW_HIDE);
         EnableWindow(GetDlgItem(hwndDlg, IDC_LOG), FALSE);
+        GetRealIEViewWindow(hwndDlg, dat);
     }
     else if(!iWantIEView) {
         if(dat->hwndIEView) {
@@ -2763,7 +2772,7 @@ void GetCachedStatusMsg(HWND hwndDlg, struct MessageWindowData *dat)
 			BYTE bXStatus = DBGetContactSettingByte(hContact, szProto, "XStatusId", 0);
 			if(bXStatus > 0 && bXStatus <= 31) {
 #if defined(_UNICODE)
-                MultiByteToWideChar(dat->codePage, 0, xStatusDescr[bXStatus], -1, dat->statusMsg, 1024);
+                MultiByteToWideChar(dat->codePage, 0, xStatusDescr[bXStatus - 1], -1, dat->statusMsg, 1024);
                 dat->statusMsg[1024] = 0;
 #else
                 mir_snprintf(dat->statusMsg, sizeof(dat->statusMsg), "%s", xStatusDescr[bXStatus]);

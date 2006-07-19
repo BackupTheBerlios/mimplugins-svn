@@ -71,7 +71,7 @@ extern BOOL g_framelessSkinmode;
 int  SIDEBARWIDTH = DEFAULT_SIDEBARWIDTH;
 
 UINT nextButtonID;
-ButtonItem *g_ButtonItems = NULL;
+ButtonSet g_ButtonSet = {0};
 
 #define   NR_MAXSKINICONS 100
 
@@ -1230,15 +1230,19 @@ create_it:
         }
     }
 
+    /*
+     * calculate client margins...
+     */
+
     newItem = (ButtonItem *)malloc(sizeof(ButtonItem));
     ZeroMemory(newItem, sizeof(ButtonItem));
-    if(g_ButtonItems == NULL) {
-        g_ButtonItems = newItem;
+    if(g_ButtonSet.items == NULL) {
+        g_ButtonSet.items = newItem;
         *newItem = tmpItem;
         newItem->nextItem = 0;
     }
     else {
-        ButtonItem *curItem = g_ButtonItems;
+        ButtonItem *curItem = g_ButtonSet.items;
         while(curItem->nextItem)
             curItem = curItem->nextItem;
         *newItem = tmpItem;
@@ -1616,7 +1620,7 @@ void IMG_RefreshItems()
 void IMG_DeleteItems()
 {
     ImageItem *pItem = g_ImageItems, *pNextItem;
-    ButtonItem *pbItem = g_ButtonItems, *pbNextItem;
+    ButtonItem *pbItem = g_ButtonSet.items, *pbNextItem;
     int i;
 
     if(g_skinIcons) {
@@ -1648,7 +1652,7 @@ void IMG_DeleteItems()
         free(pbItem);
         pbItem = pbNextItem;
     }
-    g_ButtonItems = NULL;
+    ZeroMemory(&g_ButtonSet, sizeof(ButtonSet));
     myGlobals.m_SideBarEnabled = FALSE;
 
 	if(myGlobals.g_closeGlyph)
@@ -1759,6 +1763,10 @@ static void IMG_LoadItems(char *szFileName)
         p += (lstrlenA(p) + 1);
     }
     free(szSections);
+    g_ButtonSet.top = GetPrivateProfileIntA("ButtonArea", "top", 0, szFileName);
+    g_ButtonSet.bottom = GetPrivateProfileIntA("ButtonArea", "bottom", 0, szFileName);
+    g_ButtonSet.left = GetPrivateProfileIntA("ButtonArea", "left", 0, szFileName);
+    g_ButtonSet.right = GetPrivateProfileIntA("ButtonArea", "right", 0, szFileName);
 }
 
 static void SkinCalcFrameWidth()
@@ -1997,7 +2005,7 @@ void ReloadContainerSkin(int doLoad, int onStartup)
     IMG_DeleteItems();
 
     if(doLoad) {
-        if(pSetLayeredWindowAttributes == 0 || MyAlphaBlend == 0)
+        if(/*pSetLayeredWindowAttributes == 0 || */ MyAlphaBlend == 0)
             return;
 
         if(!DBGetContactSetting(NULL, SRMSGMOD_T, "ContainerSkin", &dbv)) {

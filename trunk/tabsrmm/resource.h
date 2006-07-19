@@ -676,6 +676,8 @@
 #define ID_EDITOR_SHOWMESSAGELENGTHINDICATOR 40248
 #define IDC_STATIC                      -1
 
+#define IDC_TESTVALUE 10
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

@@ -248,7 +248,7 @@ struct ProtocolData {
 #define DM_CONTACTSETTINGCHANGED (WM_USER+52)
 #define DM_UPDATESTATUSMSG   (WM_USER+53)
 #define DM_PROTOACK          (WM_USER+54)
-//#define DM_RETRIEVEAVATAR    (WM_USER+55) **free**
+//#define DM_QUERYSAVEDCLIENTAREA    (WM_USER+55) ** FREE **
 #define DM_CONFIGURETOOLBAR  (WM_USER+56)
 #define DM_LOADBUTTONBARICONS (WM_USER+57)
 #define DM_ACTIVATETOOLTIP   (WM_USER+58)
@@ -395,7 +395,6 @@ extern const int msgDlgFontCount;
 #define TIMERID_HEARTBEAT    2
 #define TIMEOUT_HEARTBEAT    20000
 #define TIMERID_HOVER 10
-#define TIMERID_SCROLL 20
 
 #define SRMSGMOD "SRMsg"
 #define SRMSGMOD_T "Tab_SRMsg"

@@ -83,6 +83,7 @@ void        RearrangeTab(HWND hwndDlg, struct MessageWindowData *dat, int iMode)
 void        GetCachedStatusMsg(HWND hwndDlg, struct MessageWindowData *dat);
 int         MY_pathToRelative(const char *pSrc, char *pOut);
 int         MY_pathToAbsolute(const char *pSrc, char *pOut);
+void        GetRealIEViewWindow(HWND hwndDlg, struct MessageWindowData *dat);
 
 extern BOOL CALLBACK SelectContainerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);

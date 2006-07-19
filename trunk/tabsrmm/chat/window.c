@@ -1483,6 +1483,8 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 			SendDlgItemMessage(hwndDlg, IDC_CHAT_MESSAGE, EM_SUBCLASSED, 0, 0);
 			SendDlgItemMessage(hwndDlg, IDC_CHAT_LOG, EM_AUTOURLDETECT, 1, 0);
 
+            TABSRMM_FireEvent(dat->hContact, hwndDlg, MSG_WINDOW_EVT_OPENING, 0);
+
             mask = (int)SendDlgItemMessage(hwndDlg, IDC_CHAT_LOG, EM_GETEVENTMASK, 0, 0);
 			SendDlgItemMessage(hwndDlg, IDC_CHAT_LOG, EM_SETEVENTMASK, 0, mask | ENM_LINK | ENM_MOUSEEVENTS);
             
@@ -1538,6 +1540,7 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
             ShowWindow(hwndDlg, SW_SHOW);
             PostMessage(hwndDlg, GC_UPDATENICKLIST, 0, 0);
             dat->pContainer->hwndActive = hwndDlg;
+            TABSRMM_FireEvent(dat->hContact, hwndDlg, MSG_WINDOW_EVT_OPEN, 0);
 		} break;
 
         case WM_SETFOCUS:
@@ -2317,6 +2320,7 @@ LABEL_SHOWWINDOW:
 	
 		}break;
 
+        /*
         case WM_LBUTTONDOWN:
             dat->dwFlags |= MWF_MOUSEDOWN;
             GetCursorPos(&dat->ptLast);
@@ -2328,7 +2332,41 @@ LABEL_SHOWWINDOW:
             ReleaseCapture();
             break;
             
+        */
+
+        case WM_LBUTTONDOWN:
+		{
+			POINT tmp; //+ Protogenes
+			POINTS cur; //+ Protogenes
+			GetCursorPos(&tmp); //+ Protogenes
+			cur.x = tmp.x; //+ Protogenes
+			cur.y = tmp.y; //+ Protogenes
+
+			SendMessage(dat->pContainer->hwnd, WM_NCLBUTTONDOWN, HTCAPTION, *((LPARAM*)(&cur))); //+ Protogenes
+            
+			//dat->pContainer->hwnd //- Protogenes
+            //dat->dwFlags |= MWF_MOUSEDOWN; //- Protogenes
+            //GetCursorPos(&dat->ptLast); //- Protogenes
+            //SetCapture(hwndDlg); //- Protogenes
+            break;
+		}
+        case WM_LBUTTONUP:
+		{
+            POINT tmp; //+ Protogenes
+			POINTS cur; //+ Protogenes
+			GetCursorPos(&tmp); //+ Protogenes
+			cur.x = tmp.x; //+ Protogenes
+			cur.y = tmp.y; //+ Protogenes
+
+			SendMessage(dat->pContainer->hwnd, WM_NCLBUTTONUP, HTCAPTION, *((LPARAM*)(&cur))); //+ Protogenes
+			
+			//dat->dwFlags &= ~MWF_MOUSEDOWN; //- Protogenes
+            //ReleaseCapture(); //- Protogenes
+            break;
+		} 
+
         case WM_MOUSEMOVE:
+            /*
             if (dat->pContainer->dwFlags & CNT_NOTITLE && dat->dwFlags & MWF_MOUSEDOWN) {
                 RECT rc;
                 POINT pt;
@@ -2337,7 +2375,7 @@ LABEL_SHOWWINDOW:
                 GetWindowRect(dat->pContainer->hwnd, &rc);
                 MoveWindow(dat->pContainer->hwnd, rc.left - (dat->ptLast.x - pt.x), rc.top - (dat->ptLast.y - pt.y), rc.right - rc.left, rc.bottom - rc.top, TRUE);
                 dat->ptLast = pt;
-            }
+            }*/
             break;
             
         case WM_APPCOMMAND:
@@ -2986,6 +3024,8 @@ LABEL_SHOWWINDOW:
 			SetWindowLong(GetDlgItem(hwndDlg,IDC_COLOR),GWL_WNDPROC,(LONG)OldFilterButtonProc);
 			SetWindowLong(GetDlgItem(hwndDlg,IDC_BKGCOLOR),GWL_WNDPROC,(LONG)OldFilterButtonProc);
 
+            TABSRMM_FireEvent(dat->hContact, hwndDlg, MSG_WINDOW_EVT_CLOSING, 0);
+
             DBWriteContactSettingWord(NULL, "Chat", "SplitterX", (WORD)g_Settings.iSplitterX);
             DBWriteContactSettingWord(NULL, "Chat", "splitY", (WORD)g_Settings.iSplitterY);
             
@@ -3002,6 +3042,7 @@ LABEL_SHOWWINDOW:
                 BroadCastContainer(dat->pContainer, DM_REFRESHTABINDEX, 0, 0);
                 dat->iTabID = -1;
             }
+            TABSRMM_FireEvent(dat->hContact, hwndDlg, MSG_WINDOW_EVT_CLOSE, 0);
             break;
 		}
 		default:break;

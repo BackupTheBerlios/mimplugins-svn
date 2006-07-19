@@ -77,7 +77,7 @@ typedef struct {
 #define MWF_DEFERREDSCROLL 4
 #define MWF_NEEDHISTORYSAVE 8
 #define MWF_WASBACKGROUNDCREATE 16
-#define MWF_MOUSEDOWN 32
+//#define MWF_MOUSEDOWN 32
 #define MWF_ERRORSTATE 128
 #define MWF_DEFERREDREMAKELOG 256
 
@@ -231,6 +231,8 @@ struct ContainerWindowData {
 	int     ncActive;
     HWND    hwndSaved;
     POINT   ptLast;
+    ButtonItem *buttonItems;
+    RECT    rcSaved;
 };
 
 #define STICK_ICON_MSG 10
@@ -275,7 +277,7 @@ struct MessageWindowData {
 	BYTE    bType;
     BYTE    bWasDeleted;
 	HANDLE  hContact, hSubContact;
-	HWND    hwndIEView, hwndFlash;
+	HWND    hwndIEView, hwndFlash, hwndIWebBrowserControl;
     HWND    hwnd;
 	HANDLE  hDbEventFirst,hDbEventLast, hDbEventLastFeed;
 	int     sendMode;
@@ -307,7 +309,7 @@ struct MessageWindowData {
 	BOOL    isHistory;
     DWORD   dwFlags;
     HICON   iFlashIcon;
-    POINT   ptLast;
+    //POINT   ptLast;
     WORD    wOldStatus;
     int     iOldHash;
     struct  InputHistory *history;
@@ -364,7 +366,6 @@ struct MessageWindowData {
     COLORREF avatarbg;
 	HANDLE  *hHistoryEvents;
 	int     maxHistory, curHistory;
-	BYTE    needIEViewScroll;
 	HANDLE  hTheme;
 	BYTE    bFlatMsgLog;
     BYTE    isIRC;

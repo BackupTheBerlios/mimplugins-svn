@@ -403,7 +403,7 @@ bg_done:
             if(ctl->item->dwFlags & BUTTON_HASLABEL) {
                 hOldFont = SelectObject(hdcMem, ctl->hFont);
                 GetTextExtentPoint32(hdcMem, ctl->item->tszLabel, lstrlen(ctl->item->tszLabel), &szText);
-                szText.cx += 4;
+                szText.cx += 2;
             }
             if((ctl->stateId == PBS_NORMAL || ctl->stateId == PBS_DISABLED) && ctl->item->dwFlags & BUTTON_NORMALGLYPHISICON)
                 hIcon = *((HICON *)ctl->item->normalGlyphMetrics[0]);
@@ -421,7 +421,7 @@ bg_done:
                     DrawIconEx(hdc_buttonglyph, 0, 0, hIcon, 16, 16, 0, 0, DI_NORMAL);
                     MyAlphaBlend(hdcMem, rcClient.right / 2 - szText.cx / 2, rcClient.bottom / 2 - 8, 16, 16, hdc_buttonglyph, 0, 0, 16, 16, bf_buttonglyph);
                 }
-                xOff = 20;
+                xOff = 18;
             }
             else {
                 szText.cx += glyphMetrics[2];
@@ -431,7 +431,7 @@ bg_done:
                                glyphMetrics[0], glyphMetrics[1], glyphMetrics[2],
                                glyphMetrics[3], g_glyphItem->bf);
                 }
-                xOff = glyphMetrics[2] + 4;
+                xOff = glyphMetrics[2] + 2;
             }
             if(ctl->item->dwFlags & BUTTON_HASLABEL) {
                 RECT rc = rcClient;

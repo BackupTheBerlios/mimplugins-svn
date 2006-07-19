@@ -38,7 +38,7 @@ extern PSLWA pSetLayeredWindowAttributes;
 extern StatusItems_t StatusItems[];
 extern BOOL g_framelessSkinmode;
 extern BOOL g_skinnedContainers;
-extern ButtonItem *g_ButtonItems;
+extern ButtonSet g_ButtonSet;
 
 extern BOOL (WINAPI *MyEnableThemeDialogTexture)(HANDLE, DWORD);
 static LRESULT CALLBACK TabControlSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -124,7 +124,7 @@ int RegisterTabCtrlClass(void)
     wce.hCursor        = LoadCursor(NULL, IDC_ARROW);
     wce.cbWndExtra     = 4;
     wce.hbrBackground  = 0;
-    wce.style          = CS_GLOBALCLASS | CS_DBLCLKS;
+    wce.style          = CS_GLOBALCLASS | CS_DBLCLKS | CS_PARENTDC;
     RegisterClassEx(&wce);
 	return 0;
 }
@@ -1678,10 +1678,10 @@ BOOL CALLBACK DlgProcTabConfig(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
             SendDlgItemMessage(hwndDlg, IDC_TABBORDERSPINOUTERTOP, UDM_SETRANGE, 0, MAKELONG(40, 0));
             SendDlgItemMessage(hwndDlg, IDC_TABBORDERSPINOUTERBOTTOM, UDM_SETRANGE, 0, MAKELONG(40, 0));
 
-            SendDlgItemMessage(hwndDlg, IDC_TABBORDERSPINOUTER, UDM_SETPOS, 0, (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers || g_ButtonItems ? "S_tborder_outer_left" : "tborder_outer_left", 2));
-            SendDlgItemMessage(hwndDlg, IDC_TABBORDERSPINOUTERRIGHT, UDM_SETPOS, 0, (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers || g_ButtonItems ? "S_tborder_outer_right" : "tborder_outer_right", 2));
-            SendDlgItemMessage(hwndDlg, IDC_TABBORDERSPINOUTERTOP, UDM_SETPOS, 0, (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers || g_ButtonItems ? "S_tborder_outer_top" : "tborder_outer_top", 2));
-            SendDlgItemMessage(hwndDlg, IDC_TABBORDERSPINOUTERBOTTOM, UDM_SETPOS, 0, (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers || g_ButtonItems ? "S_tborder_outer_bottom" : "tborder_outer_bottom", 2));
+            SendDlgItemMessage(hwndDlg, IDC_TABBORDERSPINOUTER, UDM_SETPOS, 0, (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers ? "S_tborder_outer_left" : "tborder_outer_left", 2));
+            SendDlgItemMessage(hwndDlg, IDC_TABBORDERSPINOUTERRIGHT, UDM_SETPOS, 0, (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers ? "S_tborder_outer_right" : "tborder_outer_right", 2));
+            SendDlgItemMessage(hwndDlg, IDC_TABBORDERSPINOUTERTOP, UDM_SETPOS, 0, (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers ? "S_tborder_outer_top" : "tborder_outer_top", 2));
+            SendDlgItemMessage(hwndDlg, IDC_TABBORDERSPINOUTERBOTTOM, UDM_SETPOS, 0, (int)DBGetContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers ? "S_tborder_outer_bottom" : "tborder_outer_bottom", 2));
 
             SendDlgItemMessage(hwndDlg, IDC_SPIN1, UDM_SETRANGE, 0, MAKELONG(10, 1));
             SendDlgItemMessage(hwndDlg, IDC_SPIN3, UDM_SETRANGE, 0, MAKELONG(10, 1));
@@ -1726,10 +1726,10 @@ BOOL CALLBACK DlgProcTabConfig(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, "y-pad", GetDlgItemInt(hwndDlg, IDC_TABPADDING, NULL, FALSE));
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, "x-pad", GetDlgItemInt(hwndDlg, IDC_HTABPADDING, NULL, FALSE));
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, "tborder", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDER, &translated, FALSE));
-                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, g_ButtonItems || g_skinnedContainers ? "S_tborder_outer_left" : "tborder_outer_left", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDEROUTER, &translated, FALSE));
-                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, g_ButtonItems || g_skinnedContainers ? "S_tborder_outer_right" : "tborder_outer_right", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDEROUTERRIGHT, &translated, FALSE));
-                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, g_ButtonItems || g_skinnedContainers ? "S_tborder_outer_top" : "tborder_outer_top", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDEROUTERTOP, &translated, FALSE));
-                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, g_ButtonItems || g_skinnedContainers ? "S_tborder_outer_bottom" : "tborder_outer_bottom", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDEROUTERBOTTOM, &translated, FALSE));
+                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers ? "S_tborder_outer_left" : "tborder_outer_left", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDEROUTER, &translated, FALSE));
+                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers ? "S_tborder_outer_right" : "tborder_outer_right", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDEROUTERRIGHT, &translated, FALSE));
+                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers ? "S_tborder_outer_top" : "tborder_outer_top", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDEROUTERTOP, &translated, FALSE));
+                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers ? "S_tborder_outer_bottom" : "tborder_outer_bottom", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDEROUTERBOTTOM, &translated, FALSE));
                             DBWriteContactSettingDword(NULL, SRMSGMOD_T, "bottomadjust", GetDlgItemInt(hwndDlg, IDC_BOTTOMTABADJUST, &translated, TRUE));
 
                             fixedWidth = GetDlgItemInt(hwndDlg, IDC_TABWIDTH, &translated, FALSE);

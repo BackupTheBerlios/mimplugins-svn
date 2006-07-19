@@ -624,14 +624,14 @@ BOOL CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
             struct ContainerWindowData *pContainer = pFirstContainer;
 
             while(pContainer) {
-                if(pContainer->bSkinned) {
+                if(pContainer->bSkinned) {              // invalidate cached background DCs for skinned containers
                     pContainer->oldDCSize.cx = pContainer->oldDCSize.cy = 0;
                     SelectObject(pContainer->cachedDC, pContainer->oldHBM);
                     DeleteObject(pContainer->cachedHBM);
                     DeleteDC(pContainer->cachedDC);
                     pContainer->cachedDC = 0;
+                    RedrawWindow(pContainer->hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME);
                 }
-                RedrawWindow(pContainer->hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN | RDW_FRAME);
                 pContainer = pContainer->pNextContainer;
             }
             break;

@@ -1408,23 +1408,26 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
     struct tm tm_now, tm_today;
     time_t now;
     SCROLLINFO si = {0}, *psi = &si;
-    POINT pt;
+    POINT pt = {0};
     BOOL  wasFirstAppend = (dat->isAutoRTL & 2) ? TRUE : FALSE;
+
     /*
      * calc time limit for grouping
      */
 
-    hwndrtf = GetDlgItem(hwndDlg, IDC_LOG);
+    hwndrtf = dat->hwndIEView ? dat->hwndIWebBrowserControl : GetDlgItem(hwndDlg, IDC_LOG);
 
     si.cbSize = sizeof(si);
-    si.fMask = SIF_PAGE | SIF_RANGE | SIF_POS;;
-    GetScrollInfo(hwndrtf, SB_VERT, &si);
-    SendDlgItemMessage(hwndDlg, IDC_LOG, EM_GETSCROLLPOS, 0, (LPARAM) &pt);
+    if(IsWindow(hwndrtf)) {
+        si.fMask = SIF_PAGE | SIF_RANGE | SIF_POS;;
+        GetScrollInfo(hwndrtf, SB_VERT, &si);
+        SendMessage(hwndrtf, EM_GETSCROLLPOS, 0, (LPARAM) &pt);
 
-    if(GetWindowLong(hwndrtf, GWL_STYLE) & WS_VSCROLL)
-        psi = &si;
-    else
-        psi = NULL;
+        if(GetWindowLong(hwndrtf, GWL_STYLE) & WS_VSCROLL)
+            psi = &si;
+        else
+            psi = NULL;
+    }
 
     rtfFonts = dat->theme.rtfFonts ? dat->theme.rtfFonts : &(rtfFontsGlobal[0][0]);
     now = time(NULL);
@@ -1460,12 +1463,13 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
         event.hDbEventFirst = hDbEventFirst;
         event.count = count;
         CallService(MS_IEVIEW_EVENT, 0, (LPARAM)&event);
-        DM_ScrollToBottom(hwndDlg, dat, 0, 0);
+        SendMessage(hwndDlg, DM_FORCESCROLL, (WPARAM)&pt, (LPARAM)&si);
+        //DM_ScrollToBottom(hwndDlg, dat, 0, 0);
         return;
     }
 
     // separator strings used for grid lines, message separation and so on...
-    
+
     dwExtraLf = myGlobals.m_ExtraMicroLF;
     if(dat->szSep1[0] == 0)
         SetupLogFormatting(dat);
