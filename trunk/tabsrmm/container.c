@@ -695,7 +695,7 @@ static BOOL CALLBACK ContainerWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 				HFONT hOldFont = 0;
 				TEXTMETRIC tm;
 
-				if(!pContainer || !bskinned)
+				if(!pContainer || !bSkinned)
 					break;
 
                 //if(myGlobals.m_forcedSkinRefresh)
@@ -2469,9 +2469,9 @@ panel_found:
                         MENUITEMINFO mii = {0};
 
                         mii.cbSize = sizeof(mii);
-                        mii.fMask = MIIM_FTYPE | MIIM_ID;
+                        mii.fMask = MIIM_FTYPE | MIIM_ID | MIIM_DATA;
                         mii.fType = MFT_OWNERDRAW;
-
+                        mii.dwItemData = 0xf0f0f0f0;
                         pContainer->hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_MENUBAR));
                         CallService(MS_LANGPACK_TRANSLATEMENU, (WPARAM)pContainer->hMenu, 0);
                         for(i = 0; i <= 5; i++) {
@@ -2617,7 +2617,7 @@ panel_found:
             DRAWITEMSTRUCT *dis = (DRAWITEMSTRUCT *)lParam;
             int id = LOWORD(dis->itemID);
 
-            if(dis->CtlType == ODT_MENU && HIWORD(dis->itemID) == 0xffff &&  id >= 0x5000 && id <= 0x5005) {
+            if(dis->CtlType == ODT_MENU && (HIWORD(dis->itemID) == 0xffff || dis->itemData == 0xf0f0f0f0) && id >= 0x5000 && id <= 0x5005) {
                 SIZE sz;
                 HFONT hOldFont;
                 TCHAR *menuName = TranslateTS(menuBarNames_translated[id - 0x5000]);
@@ -2694,8 +2694,7 @@ panel_found:
             {
                 LPMEASUREITEMSTRUCT lpmi = (LPMEASUREITEMSTRUCT)lParam;
                 int id = LOWORD(lpmi->itemID);
-
-                if(lpmi->CtlType == ODT_MENU && HIWORD(lpmi->itemID) == 0xffff &&  id >= 0x5000 && id <= 0x5005) {
+                if(lpmi->CtlType == ODT_MENU && (HIWORD(lpmi->itemID) == 0xffff || lpmi->itemData == 0xf0f0f0f0) &&  id >= 0x5000 && id <= 0x5005) {
                     SIZE sz;
                     HFONT hOldFont;
                     HDC hdc = GetWindowDC(hwndDlg);
@@ -2704,6 +2703,7 @@ panel_found:
                     hOldFont = SelectObject(hdc, GetStockObject(DEFAULT_GUI_FONT));
                     GetTextExtentPoint32(hdc, menuName, lstrlen(menuName), &sz);
                     lpmi->itemWidth = sz.cx;
+                    //lpmi->itemHeight = myGlobals.ncm.iMenuHeight;
                     SelectObject(hdc, hOldFont);
                     ReleaseDC(hwndDlg, hdc);
                     return TRUE;
