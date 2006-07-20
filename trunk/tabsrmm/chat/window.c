@@ -2320,34 +2320,15 @@ LABEL_SHOWWINDOW:
 	
 		}break;
 
-        /*
-        case WM_LBUTTONDOWN:
-            dat->dwFlags |= MWF_MOUSEDOWN;
-            GetCursorPos(&dat->ptLast);
-            SetCapture(hwndDlg);
-            break;
-            
-        case WM_LBUTTONUP:
-            dat->dwFlags &= ~MWF_MOUSEDOWN;
-            ReleaseCapture();
-            break;
-            
-        */
-
         case WM_LBUTTONDOWN:
 		{
 			POINT tmp; //+ Protogenes
 			POINTS cur; //+ Protogenes
 			GetCursorPos(&tmp); //+ Protogenes
-			cur.x = tmp.x; //+ Protogenes
-			cur.y = tmp.y; //+ Protogenes
+			cur.x = (SHORT)tmp.x; //+ Protogenes
+			cur.y = (SHORT)tmp.y; //+ Protogenes
 
 			SendMessage(dat->pContainer->hwnd, WM_NCLBUTTONDOWN, HTCAPTION, *((LPARAM*)(&cur))); //+ Protogenes
-            
-			//dat->pContainer->hwnd //- Protogenes
-            //dat->dwFlags |= MWF_MOUSEDOWN; //- Protogenes
-            //GetCursorPos(&dat->ptLast); //- Protogenes
-            //SetCapture(hwndDlg); //- Protogenes
             break;
 		}
         case WM_LBUTTONUP:
@@ -2355,29 +2336,13 @@ LABEL_SHOWWINDOW:
             POINT tmp; //+ Protogenes
 			POINTS cur; //+ Protogenes
 			GetCursorPos(&tmp); //+ Protogenes
-			cur.x = tmp.x; //+ Protogenes
-			cur.y = tmp.y; //+ Protogenes
+			cur.x = (SHORT)tmp.x; //+ Protogenes
+			cur.y = (SHORT)tmp.y; //+ Protogenes
 
 			SendMessage(dat->pContainer->hwnd, WM_NCLBUTTONUP, HTCAPTION, *((LPARAM*)(&cur))); //+ Protogenes
-			
-			//dat->dwFlags &= ~MWF_MOUSEDOWN; //- Protogenes
-            //ReleaseCapture(); //- Protogenes
             break;
 		} 
 
-        case WM_MOUSEMOVE:
-            /*
-            if (dat->pContainer->dwFlags & CNT_NOTITLE && dat->dwFlags & MWF_MOUSEDOWN) {
-                RECT rc;
-                POINT pt;
-                
-                GetCursorPos(&pt);
-                GetWindowRect(dat->pContainer->hwnd, &rc);
-                MoveWindow(dat->pContainer->hwnd, rc.left - (dat->ptLast.x - pt.x), rc.top - (dat->ptLast.y - pt.y), rc.right - rc.left, rc.bottom - rc.top, TRUE);
-                dat->ptLast = pt;
-            }*/
-            break;
-            
         case WM_APPCOMMAND:
         {
             DWORD cmd = GET_APPCOMMAND_LPARAM(lParam);

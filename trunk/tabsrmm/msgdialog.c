@@ -2859,13 +2859,15 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             {
                 DBEVENTINFO dbei = {0};
                 DWORD dwTimestamp = 0;
-                
+                BOOL  fIsStatusChangeEvent = FALSE;
                 dbei.cbSize = sizeof(dbei);
                 dbei.cbBlob = 0;
                 CallService(MS_DB_EVENT_GET, lParam, (LPARAM) & dbei);
                 if (dat->hDbEventFirst == NULL)
                     dat->hDbEventFirst = (HANDLE) lParam;
                 
+                fIsStatusChangeEvent = IsStatusEvent(dbei.eventType);
+
                 if (dbei.eventType == EVENTTYPE_MESSAGE && (dbei.flags & DBEF_READ))
                     break;
                 if (DbEventIsShown(dat, &dbei)) {
@@ -2877,7 +2879,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                      * set the message log divider to mark new (maybe unseen) messages, if the container has
                      * been minimized or in the background.
                      */
-                    if(!(dbei.flags & DBEF_SENT) && dbei.eventType != EVENTTYPE_STATUSCHANGE) {
+                    if(!(dbei.flags & DBEF_SENT) && !fIsStatusChangeEvent) {
                         
                         if(myGlobals.m_DividersUsePopupConfig && myGlobals.m_UseDividers) {
                             if(!MessageWindowOpened((WPARAM)dat->hContact, 0))
@@ -2929,7 +2931,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     //dat->dwLastActivity = GetTickCount();
                     //dat->pContainer->dwLastActivity = dat->dwLastActivity;
                     // tab flashing
-                    if ((IsIconic(dat->pContainer->hwnd) || TabCtrl_GetCurSel(hwndTab) != dat->iTabID) && !(dbei.flags & DBEF_SENT) && dbei.eventType != EVENTTYPE_STATUSCHANGE) {
+                    if ((IsIconic(dat->pContainer->hwnd) || TabCtrl_GetCurSel(hwndTab) != dat->iTabID) && !(dbei.flags & DBEF_SENT) && !fIsStatusChangeEvent) {
                         switch (dbei.eventType) {
                             case EVENTTYPE_MESSAGE:
                                 dat->iFlashIcon = myGlobals.g_IconMsgEvent;
@@ -2956,7 +2958,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                      * autoswitch tab if option is set AND container is minimized (otherwise, we never autoswitch)
                      * never switch for status changes...
                      */
-                    if(!(dbei.flags & DBEF_SENT) && dbei.eventType != EVENTTYPE_STATUSCHANGE) {
+                    if(!(dbei.flags & DBEF_SENT) && !fIsStatusChangeEvent) {
                         if(IsIconic(dat->pContainer->hwnd) && !IsZoomed(dat->pContainer->hwnd) && myGlobals.m_AutoSwitchTabs && dat->pContainer->hwndActive != hwndDlg) {
                             int iItem = GetTabIndexFromHWND(GetParent(hwndDlg), hwndDlg);
                             if (iItem >= 0) {
@@ -2971,7 +2973,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     /*
                      * flash window if it is not focused
                      */
-                    if ((GetActiveWindow() != dat->pContainer->hwnd || GetForegroundWindow() != dat->pContainer->hwnd) && !(dbei.flags & DBEF_SENT) && dbei.eventType != EVENTTYPE_STATUSCHANGE) {
+                    if ((GetActiveWindow() != dat->pContainer->hwnd || GetForegroundWindow() != dat->pContainer->hwnd) && !(dbei.flags & DBEF_SENT) && !fIsStatusChangeEvent) {
                         if (!(dat->pContainer->dwFlags & CNT_NOFLASH))
                             FlashContainer(dat->pContainer, 1, 0);
                         // XXX set the message icon in the container
@@ -3360,15 +3362,11 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             POINT tmp; //+ Protogenes
             POINTS cur; //+ Protogenes
             GetCursorPos(&tmp); //+ Protogenes
-            cur.x = tmp.x; //+ Protogenes
-            cur.y = tmp.y; //+ Protogenes
+            cur.x = (SHORT)tmp.x; //+ Protogenes
+            cur.y = (SHORT)tmp.y; //+ Protogenes
 
             SendMessage(dat->hwndTip, TTM_TRACKACTIVATE, FALSE, 0);
             SendMessage(dat->pContainer->hwnd, WM_NCLBUTTONDOWN, HTCAPTION, *((LPARAM*)(&cur))); //+ Protogenes
-            //dat->dwFlags |= MWF_MOUSEDOWN; //- Protogenes
-            //GetCursorPos(&dat->ptLast); //- Protogenes
-            //SetCapture(hwndDlg); //- Protogenes
-            //SendMessage(dat->hwndTip, TTM_TRACKACTIVATE, FALSE, 0); //- Protogenes
             break;
         }
         case WM_LBUTTONUP:
@@ -3376,13 +3374,10 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             POINT tmp; //+ Protogenes
             POINTS cur; //+ Protogenes
             GetCursorPos(&tmp); //+ Protogenes
-            cur.x = tmp.x; //+ Protogenes
-            cur.y = tmp.y; //+ Protogenes
+            cur.x = (SHORT)tmp.x; //+ Protogenes
+            cur.y = (SHORT)tmp.y; //+ Protogenes
 
             SendMessage(dat->pContainer->hwnd, WM_NCLBUTTONUP, HTCAPTION, *((LPARAM*)(&cur))); //+ Protogenes
-
-            //dat->dwFlags &= ~MWF_MOUSEDOWN; //- Protogenes
-            //ReleaseCapture(); //- Protogenes
             break;
         }
 

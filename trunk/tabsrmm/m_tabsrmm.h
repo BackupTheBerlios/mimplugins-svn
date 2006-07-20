@@ -230,7 +230,6 @@ struct ContainerWindowData {
 	struct  TitleBtn oldbuttons[3];
 	int     ncActive;
     HWND    hwndSaved;
-    POINT   ptLast;
     ButtonItem *buttonItems;
     RECT    rcSaved;
 };

@@ -443,7 +443,7 @@ static int MessageEventAdded(WPARAM wParam, LPARAM lParam)
          * care about popups for non-message events for contacts w/o an openend window
          * if a window is open, the msg window itself will care about showing the popup
          */
-        if(dbei.eventType != EVENTTYPE_MESSAGE && dbei.eventType != EVENTTYPE_STATUSCHANGE && hwnd == 0 && !(dbei.flags & DBEF_SENT)) {
+        if(dbei.eventType != EVENTTYPE_MESSAGE && !IsStatusEvent(dbei.eventType) && hwnd == 0 && !(dbei.flags & DBEF_SENT)) {
             if(!(dbei.flags & DBEF_READ))
                 tabSRMM_ShowPopup(wParam, lParam, dbei.eventType, 0, 0, 0, dbei.szModule, 0);
         }

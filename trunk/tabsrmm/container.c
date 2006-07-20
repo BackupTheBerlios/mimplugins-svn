@@ -2017,29 +2017,13 @@ panel_found:
                 }
                 break;
             }
-        /*
-         * some kind of "easy drag" feature
-         * fake a "caption drag event" if the mouse cursur is within the client
-         * area of the container
-         */
-        case WM_LBUTTONDOWN: {
-            pContainer->dwFlags |= CNT_MOUSEDOWN;
-            GetCursorPos(&pContainer->ptLast);
-            SetCapture(hwndDlg);
-            break;
-        }
-        case WM_LBUTTONUP:
-            pContainer->dwFlags &= ~CNT_MOUSEDOWN;
-            ReleaseCapture();
-            break;
-        case WM_MOUSEMOVE: {
+        case WM_LBUTTONDOWN: 
+            {
                 POINT pt;
-                RECT  rc;
-                if (pContainer->dwFlags & CNT_NOTITLE && pContainer->dwFlags & CNT_MOUSEDOWN) {
+
+                if(pContainer->dwFlags & CNT_NOTITLE) {
                     GetCursorPos(&pt);
-                    GetWindowRect(hwndDlg, &rc);
-                    MoveWindow(hwndDlg, rc.left - (pContainer->ptLast.x - pt.x), rc.top - (pContainer->ptLast.y - pt.y), rc.right - rc.left, rc.bottom - rc.top, TRUE);
-                    pContainer->ptLast = pt;
+                    return SendMessage(hwndDlg, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, MAKELPARAM(pt.x, pt.y));
                 }
                 break;
             }

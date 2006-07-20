@@ -60,6 +60,36 @@ struct RTFColorTable rtf_ctable[] = {
     #define SHVIEW_THUMBNAIL 0x702D
 #endif
 
+#define EVENTTYPE_NICKNAME_CHANGE 9001
+#define EVENTTYPE_STATUSMESSAGE_CHANGE 9002
+#define EVENTTYPE_AVATAR_CHANGE 9003
+#define EVENTTYPE_CONTACTLEFTCHANNEL 9004
+
+static int g_status_events[] = { 
+	EVENTTYPE_STATUSCHANGE,
+    EVENTTYPE_STATUSMESSAGE_CHANGE,
+    EVENTTYPE_AVATAR_CHANGE,
+    EVENTTYPE_CONTACTLEFTCHANNEL
+};
+
+static int g_status_events_size = 0;
+
+#define MAX_REGS(_A_) ( sizeof(_A_) / sizeof(_A_[0]) )
+
+BOOL IsStatusEvent(int eventType) 
+{
+	int i;
+
+    if(g_status_events_size == 0)
+        g_status_events_size = MAX_REGS(g_status_events);
+
+	for(i = 0; i < g_status_events_size; i++) {
+		if (eventType == g_status_events[i])
+			return TRUE;
+    }
+	return FALSE;
+}
+
 void RearrangeTab(HWND hwndDlg, struct MessageWindowData *dat, int iMode)
 {
     TCITEM item = {0};

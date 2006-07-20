@@ -597,13 +597,15 @@ int DbEventIsShown(struct MessageWindowData *dat, DBEVENTINFO * dbei)
 {
     switch (dbei->eventType) {
         case EVENTTYPE_MESSAGE:
-        case EVENTTYPE_STATUSCHANGE:
+        //case EVENTTYPE_STATUSCHANGE:
             return 1;
         case EVENTTYPE_URL:
             return (dat->dwFlagsEx & MWF_SHOW_URLEVENTS);
         case EVENTTYPE_FILE:
             return(dat->dwFlagsEx & MWF_SHOW_FILEEVENTS);
     }
+	if (IsStatusEvent(dbei->eventType))
+		return 1;
     return 0;
 }
 
@@ -630,6 +632,7 @@ static char *Template_CreateRTFFromDbEvent(struct MessageWindowData *dat, HANDLE
     DWORD dwEffectiveFlags;
     DWORD dwFormattingParams = MAKELONG(myGlobals.m_FormatWholeWordsOnly, dat->dwFlagsEx & MWF_SHOW_BBCODE);
     char  *szProto = dat->bIsMeta ? dat->szMetaProto : dat->szProto;
+    BOOL  fIsStatusChangeEvent = FALSE;
 
     if(streamData->dbei != 0)
         dbei = *(streamData->dbei);
@@ -646,7 +649,7 @@ static char *Template_CreateRTFFromDbEvent(struct MessageWindowData *dat, HANDLE
         }
     }
     dat->stats.lastReceivedChars = 0;
-
+    fIsStatusChangeEvent = IsStatusEvent(dbei.eventType);
     // RTL setup
 
     if(dat->dwFlags & MWF_LOG_RTL)
@@ -663,7 +666,7 @@ static char *Template_CreateRTFFromDbEvent(struct MessageWindowData *dat, HANDLE
     iFontIDOffset = dat->isHistory ? 8 : 0;     // offset into the font table for either history (old) or new events... (# of fonts per configuration set)
     isSent = (dbei.flags & DBEF_SENT);
     
-    if(!isSent && (dbei.eventType == EVENTTYPE_STATUSCHANGE || dbei.eventType==EVENTTYPE_MESSAGE || dbei.eventType==EVENTTYPE_URL)) {
+    if(!isSent && (fIsStatusChangeEvent || dbei.eventType==EVENTTYPE_MESSAGE || dbei.eventType==EVENTTYPE_URL)) {
 		CallService(MS_DB_EVENT_MARKREAD,(WPARAM)hContact,(LPARAM)hDbEvent);
 		CallService(MS_CLIST_REMOVEEVENT,(WPARAM)hContact,(LPARAM)hDbEvent);
 	}
@@ -758,7 +761,7 @@ nogroup:
     }
     this_templateset = (dat->dwFlags & MWF_LOG_RTL || dbei.flags & DBEF_RTL) ? dat->rtl_templates : dat->ltr_templates;
     
-    if(dbei.eventType == EVENTTYPE_STATUSCHANGE)
+    if(fIsStatusChangeEvent)
         szTemplate = this_templateset->szTemplates[TMPL_STATUSCHG];
     else if(dbei.eventType == EVENTTYPE_ERRMSG)
         szTemplate = this_templateset->szTemplates[TMPL_ERRMSG];
@@ -862,9 +865,6 @@ nogroup:
                                 case EVENTTYPE_FILE:
                                     icon = LOGICON_FILE;
                                     break;
-                                case EVENTTYPE_STATUSCHANGE:
-                                    icon = LOGICON_STATUS;
-                                    break;
                                 case EVENTTYPE_ERRMSG:
                                     icon = LOGICON_ERROR;
                                     break;
@@ -872,6 +872,8 @@ nogroup:
                                     icon = LOGICON_MSG;
                                     break;
                             }
+                            if(fIsStatusChangeEvent)
+                                icon = LOGICON_STATUS;
                         }
                         AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s\\fs1  #~#%01d%c%s ", GetRTFFont(MSGFONTID_SYMBOLS_IN), icon, isSent ? '>' : '<', GetRTFFont(isSent ? MSGFONTID_MYMSG + iFontIDOffset : MSGFONTID_YOURMSG + iFontIDOffset));
                         //AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s #~#%01d%c%s ", GetRTFFont(MSGDLGFONTCOUNT), icon, isSent ? '>' : '<', GetRTFFont(isSent ? MSGFONTID_MYMSG + iFontIDOffset : MSGFONTID_YOURMSG + iFontIDOffset));
@@ -1039,12 +1041,11 @@ nogroup:
                                 case EVENTTYPE_URL:
                                     c = 0xfe;
                                     break;
-                                case EVENTTYPE_STATUSCHANGE:
-                                    c = 0x4e;
-                                    break;
                                 case EVENTTYPE_ERRMSG:
                                     c = 0x72;;
                              }
+                            if(fIsStatusChangeEvent)
+                                c = 0x4e;
                         }
                         if(skipFont)
                             AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%c%s ", c, GetRTFFont(isSent ? MSGFONTID_MYMSG + iFontIDOffset : MSGFONTID_YOURMSG + iFontIDOffset));
@@ -1089,27 +1090,29 @@ nogroup:
                     break;
                 case 'M':           // message
                 {
+                    if(fIsStatusChangeEvent)
+                        dbei.eventType = EVENTTYPE_STATUSCHANGE;
                     switch (dbei.eventType) {
                         case EVENTTYPE_MESSAGE:
-                        case EVENTTYPE_STATUSCHANGE:
                         case EVENTTYPE_ERRMSG:
+                        case EVENTTYPE_STATUSCHANGE:
                         {
                             TCHAR *msg, *formatted;
 #if defined(_UNICODE)
                             int wlen;
 #endif
-                            if(dbei.eventType == EVENTTYPE_STATUSCHANGE || dbei.eventType == EVENTTYPE_ERRMSG) {
+                            if(fIsStatusChangeEvent || dbei.eventType == EVENTTYPE_ERRMSG) {
                                 if(dbei.eventType == EVENTTYPE_ERRMSG && dbei.cbBlob == 0)
                                     break;
                                 if(dbei.eventType == EVENTTYPE_ERRMSG) {
                                     if(!skipFont)
-                                        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\line%s ", GetRTFFont(dbei.eventType == EVENTTYPE_STATUSCHANGE ? H_MSGFONTID_STATUSCHANGES : MSGFONTID_MYMSG));
+                                        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\line%s ", GetRTFFont(fIsStatusChangeEvent ? H_MSGFONTID_STATUSCHANGES : MSGFONTID_MYMSG));
                                     else
                                         AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\line ");
                                 }
                                 else  {
                                     if(!skipFont)
-                                        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s ", GetRTFFont(dbei.eventType == EVENTTYPE_STATUSCHANGE ? H_MSGFONTID_STATUSCHANGES : MSGFONTID_MYMSG));
+                                        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s ", GetRTFFont(fIsStatusChangeEvent ? H_MSGFONTID_STATUSCHANGES : MSGFONTID_MYMSG));
                                 }
                             }
                             else {
