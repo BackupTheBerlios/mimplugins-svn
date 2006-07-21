@@ -58,6 +58,7 @@ static int MyAvatarChanged(WPARAM wParam, LPARAM lParam);
 
 HANDLE hMessageWindowList, hUserPrefsWindowList;
 static HANDLE hEventDbEventAdded, hEventDbSettingChange, hEventContactDeleted, hEventDispatch, hEvent_ttbInit, hTTB_Slist, hTTB_Tray;
+static HANDLE hModulesLoadedEvent;
 static HANDLE hEventSmileyAdd = 0;
 HANDLE *hMsgMenuItem = NULL;
 int hMsgMenuItemCount = 0;
@@ -72,7 +73,7 @@ PGF MyGradientFill = 0;
 extern      struct ContainerWindowData *pFirstContainer;
 extern      BOOL CALLBACK DlgProcUserPrefs(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern      int g_chat_integration_enabled;
-extern      struct SendJob sendJobs[NR_SENDJOBS];
+extern      struct SendJob *sendJobs;
 extern      struct MsgLogIcon msgLogIcons[NR_LOGICONS * 3];
 extern      HINSTANCE g_hInst;
 extern      BOOL CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -874,7 +875,6 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
     MENUITEMINFOA mii = {0};
     HMENU submenu;
     BOOL bIEView;
-
     static Update upd = {0};
 #if defined(_UNICODE)
     static char szCurrentVersion[30];
@@ -897,6 +897,7 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
         return 1;
     }
 #endif    
+    UnhookEvent(hModulesLoadedEvent);
     hEventDispatch = HookEvent(ME_DB_EVENT_ADDED, DispatchNewEvent);
     hEventDbEventAdded = HookEvent(ME_DB_EVENT_ADDED, MessageEventAdded);
     ZeroMemory(&mi, sizeof(mi));
@@ -1008,8 +1009,6 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
         DBWriteContactSettingByte(NULL, SRMSGMOD_T, "avatarmode", 2);
 
     myGlobals.g_hwndHotkeyHandler = CreateDialog(g_hInst, MAKEINTRESOURCE(IDD_HOTKEYSLAVE), 0, HotkeyHandlerDlgProc);
-
-    ZeroMemory((void *)sendJobs, sizeof(struct SendJob) * NR_SENDJOBS);
 
     CreateTrayMenus(TRUE);
     if(nen_options.bTraySupport)
@@ -1154,10 +1153,15 @@ int SplitmsgShutdown(void)
     UnloadTSButtonModule(0, 0);
     if(myGlobals.m_hbmMsgArea)
         DeleteObject(myGlobals.m_hbmMsgArea);
-    for(i = 0; i < NR_SENDJOBS; i++) {
-        if(sendJobs[i].sendBuffer != NULL)
-            free(sendJobs[i].sendBuffer);
-    }
+    
+	if(sendJobs) {
+		for(i = 0; i < NR_SENDJOBS; i++) {
+		    if(sendJobs[i].sendBuffer != NULL)
+			    free(sendJobs[i].sendBuffer);
+		}
+        free(sendJobs);
+	}
+
     if(ttb_Slist.hBmp)
         DeleteCachedIcon(&ttb_Slist);
     if(ttb_Traymenu.hBmp)
@@ -1317,7 +1321,7 @@ tzdone:
     InitOptions();
     hEventDbSettingChange = HookEvent(ME_DB_CONTACT_SETTINGCHANGED, MessageSettingChanged);
     hEventContactDeleted = HookEvent(ME_DB_CONTACT_DELETED, ContactDeleted);
-    HookEvent(ME_SYSTEM_MODULESLOADED, SplitmsgModulesLoaded);
+    hModulesLoadedEvent = HookEvent(ME_SYSTEM_MODULESLOADED, SplitmsgModulesLoaded);
     HookEvent(ME_SKIN_ICONSCHANGED, IconsChanged);
     HookEvent(ME_PROTO_CONTACTISTYPING, TypingMessage);
     HookEvent(ME_PROTO_ACK, ProtoAck);

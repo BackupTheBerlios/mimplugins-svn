@@ -126,7 +126,7 @@ static struct _buttonicons { int id; HICON *pIcon; } buttonicons[] = {
     -1, NULL
 };
 
-struct SendJob sendJobs[NR_SENDJOBS];
+struct SendJob *sendJobs = NULL;
 static int splitterEdges = -1;
 
 static void ResizeIeView(HWND hwndDlg, struct MessageWindowData *dat, DWORD px, DWORD py, DWORD cx, DWORD cy)
@@ -1628,6 +1628,11 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 if (newData->iTabID >= 0)
                     dat->pContainer = newData->pContainer;
                 SetWindowLong(hwndDlg, GWL_USERDATA, (LONG) dat);
+
+                if(sendJobs == NULL) {
+                    sendJobs = (struct SendJob *)malloc(NR_SENDJOBS * sizeof(struct SendJob));
+                    ZeroMemory(sendJobs, NR_SENDJOBS * sizeof(struct SendJob));
+                }
 
                 dat->wOldStatus = -1;
                 dat->iOldHash = -1;

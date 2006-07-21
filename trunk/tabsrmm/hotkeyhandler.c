@@ -43,7 +43,7 @@ The hotkeyhandler is a small, invisible window which cares about a few things:
 
 extern struct       ContainerWindowData *pFirstContainer;
 extern HANDLE       hMessageWindowList;
-extern struct SendJob sendJobs[NR_SENDJOBS];
+extern struct SendJob *sendJobs;
 extern MYGLOBALS    myGlobals;
 extern NEN_OPTIONS  nen_options;
 extern PSLWA        pSetLayeredWindowAttributes;

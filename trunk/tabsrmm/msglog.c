@@ -1000,9 +1000,9 @@ nogroup:
                 case 'y':           // year
                     if(showTime && showDate) {
                         if(skipFont)
-                            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%02d", event_time.tm_year + 1900);
+                            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%04d", event_time.tm_year + 1900);
                         else
-                            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s %02d", GetRTFFont(isSent ? MSGFONTID_MYTIME + iFontIDOffset : MSGFONTID_YOURTIME + iFontIDOffset), event_time.tm_year + 1900);
+                            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s %04d", GetRTFFont(isSent ? MSGFONTID_MYTIME + iFontIDOffset : MSGFONTID_YOURTIME + iFontIDOffset), event_time.tm_year + 1900);
                     }
                     else
                         skipToNext = TRUE;
