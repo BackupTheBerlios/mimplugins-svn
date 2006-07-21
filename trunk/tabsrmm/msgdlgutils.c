@@ -2673,11 +2673,14 @@ void GetClientIcon(struct MessageWindowData *dat, HWND hwndDlg)
 {
     DBVARIANT dbv = {0};
 
-    dat->hClientIcon = 0;
+    if(dat->hClientIcon) {
+        DestroyIcon(dat->hClientIcon);
+        dat->hClientIcon = 0;
+    }
     
     if(ServiceExists(MS_FP_GETCLIENTICON)) {
         if(!DBGetContactSetting(dat->hContact, dat->szProto, "MirVer", &dbv)) {
-            dat->hClientIcon = (HICON)CallService(MS_FP_GETCLIENTICON, (WPARAM)dbv.pszVal, 1);
+            dat->hClientIcon = (HICON)CallService(MS_FP_GETCLIENTICON, (WPARAM)dbv.pszVal, 0);
             DBFreeVariant(&dbv);
         }
     }

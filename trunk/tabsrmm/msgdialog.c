@@ -1629,11 +1629,6 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     dat->pContainer = newData->pContainer;
                 SetWindowLong(hwndDlg, GWL_USERDATA, (LONG) dat);
 
-                if(sendJobs == NULL) {
-                    sendJobs = (struct SendJob *)malloc(NR_SENDJOBS * sizeof(struct SendJob));
-                    ZeroMemory(sendJobs, NR_SENDJOBS * sizeof(struct SendJob));
-                }
-
                 dat->wOldStatus = -1;
                 dat->iOldHash = -1;
                 dat->bType = SESSIONTYPE_IM;
@@ -1746,6 +1741,10 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 
                 // load log option flags...
                 dat->dwFlags = (DBGetContactSettingDword(NULL, SRMSGMOD_T, "mwflags", MWF_LOG_DEFAULT) & MWF_LOG_ALL);
+
+                /*
+                 * consider per-contact message setting overrides
+                 */
 
                 if(DBGetContactSettingByte(dat->hContact, SRMSGMOD_T, "mwoverride", 0)) {
                     DWORD dwLocalFlags = 0;
@@ -1904,6 +1903,10 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 SendDlgItemMessage(hwndDlg, IDC_LOG, EM_AUTOURLDETECT, (WPARAM) TRUE, 0);
                 SendDlgItemMessage(hwndDlg, IDC_LOG, EM_EXLIMITTEXT, 0, 0x80000000);
 
+                /*
+                 * subclassing stuff
+                 */
+
                 OldMessageEditProc = (WNDPROC) SetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_WNDPROC, (LONG) MessageEditSubclassProc);
                 SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), EM_SUBCLASSED, 0, 0);
                 
@@ -1915,6 +1918,10 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 SetWindowLong(GetDlgItem(hwndDlg, IDC_PANELSPLITTER), GWL_WNDPROC, (LONG) SplitterSubclassProc);
                 SetWindowLong(GetDlgItem(hwndDlg, IDC_MSGINDICATOR), GWL_WNDPROC, (LONG) MsgIndicatorSubclassProc);
                 
+                /*
+                 * load old messages from history (if wanted...)
+                 */
+
                 if(dat->hContact) {
                     FindFirstEvent(hwndDlg, dat);
                     GetMaxMessageLength(hwndDlg, dat);
@@ -5667,7 +5674,10 @@ verify:
             
             if (dat->hSmileyIcon)
                 DestroyIcon(dat->hSmileyIcon);
-			
+
+            if (dat->hClientIcon)
+                DestroyIcon(dat->hClientIcon);
+
 			if (dat->hXStatusIcon)
 				DestroyIcon(dat->hXStatusIcon);
 

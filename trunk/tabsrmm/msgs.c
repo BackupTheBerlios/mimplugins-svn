@@ -63,6 +63,20 @@ static HANDLE hEventSmileyAdd = 0;
 HANDLE *hMsgMenuItem = NULL;
 int hMsgMenuItemCount = 0;
 
+static HANDLE hSVC[14];
+#define H_MS_MSG_SENDMESSAGE 0
+#define H_MS_MSG_SENDMESSAGEW 1
+#define H_MS_MSG_FORWARDMESSAGE 2
+#define H_MS_MSG_GETWINDOWAPI 3
+#define H_MS_MSG_GETWINDOWCLASS 4
+#define H_MS_MSG_GETWINDOWDATA 5
+#define H_MS_MSG_READMESSAGE 6
+#define H_MS_MSG_TYPINGMESSAGE 7
+#define H_MS_MSG_MOD_MESSAGEDIALOGOPENED 8
+#define H_MS_TABMSG_SETUSERPREFS 9
+#define H_MS_TABMSG_TRAYSUPPORT 10 
+#define H_MSG_MOD_GETWINDOWFLAGS 11
+
 HMODULE hDLL;
 PSLWA pSetLayeredWindowAttributes = 0;
 PULW pUpdateLayeredWindow = 0;
@@ -1084,25 +1098,25 @@ static int PreshutdownSendRecv(WPARAM wParam, LPARAM lParam)
     while(pFirstContainer)
         SendMessage(pFirstContainer->hwnd, WM_CLOSE, 0, 1);
 
-    DestroyServiceFunction(MS_MSG_SENDMESSAGE);
+    DestroyServiceFunction(hSVC[H_MS_MSG_SENDMESSAGE]);
 #if defined(_UNICODE)
-    DestroyServiceFunction(MS_MSG_SENDMESSAGE "W");
+    DestroyServiceFunction(hSVC[H_MS_MSG_SENDMESSAGEW]);
 #endif
-    DestroyServiceFunction(MS_MSG_FORWARDMESSAGE);
-    DestroyServiceFunction(MS_MSG_GETWINDOWAPI);
-    DestroyServiceFunction(MS_MSG_GETWINDOWCLASS);
-    DestroyServiceFunction(MS_MSG_GETWINDOWDATA);
-    DestroyServiceFunction("SRMsg/ReadMessage");
-    DestroyServiceFunction("SRMsg/TypingMessage");
+    DestroyServiceFunction(hSVC[H_MS_MSG_FORWARDMESSAGE]);
+    DestroyServiceFunction(hSVC[H_MS_MSG_GETWINDOWAPI]);
+    DestroyServiceFunction(hSVC[H_MS_MSG_GETWINDOWCLASS]);
+    DestroyServiceFunction(hSVC[H_MS_MSG_GETWINDOWDATA]);
+    DestroyServiceFunction(hSVC[H_MS_MSG_READMESSAGE]);
+    DestroyServiceFunction(hSVC[H_MS_MSG_TYPINGMESSAGE]);
 
     /*
      * tabSRMM - specific services
      */
     
-    DestroyServiceFunction(MS_MSG_MOD_MESSAGEDIALOGOPENED);
-    DestroyServiceFunction(MS_TABMSG_SETUSERPREFS);
-    DestroyServiceFunction(MS_TABMSG_TRAYSUPPORT);
-    DestroyServiceFunction(MS_MSG_MOD_GETWINDOWFLAGS);
+    DestroyServiceFunction(hSVC[H_MS_MSG_MOD_MESSAGEDIALOGOPENED]);
+    DestroyServiceFunction(hSVC[H_MS_TABMSG_SETUSERPREFS]);
+    DestroyServiceFunction(hSVC[H_MS_TABMSG_TRAYSUPPORT]);
+    DestroyServiceFunction(hSVC[H_MSG_MOD_GETWINDOWFLAGS]);
 
     /*
      * the event API
@@ -1316,6 +1330,9 @@ tzdone:
     
     hMessageWindowList = (HANDLE) CallService(MS_UTILS_ALLOCWINDOWLIST, 0, 0);
     hUserPrefsWindowList = (HANDLE) CallService(MS_UTILS_ALLOCWINDOWLIST, 0, 0);
+
+    sendJobs = (struct SendJob *)malloc(NR_SENDJOBS * sizeof(struct SendJob));
+    ZeroMemory(sendJobs, NR_SENDJOBS * sizeof(struct SendJob));
 
     InitializeCriticalSection(&cs_sessions);
     InitOptions();
@@ -1748,25 +1765,25 @@ static void InitAPI()
      * common services (SRMM style)
      */
     
-    CreateServiceFunction(MS_MSG_SENDMESSAGE, SendMessageCommand);
+    hSVC[H_MS_MSG_SENDMESSAGE] = CreateServiceFunction(MS_MSG_SENDMESSAGE, SendMessageCommand);
 #if defined(_UNICODE)
-    CreateServiceFunction(MS_MSG_SENDMESSAGE "W", SendMessageCommand_W);
+    hSVC[H_MS_MSG_SENDMESSAGEW] = CreateServiceFunction(MS_MSG_SENDMESSAGE "W", SendMessageCommand_W);
 #endif
-    CreateServiceFunction(MS_MSG_FORWARDMESSAGE, ForwardMessage);
-    CreateServiceFunction(MS_MSG_GETWINDOWAPI, GetWindowAPI);
-    CreateServiceFunction(MS_MSG_GETWINDOWCLASS, GetWindowClass);
-    CreateServiceFunction(MS_MSG_GETWINDOWDATA, GetWindowData);
-    CreateServiceFunction("SRMsg/ReadMessage", ReadMessageCommand);
-    CreateServiceFunction("SRMsg/TypingMessage", TypingMessageCommand);
+    hSVC[H_MS_MSG_FORWARDMESSAGE] = CreateServiceFunction(MS_MSG_FORWARDMESSAGE, ForwardMessage);
+    hSVC[H_MS_MSG_GETWINDOWAPI] =  CreateServiceFunction(MS_MSG_GETWINDOWAPI, GetWindowAPI);
+    hSVC[H_MS_MSG_GETWINDOWCLASS] = CreateServiceFunction(MS_MSG_GETWINDOWCLASS, GetWindowClass);
+    hSVC[H_MS_MSG_GETWINDOWDATA] = CreateServiceFunction(MS_MSG_GETWINDOWDATA, GetWindowData);
+    hSVC[H_MS_MSG_READMESSAGE] =  CreateServiceFunction("SRMsg/ReadMessage", ReadMessageCommand);
+    hSVC[H_MS_MSG_TYPINGMESSAGE] = CreateServiceFunction("SRMsg/TypingMessage", TypingMessageCommand);
 
     /*
      * tabSRMM - specific services
      */
     
-    CreateServiceFunction(MS_MSG_MOD_MESSAGEDIALOGOPENED,MessageWindowOpened); 
-    CreateServiceFunction(MS_TABMSG_SETUSERPREFS, SetUserPrefs);
-    CreateServiceFunction(MS_TABMSG_TRAYSUPPORT, Service_OpenTrayMenu);
-    CreateServiceFunction(MS_MSG_MOD_GETWINDOWFLAGS,GetMessageWindowFlags); 
+    hSVC[H_MS_MSG_MOD_MESSAGEDIALOGOPENED] =  CreateServiceFunction(MS_MSG_MOD_MESSAGEDIALOGOPENED,MessageWindowOpened); 
+    hSVC[H_MS_TABMSG_SETUSERPREFS] = CreateServiceFunction(MS_TABMSG_SETUSERPREFS, SetUserPrefs);
+    hSVC[H_MS_TABMSG_TRAYSUPPORT] =  CreateServiceFunction(MS_TABMSG_TRAYSUPPORT, Service_OpenTrayMenu);
+    hSVC[H_MSG_MOD_GETWINDOWFLAGS] =  CreateServiceFunction(MS_MSG_MOD_GETWINDOWFLAGS,GetMessageWindowFlags); 
 
     /*
      * the event API
