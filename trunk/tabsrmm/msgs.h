@@ -495,7 +495,7 @@ typedef struct _globals {
     int         g_nrProtos;
     HMENU       g_hMenuContext, g_hMenuContainer, g_hMenuEncoding, g_hMenuTrayUnread;
     HMENU       g_hMenuFavorites, g_hMenuRecent, g_hMenuTrayContext;
-    int         g_wantSnapping;
+    //int         g_wantSnapping;
     HICON       g_buttonBarIcons[NR_BUTTONBARICONS];
     HICON       g_sideBarIcons[NR_SIDEBARICONS];
     int         iSendJobCurrent;
@@ -536,7 +536,6 @@ typedef struct _globals {
     HANDLE      m_TipOwner;
     HANDLE      m_UserMenuItem;
     HBITMAP     m_hbmMsgArea;
-    int         m_WheelDefault;
     BYTE        m_WinVerMajor;
     BYTE        m_WinVerMinor;
     BYTE        m_bIsXP;
@@ -545,7 +544,7 @@ typedef struct _globals {
     int         m_TabAppearance;
     int         m_VSApiEnabled;
     struct      myTabCtrl tabConfig;
-    BYTE        m_ExtraRedraws;
+    //BYTE        m_ExtraRedraws;
     char        szDataPath[MAX_PATH + 1];
     int         m_panelHeight;
     TCHAR       szDefaultTitleFormat[256];

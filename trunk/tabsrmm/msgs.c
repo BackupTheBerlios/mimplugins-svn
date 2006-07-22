@@ -997,7 +997,7 @@ static int SplitmsgModulesLoaded(WPARAM wParam, LPARAM lParam)
          }
      }
 #endif     
-    myGlobals.g_wantSnapping = ServiceExists("Utils/SnapWindowProc") && DBGetContactSettingByte(NULL, SRMSGMOD_T, "usesnapping", 0);
+    //myGlobals.g_wantSnapping = ServiceExists("Utils/SnapWindowProc") && DBGetContactSettingByte(NULL, SRMSGMOD_T, "usesnapping", 0);
     
     if(ServiceExists(MS_MC_GETDEFAULTCONTACT))
         myGlobals.g_MetaContactsAvail = 1;
@@ -1536,8 +1536,8 @@ int ActivateExistingTab(struct ContainerWindowData *pContainer, HWND hwndChild)
             SetForegroundWindow(pContainer->hwnd);
         if(dat->bType == SESSIONTYPE_IM)
             SetFocus(GetDlgItem(hwndChild, IDC_MESSAGE));
-        if(myGlobals.m_ExtraRedraws)
-            RedrawWindow(pContainer->hwndActive, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
+        //if(myGlobals.m_ExtraRedraws)
+        //    RedrawWindow(pContainer->hwndActive, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
 		return TRUE;
 	} else
 		return FALSE;

@@ -489,3 +489,57 @@ HWND DM_CreateClist(HWND hwndParent, struct MessageWindowData *dat)
 
     return hwndClist;
 }
+
+LRESULT DM_MouseWheelHandler(HWND hwnd, HWND hwndParent, struct MessageWindowData *mwdat, WPARAM wParam, LPARAM lParam)
+{
+    RECT rc, rc1;
+    POINT pt;
+    TCHITTESTINFO hti;
+    HWND hwndTab;
+    UINT uID = mwdat->bType == SESSIONTYPE_IM ? IDC_LOG : IDC_CHAT_LOG;
+
+    GetCursorPos(&pt);
+    GetWindowRect(hwnd, &rc);
+    if(PtInRect(&rc, pt))
+        return 1;
+    if(mwdat->pContainer->dwFlags & CNT_SIDEBAR) {
+        GetWindowRect(GetDlgItem(mwdat->pContainer->hwnd, IDC_SIDEBARUP), &rc);
+        GetWindowRect(GetDlgItem(mwdat->pContainer->hwnd, IDC_SIDEBARDOWN), &rc1);
+        rc.bottom = rc1.bottom;
+        if(PtInRect(&rc, pt)) {
+            short amount = (short)(HIWORD(wParam));
+            SendMessage(mwdat->pContainer->hwnd, WM_COMMAND, MAKELONG(amount > 0 ? IDC_SIDEBARUP : IDC_SIDEBARDOWN, 0), 0);
+            return 0;
+        }
+    }
+    if(mwdat->hwndIEView)
+        GetWindowRect(mwdat->hwndIEView, &rc);
+    else
+        GetWindowRect(GetDlgItem(hwndParent, uID), &rc);
+    if(PtInRect(&rc, pt)) {
+        HWND hwnd = mwdat->hwndIEView ? mwdat->hwndIWebBrowserControl : GetDlgItem(hwndParent, uID);
+        short wDirection = (short)HIWORD(wParam);
+
+        if(hwnd == 0)
+            hwnd = WindowFromPoint(pt);
+
+        if(LOWORD(wParam) & MK_SHIFT || DBGetContactSettingByte(NULL, SRMSGMOD_T, "fastscroll", 0)) {
+            if(wDirection < 0)
+                SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_PAGEDOWN, 0), 0);
+            else if(wDirection > 0)
+                SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_PAGEUP, 0), 0);
+        }
+        else
+            SendMessage(hwnd, WM_MOUSEWHEEL, wParam, lParam);
+        return 0;
+    }
+    hwndTab = GetDlgItem(mwdat->pContainer->hwnd, IDC_MSGTABS);
+    GetCursorPos(&hti.pt);
+    ScreenToClient(hwndTab, &hti.pt);
+    hti.flags = 0;
+    if(TabCtrl_HitTest(hwndTab, &hti) != -1) {
+        SendMessage(hwndTab, WM_MOUSEWHEEL, wParam, -1);
+        return 0;
+    }
+    return 1;
+}

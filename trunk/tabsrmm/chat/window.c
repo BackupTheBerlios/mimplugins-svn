@@ -371,44 +371,12 @@ static LRESULT CALLBACK MessageSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, 
 
         case WM_MOUSEWHEEL:
         {
-            RECT rc;
-            POINT pt;
-            TCHITTESTINFO hti;
-            HWND hwndTab;
+            LRESULT result = DM_MouseWheelHandler(hwnd, hwndParent, mwdat, wParam, lParam);
 
-            if(myGlobals.m_WheelDefault)
-                goto default_process;
-
-            GetCursorPos(&pt);
-            GetWindowRect(hwnd, &rc);
-            if(PtInRect(&rc, pt))
-                break;
-            
-            GetWindowRect(GetDlgItem(hwndParent, IDC_CHAT_LOG), &rc);
-            if(PtInRect(&rc, pt)) {
-                short wDirection = (short)HIWORD(wParam);
-
-                if(LOWORD(wParam) & MK_SHIFT || DBGetContactSettingByte(NULL, SRMSGMOD_T, "fastscroll", 0)) {
-                    if(wDirection < 0)
-                        SendMessage(GetDlgItem(hwndParent, IDC_CHAT_LOG), WM_VSCROLL, MAKEWPARAM(SB_PAGEDOWN, 0), 0);
-                    else if(wDirection > 0)
-                        SendMessage(GetDlgItem(hwndParent, IDC_CHAT_LOG), WM_VSCROLL, MAKEWPARAM(SB_PAGEUP, 0), 0);
-                }
-                else
-                    SendMessage(GetDlgItem(hwndParent, IDC_CHAT_LOG), WM_MOUSEWHEEL, wParam, lParam);
+            if(result == 0)
                 return 0;
-            }
-            hwndTab = GetDlgItem(mwdat->pContainer->hwnd, 1159);
-            GetCursorPos(&hti.pt);
-            ScreenToClient(hwndTab, &hti.pt);
-            hti.flags = 0;
-            if(TabCtrl_HitTest(hwndTab, &hti) != -1) {
-                SendMessage(hwndTab, WM_MOUSEWHEEL, wParam, -1);
-                return 0;
-            }
-default_process:
+
             dat->lastEnterTime = 0;
-            return TRUE;
             break;
         }
             

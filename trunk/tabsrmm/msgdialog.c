@@ -618,9 +618,6 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
     struct MessageWindowData *mwdat = (struct MessageWindowData *)GetWindowLong(hwndParent, GWL_USERDATA);
 
     switch (msg) {
-        case EM_SUBCLASSED:
-            SetWindowLong(hwnd, GWL_USERDATA, 0);
-            return 0;
 		case WM_NCCALCSIZE:
             return(NcCalcRichEditFrame(hwnd, mwdat, ID_EXTBKINPUTAREA, msg, wParam, lParam, OldMessageEditProc));
 		case WM_NCPAINT:
@@ -678,59 +675,10 @@ static LRESULT CALLBACK MessageEditSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
         }
         case WM_MOUSEWHEEL:
         {
-            RECT rc, rc1;
-            POINT pt;
-            TCHITTESTINFO hti;
-            HWND hwndTab;
-            
-            if(myGlobals.m_WheelDefault) {
-                SetWindowLong(hwnd, GWL_USERDATA, 0);
-                return TRUE;
-            }
-            
-            GetCursorPos(&pt);
-            GetWindowRect(hwnd, &rc);
-            if(PtInRect(&rc, pt))
-                break;
-            if(mwdat->pContainer->dwFlags & CNT_SIDEBAR) {
-                GetWindowRect(GetDlgItem(mwdat->pContainer->hwnd, IDC_SIDEBARUP), &rc);
-                GetWindowRect(GetDlgItem(mwdat->pContainer->hwnd, IDC_SIDEBARDOWN), &rc1);
-                rc.bottom = rc1.bottom;
-                if(PtInRect(&rc, pt)) {
-                    short amount = (short)(HIWORD(wParam));
-                    SendMessage(mwdat->pContainer->hwnd, WM_COMMAND, MAKELONG(amount > 0 ? IDC_SIDEBARUP : IDC_SIDEBARDOWN, 0), 0);
-                    return 0;
-                }
-            }
-            if(mwdat->hwndIEView)
-                GetWindowRect(mwdat->hwndIEView, &rc);
-            else
-                GetWindowRect(GetDlgItem(hwndParent, IDC_LOG), &rc);
-            if(PtInRect(&rc, pt)) {
-                HWND hwnd = mwdat->hwndIEView ? mwdat->hwndIWebBrowserControl : GetDlgItem(hwndParent, IDC_LOG);
-                short wDirection = (short)HIWORD(wParam);
+            LRESULT result = DM_MouseWheelHandler(hwnd, hwndParent, mwdat, wParam, lParam);
 
-                if(hwnd == 0)
-                    hwnd = WindowFromPoint(pt);
-
-                if(LOWORD(wParam) & MK_SHIFT || DBGetContactSettingByte(NULL, SRMSGMOD_T, "fastscroll", 0)) {
-                    if(wDirection < 0)
-                        SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_PAGEDOWN, 0), 0);
-                    else if(wDirection > 0)
-                        SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_PAGEUP, 0), 0);
-                }
-                else
-                    SendMessage(hwnd, WM_MOUSEWHEEL, wParam, lParam);
+            if(result == 0)
                 return 0;
-            }
-            hwndTab = GetDlgItem(mwdat->pContainer->hwnd, IDC_MSGTABS);
-            GetCursorPos(&hti.pt);
-            ScreenToClient(hwndTab, &hti.pt);
-            hti.flags = 0;
-            if(TabCtrl_HitTest(hwndTab, &hti) != -1) {
-                SendMessage(hwndTab, WM_MOUSEWHEEL, wParam, -1);
-                return 0;
-            }
             break;
         }
 		case WM_PASTE:
@@ -1908,7 +1856,6 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                  */
 
                 OldMessageEditProc = (WNDPROC) SetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_WNDPROC, (LONG) MessageEditSubclassProc);
-                SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), EM_SUBCLASSED, 0, 0);
                 
                 OldAvatarWndProc = (WNDPROC) SetWindowLong(GetDlgItem(hwndDlg, IDC_CONTACTPIC), GWL_WNDPROC, (LONG) AvatarSubclassProc);
                 SetWindowLong(GetDlgItem(hwndDlg, IDC_PANELPIC), GWL_WNDPROC, (LONG) AvatarSubclassProc);

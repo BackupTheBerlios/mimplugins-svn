@@ -951,8 +951,8 @@ static BOOL CALLBACK DlgProcContainer(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
     HWND  hwndTab;
     BOOL  bSkinned;
 
-    if(myGlobals.g_wantSnapping)
-        CallSnappingWindowProc(hwndDlg, msg, wParam, lParam);
+    //if(myGlobals.g_wantSnapping)
+    //    CallSnappingWindowProc(hwndDlg, msg, wParam, lParam);
 
     pContainer = (struct ContainerWindowData *) GetWindowLong(hwndDlg, GWL_USERDATA);
     bSkinned = pContainer ? pContainer->bSkinned : FALSE;
@@ -2100,8 +2100,8 @@ panel_found:
                 }
                 else if(curItem >= 0) {
                     SendMessage((HWND) item.lParam, WM_ACTIVATE, WA_ACTIVE, 0);
-                    if(myGlobals.m_ExtraRedraws)
-                        RedrawWindow((HWND)item.lParam, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
+                    //if(myGlobals.m_ExtraRedraws)
+                    //    RedrawWindow((HWND)item.lParam, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
                 }
                 if(GetMenu(hwndDlg) != 0)
                     DrawMenuBar(hwndDlg);
@@ -2379,13 +2379,13 @@ panel_found:
 
 			CheckMenuItem(hSysmenu, IDM_NOTITLE, (pContainer->dwFlags & CNT_NOTITLE) ? MF_BYCOMMAND | MF_CHECKED : MF_BYCOMMAND | MF_UNCHECKED);
 			CheckMenuItem(hSysmenu, IDM_STAYONTOP, pContainer->dwFlags & CNT_STICKY ? MF_BYCOMMAND | MF_CHECKED : MF_BYCOMMAND | MF_UNCHECKED);
-            SetWindowPos(hwndDlg, (pContainer->dwFlags & CNT_STICKY) ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            SetWindowPos(hwndDlg, (pContainer->dwFlags & CNT_STICKY) ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOCOPYBITS);
             if (ws != wsold) {
 				RECT rc;
 				GetWindowRect(hwndDlg, &rc);
                 if((ws & WS_CAPTION) != (wsold & WS_CAPTION)) {
-                    SetWindowPos(hwndDlg,  0, rc.left, rc.top, rc.right - rc.left, (rc.bottom - rc.top) + 1, 0);
-                    SetWindowPos(hwndDlg,  0, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, 0);
+                    //SetWindowPos(hwndDlg,  0, rc.left, rc.top, rc.right - rc.left, (rc.bottom - rc.top) + 1, SWP_NOACTIVATE | SWP_FRAMECHANGED);
+                    SetWindowPos(hwndDlg,  0, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_NOCOPYBITS);
                     RedrawWindow(hwndDlg, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_UPDATENOW);
                     if(pContainer->hwndActive != 0)
                         DM_ScrollToBottom(pContainer->hwndActive, 0, 0, 0);
@@ -2442,36 +2442,30 @@ panel_found:
                     SetMenu(hwndDlg, NULL);
             }
             else {
-                if(0) { //pContainer->bSkinned && g_framelessSkinmode) {
-                    if(pContainer->hMenu)
-                        SetMenu(hwndDlg, NULL);
-                }
-                else {
-                    if(pContainer->hMenu == 0) {
-                        int i;
-                        MENUINFO mi = {0};
-                        MENUITEMINFO mii = {0};
+                if(pContainer->hMenu == 0) {
+                    int i;
+                    MENUINFO mi = {0};
+                    MENUITEMINFO mii = {0};
 
-                        mii.cbSize = sizeof(mii);
-                        mii.fMask = MIIM_FTYPE | MIIM_ID | MIIM_DATA;
-                        mii.fType = MFT_OWNERDRAW;
-                        mii.dwItemData = 0xf0f0f0f0;
-                        pContainer->hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_MENUBAR));
-                        CallService(MS_LANGPACK_TRANSLATEMENU, (WPARAM)pContainer->hMenu, 0);
-                        for(i = 0; i <= 5; i++) {
-                            mii.wID = 0xffff5000 + i;
-                            SetMenuItemInfo(pContainer->hMenu, i, TRUE, &mii);
-                        }
-                        if(bSkinned && g_MenuBGBrush) {
-                            mi.cbSize = sizeof(mi);
-                            mi.hbrBack = g_MenuBGBrush;
-                            mi.fMask = MIM_BACKGROUND;
-                            SetMenuInfo(pContainer->hMenu, &mi);
-                        }
+                    mii.cbSize = sizeof(mii);
+                    mii.fMask = MIIM_FTYPE | MIIM_ID | MIIM_DATA;
+                    mii.fType = MFT_OWNERDRAW;
+                    mii.dwItemData = 0xf0f0f0f0;
+                    pContainer->hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_MENUBAR));
+                    CallService(MS_LANGPACK_TRANSLATEMENU, (WPARAM)pContainer->hMenu, 0);
+                    for(i = 0; i <= 5; i++) {
+                        mii.wID = 0xffff5000 + i;
+                        SetMenuItemInfo(pContainer->hMenu, i, TRUE, &mii);
                     }
-                    SetMenu(hwndDlg, pContainer->hMenu);
-                    DrawMenuBar(hwndDlg);
+                    if(bSkinned && g_MenuBGBrush) {
+                        mi.cbSize = sizeof(mi);
+                        mi.hbrBack = g_MenuBGBrush;
+                        mi.fMask = MIM_BACKGROUND;
+                        SetMenuInfo(pContainer->hMenu, &mi);
+                    }
                 }
+                SetMenu(hwndDlg, pContainer->hMenu);
+                DrawMenuBar(hwndDlg);
             }
             if(pContainer->hwndActive != 0) {
                 hContact = 0;
