@@ -641,6 +641,7 @@ static int PopupUpdate(HANDLE hContact, HANDLE hEvent)
 
 static int PopupAct(HWND hWnd, UINT mask, PLUGIN_DATA* pdata)
 {
+    pdata->iActionTaken = TRUE;
     if (mask & MASK_OPEN) {
         int i;
 
@@ -676,6 +677,8 @@ static BOOL CALLBACK PopupDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
             PopupAct(hWnd, pdata->pluginOptions->maskActR, pdata);
             break;
         case UM_FREEPLUGINDATA:
+            if(!pdata->iActionTaken)
+                PopupAct(hWnd, pdata->pluginOptions->maskActTE, pdata);
             PopupCount--;
             if(pdata->eventData)
                 free(pdata->eventData);
@@ -683,7 +686,7 @@ static BOOL CALLBACK PopupDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
             return TRUE;
         case UM_INITPOPUP:
             pdata->hWnd = hWnd;
-            if (pdata->iSeconds != -1)
+            if (pdata->iSeconds != 0)
                 SetTimer(hWnd, TIMER_TO_ACTION, pdata->iSeconds * 1000, NULL);
             break;
         case WM_MOUSEWHEEL:
@@ -739,7 +742,6 @@ static int PopupShow(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent,
             pud.lchIcon = LoadSkinnedIcon(SKINICON_EVENT_MESSAGE);
             pud.colorBack = pluginOptions->bDefaultColorMsg ? 0 : pluginOptions->colBackMsg;
             pud.colorText = pluginOptions->bDefaultColorMsg ? 0 : pluginOptions->colTextMsg;
-            pud.iSeconds = -1; 
             iSeconds = pluginOptions->iDelayMsg;
             sampleEvent = Translate("This is a sample message event :-)");
             break;
@@ -748,7 +750,6 @@ static int PopupShow(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent,
             pud.lchIcon = LoadSkinnedIcon(SKINICON_EVENT_URL);
             pud.colorBack = pluginOptions->bDefaultColorUrl ? 0 : pluginOptions->colBackUrl;
             pud.colorText = pluginOptions->bDefaultColorUrl ? 0 : pluginOptions->colTextUrl;
-            pud.iSeconds = -1; 
             iSeconds = pluginOptions->iDelayUrl;
             sampleEvent = Translate("This is a sample URL event ;-)");
             break;
@@ -757,7 +758,6 @@ static int PopupShow(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent,
             pud.lchIcon = LoadSkinnedIcon(SKINICON_EVENT_FILE);
             pud.colorBack = pluginOptions->bDefaultColorFile ? 0 : pluginOptions->colBackFile;
             pud.colorText = pluginOptions->bDefaultColorFile ? 0 : pluginOptions->colTextFile;
-            pud.iSeconds = -1;
             iSeconds = pluginOptions->iDelayFile;
             sampleEvent = Translate("This is a sample file event :-D");
             break;
@@ -766,7 +766,6 @@ static int PopupShow(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent,
             pud.lchIcon = LoadSkinnedIcon(SKINICON_OTHER_MIRANDA);
             pud.colorBack = pluginOptions->bDefaultColorOthers ? 0 : pluginOptions->colBackOthers;
             pud.colorText = pluginOptions->bDefaultColorOthers ? 0 : pluginOptions->colTextOthers;
-            pud.iSeconds = -1;
             iSeconds = pluginOptions->iDelayOthers;
             sampleEvent = Translate("This is a sample other event ;-D");
             break;
@@ -790,7 +789,8 @@ static int PopupShow(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent,
     pdata->hContact = hContact;
     pdata->pluginOptions = pluginOptions;
     pdata->pud = &pud;
-    pdata->iSeconds = iSeconds ? iSeconds : pluginOptions->iDelayDefault;
+    pdata->iSeconds = iSeconds; // ? iSeconds : pluginOptions->iDelayDefault;
+    pud.iSeconds = pdata->iSeconds ? -1 : 0;
 
     //finally create the popup
     pud.lchContact = hContact;
@@ -1019,6 +1019,7 @@ static int PopupUpdateW(HANDLE hContact, HANDLE hEvent)
 
 static int PopupActW(HWND hWnd, UINT mask, PLUGIN_DATAW* pdata)
 {
+    pdata->iActionTaken = TRUE;
     if (mask & MASK_OPEN) {
         int i;
 
@@ -1054,6 +1055,8 @@ static BOOL CALLBACK PopupDlgProcW(HWND hWnd, UINT message, WPARAM wParam, LPARA
             PopupActW(hWnd, pdata->pluginOptions->maskActR, pdata);
             break;
         case UM_FREEPLUGINDATA:
+            if(!pdata->iActionTaken)
+                PopupActW(hWnd, pdata->pluginOptions->maskActTE, pdata);
             PopupCount--;
             if(pdata->eventData)
                 free(pdata->eventData);
@@ -1061,7 +1064,7 @@ static BOOL CALLBACK PopupDlgProcW(HWND hWnd, UINT message, WPARAM wParam, LPARA
             return TRUE;
         case UM_INITPOPUP:
             pdata->hWnd = hWnd;
-            if (pdata->iSeconds != -1)
+            if (pdata->iSeconds != 0)
                 SetTimer(hWnd, TIMER_TO_ACTION, pdata->iSeconds * 1000, NULL);
             break;
         case WM_MOUSEWHEEL:
@@ -1120,7 +1123,6 @@ static int PopupShowW(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent
             pud.lchIcon = LoadSkinnedIcon(SKINICON_EVENT_MESSAGE);
             pud.colorBack = pluginOptions->bDefaultColorMsg ? 0 : pluginOptions->colBackMsg;
             pud.colorText = pluginOptions->bDefaultColorMsg ? 0 : pluginOptions->colTextMsg;
-            pud.iSeconds = -1; 
             iSeconds = pluginOptions->iDelayMsg;
             break;
         case EVENTTYPE_URL:
@@ -1129,7 +1131,6 @@ static int PopupShowW(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent
             pud.lchIcon = LoadSkinnedIcon(SKINICON_EVENT_URL);
             pud.colorBack = pluginOptions->bDefaultColorUrl ? 0 : pluginOptions->colBackUrl;
             pud.colorText = pluginOptions->bDefaultColorUrl ? 0 : pluginOptions->colTextUrl;
-            pud.iSeconds = -1; 
             iSeconds = pluginOptions->iDelayUrl;
             break;
         case EVENTTYPE_FILE:
@@ -1138,7 +1139,6 @@ static int PopupShowW(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent
             pud.lchIcon = LoadSkinnedIcon(SKINICON_EVENT_FILE);
             pud.colorBack = pluginOptions->bDefaultColorFile ? 0 : pluginOptions->colBackFile;
             pud.colorText = pluginOptions->bDefaultColorFile ? 0 : pluginOptions->colTextFile;
-            pud.iSeconds = -1;
             iSeconds = pluginOptions->iDelayFile;
             break;
         default:
@@ -1147,7 +1147,6 @@ static int PopupShowW(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent
             pud.lchIcon = LoadSkinnedIcon(SKINICON_OTHER_MIRANDA);
             pud.colorBack = pluginOptions->bDefaultColorOthers ? 0 : pluginOptions->colBackOthers;
             pud.colorText = pluginOptions->bDefaultColorOthers ? 0 : pluginOptions->colTextOthers;
-            pud.iSeconds = -1;
             iSeconds = pluginOptions->iDelayOthers;
             break;
     }
@@ -1170,7 +1169,8 @@ static int PopupShowW(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent
     pdata->hContact = hContact;
     pdata->pluginOptions = pluginOptions;
     pdata->pud = &pud;
-    pdata->iSeconds = iSeconds ? iSeconds : pluginOptions->iDelayDefault;
+    pdata->iSeconds = iSeconds; // ? iSeconds : pluginOptions->iDelayDefault;
+    pud.iSeconds = pdata->iSeconds ? -1 : 0;
 
     //finally create the popup
     pud.lchContact = hContact;

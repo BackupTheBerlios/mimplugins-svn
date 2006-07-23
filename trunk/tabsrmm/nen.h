@@ -176,6 +176,7 @@ typedef struct {
     int  nrMerged;
     EVENT_DATA *eventData;
     int  nrEventsAlloced;
+    int  iActionTaken;
 } PLUGIN_DATA;
 
 typedef struct EVENT_DATAW {
@@ -195,6 +196,7 @@ typedef struct {
     int  nrMerged;
     EVENT_DATAW *eventData;
     int  nrEventsAlloced;
+    int  iActionTaken;
 } PLUGIN_DATAW;
 
 #define NR_MERGED 5

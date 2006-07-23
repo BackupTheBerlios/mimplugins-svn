@@ -1865,8 +1865,6 @@ void GetDataDir()
     myGlobals.szDataPath[MAX_PATH] = 0;
     mir_snprintf(pszDataPath, MAX_PATH, "%sskins\\", myGlobals.szDataPath);
     CreateDirectoryA(pszDataPath, NULL);
-    mir_snprintf(pszDataPath, MAX_PATH, "%sthemes\\", myGlobals.szDataPath);
-    CreateDirectoryA(pszDataPath, NULL);
     mir_snprintf(pszDataPath, MAX_PATH, "%sSaved Contact Pictures\\", myGlobals.szDataPath);
     CreateDirectoryA(pszDataPath, NULL);
 }

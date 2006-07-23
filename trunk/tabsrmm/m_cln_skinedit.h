@@ -9,6 +9,8 @@
  * data structs
  */
 
+struct MessageWindowData;
+
 typedef struct _tagImageItem {
     char    szName[40];
     HBITMAP hbm;

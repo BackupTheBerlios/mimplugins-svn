@@ -519,7 +519,7 @@ char *GetThemeFileName(int iMode)
     OPENFILENAMEA ofn={0};
     char szInitialDir[MAX_PATH];
 
-    mir_snprintf(szInitialDir, MAX_PATH, "%sthemes\\", myGlobals.szDataPath);
+    mir_snprintf(szInitialDir, MAX_PATH, "%sskins\\", myGlobals.szDataPath);
     
     szFilename[0] = 0;
     
