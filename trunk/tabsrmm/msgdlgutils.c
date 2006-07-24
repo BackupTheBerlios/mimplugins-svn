@@ -2827,7 +2827,7 @@ void GetCachedStatusMsg(HWND hwndDlg, struct MessageWindowData *dat)
 }
 
 /*
- * path utilities (make avatar paths relative to *PROFILE* directory, not miranda directory.
+ * path utilities (make various paths relative to *PROFILE* directory, not miranda directory.
  * taken and modified from core services
  */
 

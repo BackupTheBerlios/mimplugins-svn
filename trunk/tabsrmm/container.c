@@ -2621,7 +2621,7 @@ panel_found:
                 else*/
                 FillRect(dis->hDC, &dis->rcItem, bSkinned && g_MenuBGBrush ? g_MenuBGBrush : GetSysColorBrush(clrBack));
 
-                if(dis->itemState & ODS_SELECTED) {
+                if(dis->itemState & ODS_SELECTED && !(dis->itemState & ODS_DISABLED)) {
                     if(bSkinned) {
                         POINT pt;
                         HPEN  hPenOld;
@@ -2638,7 +2638,7 @@ panel_found:
                     } else
                         DrawEdge(dis->hDC, &dis->rcItem, BDR_SUNKENINNER, BF_RECT);
                 }
-                SetTextColor(dis->hDC, bSkinned ? myGlobals.skinDefaultFontColor : GetSysColor(COLOR_MENUTEXT));
+                SetTextColor(dis->hDC, !(dis->itemState & ODS_DISABLED) ? (bSkinned ? myGlobals.skinDefaultFontColor : GetSysColor(COLOR_MENUTEXT)) : GetSysColor(COLOR_GRAYTEXT)); ;
                 DrawText(dis->hDC, menuName, lstrlen(menuName), &dis->rcItem,
                          DT_VCENTER | DT_SINGLELINE | DT_CENTER);
                 //DrawState(dis->hDC, 0, NULL, menuBarNames[dis->itemID - 100], lstrlen(menuBarNames[dis->itemID - 100]),
@@ -3169,92 +3169,6 @@ int GetContainerNameForContact(HANDLE hContact, TCHAR *szName, int iNameLen)
 	return 0;
 }
 
-/*
- * this function iterates over all containers defined under TAB_Containers in the DB. It allows
- * to delete them (marking them as **free** actually) and will care about all references to a
- * deleted or renamed container.
- * It also allows for setting the Flags value for all containers
- */
-
-/*
-int EnumContainers(HANDLE hContact, DWORD dwAction, const TCHAR *szTarget, const TCHAR *szNew, DWORD dwExtinfo, DWORD dwExtinfoEx)
-{
-    DBVARIANT dbv;
-    int iCounter = 0;
-    char szCounter[20];
-#if defined (_UNICODE)
-    char *szKey = "TAB_ContainersW";
-    char *szSettingP = "CNTW_";
-#else
-    char *szSettingP = "CNT_";
-    char *szKey = "TAB_Containers";
-#endif
-    HANDLE hhContact = 0;
-
-    do {
-        _snprintf(szCounter, 8, "%d", iCounter);
-        if (DBGetContactSettingTString(NULL, szKey, szCounter, &dbv))
-            break;      // end of loop...
-        else {        // found...
-            iCounter++;
-            if (dbv.type == DBVT_ASCIIZ || dbv.type == DBVT_WCHAR) {
-                TCHAR *wszTemp = dbv.ptszVal;
-
-                if(!_tcsncmp(wszTemp, _T("**free**"), _tcslen(wszTemp))) {
-                    DBFreeVariant(&dbv);
-                    continue;
-                }
-                if (dwAction & CNT_ENUM_DELETE) {
-                    if(!_tcsncmp(wszTemp, szTarget, _tcslen(wszTemp)) && _tcslen(wszTemp) == _tcslen(szTarget)) {
-                        DeleteContainer(iCounter - 1);
-                        DBFreeVariant(&dbv);
-                        break;
-                    }
-                }
-                if (dwAction & CNT_ENUM_RENAME) {
-                    if(!_tcsncmp(wszTemp, szTarget, _tcslen(wszTemp)) && _tcslen(wszTemp) == _tcslen(szTarget)) {
-                        RenameContainer(iCounter - 1, szNew);
-                        DBFreeVariant(&dbv);
-                        break;
-                    }
-                }
-                if (dwAction & CNT_ENUM_WRITEFLAGS) {
-                    char szSetting[CONTAINER_NAMELEN + 15];
-                    _snprintf(szSetting, CONTAINER_NAMELEN + 15, "%s%d_Flags", szSettingP, iCounter - 1);
-                    DBWriteContactSettingDword(NULL, SRMSGMOD_T, szSetting, dwExtinfo);
-                    _snprintf(szSetting, CONTAINER_NAMELEN + 15, "%s%d_Trans", szSettingP, iCounter - 1);
-                    DBWriteContactSettingDword(NULL, SRMSGMOD_T, szSetting, dwExtinfoEx);
-                }
-            }
-            DBFreeVariant(&dbv);
-        }
-    } while ( TRUE );
-
-    if(dwAction & CNT_ENUM_WRITEFLAGS) {        // write the flags to the *local* container settings for each hContact
-        HANDLE hContact;
-#if defined(_UNICODE)
-        char *szFlags = "CNTW__Flags";
-        char *szTrans = "CNTW__Trans";
-#else
-        char *szFlags = "CNT__Flags";
-        char *szTrans = "CNT__Trans";
-#endif
-        hContact = (HANDLE) CallService(MS_DB_CONTACT_FINDFIRST, 0, 0);
-        while (hContact) {
-            if(DBGetContactSettingDword(hContact, SRMSGMOD_T, szFlags, 0xffffffff) != 0xffffffff)
-                DBWriteContactSettingDword(hContact, SRMSGMOD_T, szFlags, dwExtinfo);
-            if(DBGetContactSettingDword(hContact, SRMSGMOD_T, szTrans, 0xffffffff) != 0xffffffff)
-                DBWriteContactSettingDword(hContact, SRMSGMOD_T, szTrans, dwExtinfoEx);
-
-            hContact = (HANDLE) CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, 0);
-        }
-    }
-
-    return 0;
-}
-
-*/
-
 void DeleteContainer(int iIndex)
 {
     DBVARIANT dbv;
@@ -3552,14 +3466,39 @@ void BroadCastContainer(struct ContainerWindowData *pContainer, UINT message, WP
     }
 }
 
+/*
+ * this updates the container menu bar and other window elements depending on the current child
+ * session (IM, chat etc.). It fully supports IEView and will disable/enable the message log menus
+ * depending on the configuration of IEView (e.g. when template mode is on, the message log settin
+ * menus have no functionality, thus can be disabled to improve ui feedback quality).
+ */
+
 void UpdateContainerMenu(HWND hwndDlg, struct MessageWindowData *dat)
 {
-    return;
-    if(dat->pContainer->hMenu == 0)
-        return;
+    char szTemp[100];
+    BYTE IEViewMode = 0;
+    BOOL fDisable = FALSE;
 
-    if(dat->hwndIEView != 0 && (DBGetContactSettingDword(NULL, "IEVIEW", "TemplatesFlags", 0) & 0x01))
-        EnableMenuItem(dat->pContainer->hMenu, 3, MF_BYPOSITION | MF_GRAYED);
-    else
-        EnableMenuItem(dat->pContainer->hMenu, 3, MF_BYPOSITION | MF_ENABLED);
+    if(dat->bType == SESSIONTYPE_CHAT)              // TODO: chat sessions may get their own message log submenu in the future. for now, its just disabled
+        fDisable = TRUE;
+    else {
+        if(dat->hwndIEView != 0) {
+            mir_snprintf(szTemp, 100, "%s.SRMMEnable", dat->bIsMeta ? dat->szMetaProto : dat->szProto);
+            if(DBGetContactSettingByte(NULL, "IEVIEW", szTemp, 0)) {
+                mir_snprintf(szTemp, 100, "%s.SRMMMode", dat->bIsMeta ? dat->szMetaProto : dat->szProto);
+                IEViewMode = DBGetContactSettingByte(NULL, "IEVIEW", szTemp, 0);
+            }
+            else
+                IEViewMode = DBGetContactSettingByte(NULL, "IEVIEW", "_default_.SRMMMode", 0);
+            fDisable = (IEViewMode == 2);
+        }
+    }
+    if(dat->pContainer->hMenu) {
+        EnableMenuItem(dat->pContainer->hMenu, 3, MF_BYPOSITION | (fDisable ? MF_GRAYED | MF_DISABLED : MF_ENABLED));
+        if(!(dat->pContainer->dwFlags & CNT_NOMENUBAR))
+            DrawMenuBar(dat->pContainer->hwnd);
+    }
+    if(dat->bType == SESSIONTYPE_IM)
+        EnableWindow(GetDlgItem(hwndDlg, IDC_TIME), fDisable ? FALSE : TRUE);
 }
+

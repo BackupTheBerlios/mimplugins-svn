@@ -5239,10 +5239,10 @@ verify:
          */
         case DM_SAVEMESSAGELOG:
         {
-            TCHAR szFilename[MAX_PATH];
-            OPENFILENAME ofn={0};
+            char szFilename[MAX_PATH];
+            OPENFILENAMEA ofn={0};
             EDITSTREAM stream = { 0 };
-            TCHAR szFilter[MAX_PATH];
+            char szFilter[MAX_PATH];
             
             if(dat->hwndIEView != 0) {
                 IEVIEWEVENT event = {0};
@@ -5257,18 +5257,31 @@ verify:
                 CallService(MS_IEVIEW_EVENT, 0, (LPARAM)&event);
             }
             else {
-                _tcsncpy(szFilter, _T("Rich Edit file\0*.rtf"), MAX_PATH);
-                _tcsncpy(szFilename, dat->szNickname, MAX_PATH);
-                _tcsncat(szFilename, _T(".rtf"), MAX_PATH);
+                static char *forbiddenCharacters = "%/\\'";
+                char   szInitialDir[MAX_PATH];
+                int    i;
+
+                strncpy(szFilter, "Rich Edit file\0*.rtf", MAX_PATH);
+                mir_snprintf(szFilename, MAX_PATH, "%s.rtf", dat->uin);
+
+                for(i = 0; i < lstrlenA(forbiddenCharacters); i++) {
+                    char *szFound = 0;
+
+                    while((szFound = strchr(szFilename, (int)forbiddenCharacters[i])) != NULL)
+                        *szFound = '_';
+                }
+                mir_snprintf(szInitialDir, MAX_PATH, "%s%s\\", myGlobals.szDataPath, "saved message logs");
+                if(!PathFileExistsA(szInitialDir))
+                    CreateDirectoryA(szInitialDir, NULL);
                 ofn.lStructSize=sizeof(ofn);
                 ofn.hwndOwner=hwndDlg;
                 ofn.lpstrFile = szFilename;
                 ofn.lpstrFilter = szFilter;
-                ofn.lpstrInitialDir = _T("rtflogs");
+                ofn.lpstrInitialDir = szInitialDir;
                 ofn.nMaxFile = MAX_PATH;
                 ofn.Flags = OFN_HIDEREADONLY;
-                ofn.lpstrDefExt = _T("rtf");
-                if (GetSaveFileName(&ofn)) {
+                ofn.lpstrDefExt = "rtf";
+                if (GetSaveFileNameA(&ofn)) {
                     stream.dwCookie = (DWORD_PTR)szFilename;
                     stream.dwError = 0;
                     stream.pfnCallback = StreamOut;
@@ -5724,8 +5737,8 @@ static DWORD CALLBACK StreamOut(DWORD_PTR dwCookie, LPBYTE pbBuff, LONG cb, LONG
 {                                                                                                        
     HANDLE hFile;
 
-    TCHAR *szFilename = (TCHAR *)dwCookie;
-    if(( hFile = CreateFile(szFilename, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE )      
+    char *szFilename = (char *)dwCookie;
+    if(( hFile = CreateFileA(szFilename, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE )      
     {                                                                                                    
         SetFilePointer(hFile, 0, NULL, FILE_END);                                                        
         WriteFile(hFile, pbBuff, cb, (DWORD *)pcb, NULL);                                                         
