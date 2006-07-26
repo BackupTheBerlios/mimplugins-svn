@@ -514,7 +514,7 @@ int MsgWindowMenuHandler(HWND hwndDlg, struct MessageWindowData *dat, int select
             }
             case ID_PICMENU_ALWAYSKEEPTHEBUTTONBARATFULLWIDTH:
                 myGlobals.m_AlwaysFullToolbarWidth = !myGlobals.m_AlwaysFullToolbarWidth;
-                DBWriteContactSettingByte(NULL, SRMSGMOD_T, "alwaysfulltoolbar", myGlobals.m_AlwaysFullToolbarWidth);
+                DBWriteContactSettingByte(NULL, SRMSGMOD_T, "alwaysfulltoolbar", (BYTE)myGlobals.m_AlwaysFullToolbarWidth);
                 WindowList_Broadcast(hMessageWindowList, DM_CONFIGURETOOLBAR, 0, 1);
                 break;
             case ID_PICMENU_SAVETHISPICTUREAS:
@@ -621,7 +621,7 @@ int MsgWindowMenuHandler(HWND hwndDlg, struct MessageWindowData *dat, int select
                 dat->dwFlags ^= MWF_LOG_INOUTICONS;
                 return 1;
             case ID_LOGITEMSTOSHOW_LOGSTATUSCHANGES:
-                DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "logstatus", iLogStatus ? 0 : -1);
+                DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "logstatus", (BYTE)(iLogStatus ? 0 : -1));
                 return 1;
             case ID_MESSAGELOGFORMATTING_SHOWGRID:
                 dat->dwFlags ^= MWF_LOG_GRID;
@@ -1051,7 +1051,7 @@ void FlashOnClist(HWND hwndDlg, struct MessageWindowData *dat, HANDLE hEvent, DB
 
     dat->dwTickLastEvent = GetTickCount();
     if((GetForegroundWindow() != dat->pContainer->hwnd || dat->pContainer->hwndActive != hwndDlg) && !(dbei->flags & DBEF_SENT) && dbei->eventType == EVENTTYPE_MESSAGE) {
-        UpdateTrayMenu(dat, dat->bIsMeta ? dat->wMetaStatus : dat->wStatus, dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->szStatus, dat->hContact, FALSE);
+        UpdateTrayMenu(dat, dat->bIsMeta ? dat->wMetaStatus : dat->wStatus, dat->bIsMeta ? dat->szMetaProto : dat->szProto, dat->szStatus, dat->hContact, 0L);
         if(nen_options.bTraySupport == TRUE && myGlobals.m_WinVerMajor >= 5)
             return;
     }

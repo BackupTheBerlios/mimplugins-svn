@@ -3310,8 +3310,8 @@ HMENU BuildMCProtocolMenu(HWND hwndDlg)
     char  szTemp[50], *szProtoMostOnline = NULL;
     TCHAR szMenuLine[128], *nick = NULL, *szStatusText = NULL, *tzProtoName = NULL;
     HANDLE hContactMostOnline, handle;
-    DWORD iChecked, isForced;
-    WORD wStatus;
+    int    iChecked, isForced;
+    WORD   wStatus;
 
     struct MessageWindowData *dat = (struct MessageWindowData *)GetWindowLong(hwndDlg, GWL_USERDATA);
     if(dat == NULL)

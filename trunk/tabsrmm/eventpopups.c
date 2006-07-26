@@ -146,13 +146,13 @@ int NEN_WriteOptions(NEN_OPTIONS *options)
 	DBWriteContactSettingByte(NULL, MODULE, OPT_WINDOWCHECK, (BYTE)options->bWindowCheck);
 	DBWriteContactSettingByte(NULL, MODULE, OPT_NORSS, (BYTE)options->bNoRSS);
 	DBWriteContactSettingDword(NULL, MODULE, OPT_LIMITPREVIEW, options->iLimitPreview);
-	DBWriteContactSettingByte(NULL, MODULE, OPT_MINIMIZEANIMATED, options->bAnimated);
-	DBWriteContactSettingByte(NULL, MODULE, OPT_ANNOUNCEMETHOD, options->iAnnounceMethod);
-	DBWriteContactSettingByte(NULL, MODULE, OPT_FLOATER, options->floaterMode);
-	DBWriteContactSettingByte(NULL, MODULE, OPT_FLOATERINWIN, options->bFloaterInWin);
-	DBWriteContactSettingByte(NULL, MODULE, OPT_FLOATERONLYMIN, options->bFloaterOnlyMin);
+	DBWriteContactSettingByte(NULL, MODULE, OPT_MINIMIZEANIMATED, (BYTE)options->bAnimated);
+	DBWriteContactSettingByte(NULL, MODULE, OPT_ANNOUNCEMETHOD, (BYTE)options->iAnnounceMethod);
+	DBWriteContactSettingByte(NULL, MODULE, OPT_FLOATER, (BYTE)options->floaterMode);
+	DBWriteContactSettingByte(NULL, MODULE, OPT_FLOATERINWIN, (BYTE)options->bFloaterInWin);
+	DBWriteContactSettingByte(NULL, MODULE, OPT_FLOATERONLYMIN, (BYTE)options->bFloaterOnlyMin);
 	DBWriteContactSettingDword(NULL, MODULE, OPT_REMOVEMASK, options->dwRemoveMask);
-	DBWriteContactSettingByte(NULL, MODULE, OPT_SIMPLEOPT, options->bSimpleMode);
+	DBWriteContactSettingByte(NULL, MODULE, OPT_SIMPLEOPT, (BYTE)options->bSimpleMode);
 	return 0;
 }
 

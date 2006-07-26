@@ -168,7 +168,6 @@ int _DebugPopup(HANDLE hContact, const char *fmt, ...)
 
 BOOL CALLBACK DlgProcAbout(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    HICON hIcon;
     COLORREF url_visited = RGB(128, 0, 128);
     COLORREF url_unvisited = RGB(0, 0, 255);
     

@@ -1,26 +1,26 @@
 # Microsoft Developer Studio Project File - Name="tabSRMM" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
-# ** DO NOT EDIT **
+# ** NICHT BEARBEITEN **
 
 # TARGTYPE "Win32 (x86) Dynamic-Link Library" 0x0102
 
 CFG=tabSRMM - Win32 Debug
-!MESSAGE This is not a valid makefile. To build this project using NMAKE,
-!MESSAGE use the Export Makefile command and run
+!MESSAGE Dies ist kein gültiges Makefile. Zum Erstellen dieses Projekts mit NMAKE
+!MESSAGE verwenden Sie den Befehl "Makefile exportieren" und führen Sie den Befehl
 !MESSAGE 
 !MESSAGE NMAKE /f "tabsrmm.mak".
 !MESSAGE 
-!MESSAGE You can specify a configuration when running NMAKE
-!MESSAGE by defining the macro CFG on the command line. For example:
+!MESSAGE Sie können beim Ausführen von NMAKE eine Konfiguration angeben
+!MESSAGE durch Definieren des Makros CFG in der Befehlszeile. Zum Beispiel:
 !MESSAGE 
 !MESSAGE NMAKE /f "tabsrmm.mak" CFG="tabSRMM - Win32 Debug"
 !MESSAGE 
-!MESSAGE Possible choices for configuration are:
+!MESSAGE Für die Konfiguration stehen zur Auswahl:
 !MESSAGE 
-!MESSAGE "tabSRMM - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
-!MESSAGE "tabSRMM - Win32 Release Unicode" (based on "Win32 (x86) Dynamic-Link Library")
-!MESSAGE "tabSRMM - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
-!MESSAGE "tabSRMM - Win32 Debug Unicode" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "tabSRMM - Win32 Debug" (basierend auf  "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "tabSRMM - Win32 Release Unicode" (basierend auf  "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "tabSRMM - Win32 Release" (basierend auf  "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "tabSRMM - Win32 Debug Unicode" (basierend auf  "Win32 (x86) Dynamic-Link Library")
 !MESSAGE 
 
 # Begin Project
@@ -84,7 +84,8 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib /nologo /base:"0x6a540000" /subsystem:windows /dll /machine:IX86 /out:"..\..\Bin\Release\Plugins\tabsrmm_unicode.dll" /implib:".\Release_Unicode/srmm.lib" /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib msimg32.lib shlwapi.lib /nologo /base:"0x6a540000" /subsystem:windows /dll /map /debug /machine:IX86 /out:"..\..\Bin\Release Unicode\Plugins\tabsrmm.dll" /implib:".\Release_Unicode/srmm.lib" /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib msimg32.lib shlwapi.lib /nologo /base:"0x6a540000" /subsystem:windows /dll /pdb:none /map /machine:IX86 /out:"..\..\Bin\Release Unicode\Plugins\tabsrmm.dll" /implib:".\Release_Unicode/srmm.lib"
+# SUBTRACT LINK32 /debug
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
 
@@ -198,8 +199,10 @@ DEP_CPP_CLIST=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -214,10 +217,6 @@ DEP_CPP_CLIST=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_CLIST=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -253,8 +252,10 @@ DEP_CPP_COLOR=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -269,10 +270,6 @@ DEP_CPP_COLOR=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_COLOR=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -308,8 +305,10 @@ DEP_CPP_LOG_C=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -324,10 +323,6 @@ DEP_CPP_LOG_C=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_LOG_C=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -367,8 +362,10 @@ DEP_CPP_MAIN_=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -383,10 +380,6 @@ DEP_CPP_MAIN_=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_MAIN_=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -422,8 +415,10 @@ DEP_CPP_MANAG=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -438,10 +433,6 @@ DEP_CPP_MANAG=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_MANAG=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -477,8 +468,10 @@ DEP_CPP_MESSA=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -493,10 +486,6 @@ DEP_CPP_MESSA=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_MESSA=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -532,8 +521,10 @@ DEP_CPP_OPTIO=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -548,10 +539,6 @@ DEP_CPP_OPTIO=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_OPTIO=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -587,8 +574,10 @@ DEP_CPP_SERVI=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -603,10 +592,6 @@ DEP_CPP_SERVI=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_SERVI=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -642,8 +627,10 @@ DEP_CPP_TOOLS=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -658,10 +645,6 @@ DEP_CPP_TOOLS=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_TOOLS=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -697,8 +680,10 @@ DEP_CPP_WINDO=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -713,10 +698,6 @@ DEP_CPP_WINDO=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_WINDO=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -753,8 +734,10 @@ DEP_CPP_CONTA=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -771,10 +754,19 @@ DEP_CPP_CONTA=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_CONTA=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -808,8 +800,10 @@ DEP_CPP_CONTAI=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -825,10 +819,19 @@ DEP_CPP_CONTAI=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_CONTAI=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -863,8 +866,10 @@ DEP_CPP_EVENT=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -880,10 +885,19 @@ DEP_CPP_EVENT=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_EVENT=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -917,8 +931,10 @@ DEP_CPP_FORMA=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -934,10 +950,6 @@ DEP_CPP_FORMA=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_FORMA=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -945,7 +957,7 @@ NODEP_CPP_FORMA=\
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
 
-# ADD CPP /nologo /GX /EHsc
+# ADD CPP /nologo /GX /Zi /EHsc
 # SUBTRACT CPP /YX /Yc /Yu
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
@@ -956,6 +968,71 @@ NODEP_CPP_FORMA=\
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
 
 # SUBTRACT CPP /YX /Yc /Yu
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\generic_msghandlers.c
+DEP_CPP_GENER=\
+	"..\..\include\m_addcontact.h"\
+	"..\..\include\m_button.h"\
+	"..\..\include\m_clc.h"\
+	"..\..\include\m_clist.h"\
+	"..\..\include\m_clui.h"\
+	"..\..\include\m_contacts.h"\
+	"..\..\include\m_database.h"\
+	"..\..\include\m_file.h"\
+	"..\..\include\m_history.h"\
+	"..\..\include\m_langpack.h"\
+	"..\..\include\m_options.h"\
+	"..\..\include\m_plugins.h"\
+	"..\..\include\m_popup.h"\
+	"..\..\include\m_protocols.h"\
+	"..\..\include\m_protomod.h"\
+	"..\..\include\m_protosvc.h"\
+	"..\..\include\m_skin.h"\
+	"..\..\include\m_system.h"\
+	"..\..\include\m_userinfo.h"\
+	"..\..\include\m_utils.h"\
+	"..\..\include\newpluginapi.h"\
+	"..\..\include\statusmodes.h"\
+	"..\..\include\win2k.h"\
+	".\chat\chat.h"\
+	".\chat\chatprototypes.h"\
+	".\chat\m_chat.h"\
+	".\commonheaders.h"\
+	".\functions.h"\
+	".\generic_msghandlers.h"\
+	".\IcoLib.h"\
+	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
+	".\m_fingerprint.h"\
+	".\m_flash.h"\
+	".\m_ieview.h"\
+	".\m_metacontacts.h"\
+	".\m_nudge.h"\
+	".\m_popup.h"\
+	".\m_popupw.h"\
+	".\m_smileyadd.h"\
+	".\m_Snapping_windows.h"\
+	".\m_tabsrmm.h"\
+	".\msgdlgutils.h"\
+	".\msgs.h"\
+	".\nen.h"\
+	".\templates.h"\
+	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
 
 !ENDIF 
 
@@ -992,8 +1069,10 @@ DEP_CPP_HOTKE=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1007,12 +1086,22 @@ DEP_CPP_HOTKE=\
 	".\msgdlgutils.h"\
 	".\msgs.h"\
 	".\nen.h"\
+	".\sendqueue.h"\
 	".\templates.h"\
 	
-NODEP_CPP_HOTKE=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -1046,9 +1135,11 @@ DEP_CPP_IMAGE=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\ImageDataObject.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1064,11 +1155,26 @@ DEP_CPP_IMAGE=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_IMAGE=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
 # SUBTRACT CPP /YX /Yc /Yu
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+# SUBTRACT CPP /YX /Yc /Yu
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+# SUBTRACT CPP /YX /Yc /Yu
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+# SUBTRACT CPP /YX /Yc /Yu
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -1102,8 +1208,10 @@ DEP_CPP_MSGDI=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1120,10 +1228,7 @@ DEP_CPP_MSGDI=\
 	".\nen.h"\
 	".\sendqueue.h"\
 	".\templates.h"\
-	
-NODEP_CPP_MSGDI=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
+	{$(INCLUDE)}"uxtheme.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -1132,7 +1237,7 @@ NODEP_CPP_MSGDI=\
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
 
-# ADD CPP /nologo /GX /O1
+# ADD CPP /nologo /GX /Zi /O1
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
 
@@ -1177,8 +1282,10 @@ DEP_CPP_MSGDL=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1194,10 +1301,19 @@ DEP_CPP_MSGDL=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_MSGDL=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -1231,8 +1347,10 @@ DEP_CPP_MSGLO=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1249,10 +1367,6 @@ DEP_CPP_MSGLO=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_MSGLO=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1260,7 +1374,7 @@ NODEP_CPP_MSGLO=\
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
 
-# ADD CPP /nologo /GX /O1
+# ADD CPP /nologo /GX /Zi /O1
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
 
@@ -1305,8 +1419,10 @@ DEP_CPP_MSGOP=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1322,10 +1438,7 @@ DEP_CPP_MSGOP=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
-	
-NODEP_CPP_MSGOP=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
+	{$(INCLUDE)}"uxtheme.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -1334,7 +1447,7 @@ NODEP_CPP_MSGOP=\
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
 
-# ADD CPP /nologo /GX /O1
+# ADD CPP /nologo /GX /Zi /O1
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
 
@@ -1379,8 +1492,10 @@ DEP_CPP_MSGS_=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1399,10 +1514,6 @@ DEP_CPP_MSGS_=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_MSGS_=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1410,7 +1521,7 @@ NODEP_CPP_MSGS_=\
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
 
-# ADD CPP /nologo /GX /O1
+# ADD CPP /nologo /GX /Zi /O1
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
 
@@ -1455,8 +1566,10 @@ DEP_CPP_SELEC=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1472,10 +1585,19 @@ DEP_CPP_SELEC=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_SELEC=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -1509,8 +1631,10 @@ DEP_CPP_SENDQ=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1527,10 +1651,19 @@ DEP_CPP_SENDQ=\
 	".\sendqueue.h"\
 	".\templates.h"\
 	
-NODEP_CPP_SENDQ=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -1564,8 +1697,10 @@ DEP_CPP_SRMM_=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1581,10 +1716,6 @@ DEP_CPP_SRMM_=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_SRMM_=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1592,7 +1723,7 @@ NODEP_CPP_SRMM_=\
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
 
-# ADD CPP /nologo /GX /O1 /Yc"commonheaders.h"
+# ADD CPP /nologo /GX /Zi /O1 /Yc"commonheaders.h"
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
 
@@ -1637,8 +1768,10 @@ DEP_CPP_TABCT=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1653,11 +1786,21 @@ DEP_CPP_TABCT=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	{$(INCLUDE)}"uxtheme.h"\
 	
-NODEP_CPP_TABCT=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -1691,8 +1834,10 @@ DEP_CPP_TEMPL=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1708,10 +1853,19 @@ DEP_CPP_TEMPL=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_TEMPL=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -1745,8 +1899,10 @@ DEP_CPP_THEME=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1762,10 +1918,19 @@ DEP_CPP_THEME=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_THEME=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -1799,8 +1964,10 @@ DEP_CPP_TRAYI=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1817,10 +1984,19 @@ DEP_CPP_TRAYI=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_TRAYI=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -1854,8 +2030,10 @@ DEP_CPP_TSBUT=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1871,10 +2049,19 @@ DEP_CPP_TSBUT=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_TSBUT=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -1908,8 +2095,10 @@ DEP_CPP_USERP=\
 	".\chat\m_chat.h"\
 	".\commonheaders.h"\
 	".\functions.h"\
+	".\generic_msghandlers.h"\
 	".\IcoLib.h"\
 	".\m_avatars.h"\
+	".\m_cln_skinedit.h"\
 	".\m_fingerprint.h"\
 	".\m_flash.h"\
 	".\m_ieview.h"\
@@ -1925,10 +2114,19 @@ DEP_CPP_USERP=\
 	".\nen.h"\
 	".\templates.h"\
 	
-NODEP_CPP_USERP=\
-	"..\..\..\plugins\PopUp\m_popup.h"\
-	"..\PopUp\m_popup.h"\
-	
+
+!IF  "$(CFG)" == "tabSRMM - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release Unicode"
+
+# ADD CPP /Zi
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
+
+!ENDIF 
+
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -1941,6 +2139,10 @@ SOURCE=commonheaders.h
 # Begin Source File
 
 SOURCE=functions.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\generic_msghandlers.h
 # End Source File
 # Begin Source File
 

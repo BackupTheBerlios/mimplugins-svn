@@ -1723,8 +1723,8 @@ BOOL CALLBACK DlgProcTabConfig(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                                 DBWriteContactSettingDword(NULL, SRMSGMOD_T, g_skinnedContainers ? tabcolors[i].szSkinnedKey : tabcolors[i].szKey, clr);
                                 i++;
                             }
-                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, "y-pad", GetDlgItemInt(hwndDlg, IDC_TABPADDING, NULL, FALSE));
-                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, "x-pad", GetDlgItemInt(hwndDlg, IDC_HTABPADDING, NULL, FALSE));
+                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, "y-pad", (BYTE)(GetDlgItemInt(hwndDlg, IDC_TABPADDING, NULL, FALSE)));
+                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, "x-pad", (BYTE)(GetDlgItemInt(hwndDlg, IDC_HTABPADDING, NULL, FALSE)));
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, "tborder", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDER, &translated, FALSE));
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers ? "S_tborder_outer_left" : "tborder_outer_left", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDEROUTER, &translated, FALSE));
                             DBWriteContactSettingByte(NULL, SRMSGMOD_T, g_skinnedContainers ? "S_tborder_outer_right" : "tborder_outer_right", (BYTE) GetDlgItemInt(hwndDlg, IDC_TABBORDEROUTERRIGHT, &translated, FALSE));
@@ -1735,7 +1735,7 @@ BOOL CALLBACK DlgProcTabConfig(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
                             fixedWidth = GetDlgItemInt(hwndDlg, IDC_TABWIDTH, &translated, FALSE);
                             fixedWidth = (fixedWidth < 60 ? 60 : fixedWidth);
                             DBWriteContactSettingDword(NULL, SRMSGMOD_T, "fixedwidth", fixedWidth);
-                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, "moderntabs", IsDlgButtonChecked(hwndDlg, IDC_STYLEDTABS) ? 1 : 0);
+                            DBWriteContactSettingByte(NULL, SRMSGMOD_T, "moderntabs", (BYTE)(IsDlgButtonChecked(hwndDlg, IDC_STYLEDTABS) ? 1 : 0));
                             FreeTabConfig();
                             if((COLORREF)SendDlgItemMessage(hwndDlg, IDC_LIGHTSHADOW, CPM_GETCOLOUR, 0, 0) == RGB(255, 0, 255))
                                 DBDeleteContactSetting(NULL, SRMSGMOD_T, "tab_lightshadow");

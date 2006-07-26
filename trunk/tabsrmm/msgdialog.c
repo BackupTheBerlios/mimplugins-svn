@@ -3704,7 +3704,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 #ifdef _UNICODE
                         TCHAR *szConverted;
                         int iAlloced = 0;
-                        int iSize = 0;
+                        unsigned int iSize = 0;
                         SETTEXTEX stx = {ST_SELECTION, 1200};
 #endif                        
                         if(dat->hwndIEView != 0) {                 // IEView quoting support..
@@ -4042,7 +4042,7 @@ quote_from_last:
                                 break;
                             case ID_SPLITTER_AUTOSAVEONCLOSE:
                                 myGlobals.m_SplitterSaveOnClose ^= 1;
-                                DBWriteContactSettingByte(NULL, SRMSGMOD_T, "splitsavemode", myGlobals.m_SplitterSaveOnClose);
+                                DBWriteContactSettingByte(NULL, SRMSGMOD_T, "splitsavemode", (BYTE)myGlobals.m_SplitterSaveOnClose);
                                 break;
                             case ID_SPLITTER_SAVENOW:
                                 SaveSplitter(hwndDlg, dat);
@@ -4095,7 +4095,7 @@ quote_from_last:
                             DBWriteContactSettingDword(dat->hContact, SRMSGMOD_T, "sendformat", iNewLocalFormat);
                         
                         if(myGlobals.m_SendFormat != iOldGlobalSendFormat)
-                            DBWriteContactSettingByte(0, SRMSGMOD_T, "sendformat", myGlobals.m_SendFormat);
+                            DBWriteContactSettingByte(0, SRMSGMOD_T, "sendformat", (BYTE)myGlobals.m_SendFormat);
                         if(iNewLocalFormat != iLocalFormat || myGlobals.m_SendFormat != iOldGlobalSendFormat) {
                             dat->SendFormat = DBGetContactSettingDword(dat->hContact, SRMSGMOD_T, "sendformat", myGlobals.m_SendFormat);
                             if(dat->SendFormat == -1)           // per contact override to disable it..
@@ -4265,8 +4265,8 @@ quote_from_last:
 								DBDeleteContactSetting(dat->hContact, SRMSGMOD_T, "no_ack");
                             break;
                     }
-                    DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "no_ack", dat->sendMode & SMODE_NOACK ? 1 : 0);
-                    DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "forceansi", dat->sendMode & SMODE_FORCEANSI ? 1 : 0);
+                    DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "no_ack", (BYTE)(dat->sendMode & SMODE_NOACK ? 1 : 0));
+                    DBWriteContactSettingByte(dat->hContact, SRMSGMOD_T, "forceansi", (BYTE)(dat->sendMode & SMODE_FORCEANSI ? 1 : 0));
                     SetWindowPos(GetDlgItem(hwndDlg, IDC_MESSAGE), 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSIZE | SWP_NOMOVE);
                     if(dat->sendMode & SMODE_MULTIPLE || dat->sendMode & SMODE_CONTAINER)
                         RedrawWindow(GetDlgItem(hwndDlg, IDC_MESSAGE), NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_UPDATENOW | RDW_ERASE);
@@ -4352,7 +4352,7 @@ quote_from_last:
                     if(dat->hContact) {
                         int iCurrentTypingMode = DBGetContactSettingByte(dat->hContact, SRMSGMOD, SRMSGSET_TYPING, DBGetContactSettingByte(NULL, SRMSGMOD, SRMSGSET_TYPINGNEW, SRMSGDEFSET_TYPINGNEW));
                         
-                        DBWriteContactSettingByte(dat->hContact, SRMSGMOD, SRMSGSET_TYPING, !iCurrentTypingMode);
+                        DBWriteContactSettingByte(dat->hContact, SRMSGMOD, SRMSGSET_TYPING, (BYTE)!iCurrentTypingMode);
                         if(m_pContainer->hwndStatus) {
                             if(iCurrentTypingMode)
                                 SetSelftypingIcon(hwndDlg, dat, FALSE);
@@ -4669,7 +4669,7 @@ quote_from_last:
                                         POINT pt;
                                         CHARRANGE sel, all = { 0, -1};
                                         int iSelection;
-                                        int oldCodepage = dat->codePage;
+                                        unsigned int oldCodepage = dat->codePage;
                                         int idFrom = ((NMHDR *)lParam)->idFrom;
                                         int iPrivateBG = DBGetContactSettingByte(dat->hContact, SRMSGMOD_T, "private_bg", 0);
                                         
@@ -4773,7 +4773,7 @@ quote_from_last:
                                                 }
                                                 case ID_EDITOR_SHOWMESSAGELENGTHINDICATOR:
                                                     myGlobals.m_visualMessageSizeIndicator = !myGlobals.m_visualMessageSizeIndicator;
-                                                    DBWriteContactSettingByte(NULL, SRMSGMOD_T, "msgsizebar", myGlobals.m_visualMessageSizeIndicator);
+                                                    DBWriteContactSettingByte(NULL, SRMSGMOD_T, "msgsizebar", (BYTE)myGlobals.m_visualMessageSizeIndicator);
                                                     WindowList_Broadcast(hMessageWindowList, DM_CONFIGURETOOLBAR, 0, 0);
                                                     SendMessage(hwndDlg, WM_SIZE, 0, 0);
                                                     //SetWindowPos(GetDlgItem(hwndDlg, IDC_SPLITTER), 0, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);

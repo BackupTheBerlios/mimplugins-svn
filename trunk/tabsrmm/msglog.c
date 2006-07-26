@@ -1033,16 +1033,16 @@ nogroup:
                         else {
                             switch(dbei.eventType) {
                                 case EVENTTYPE_MESSAGE:
-                                    c = 0xaa;
+                                    c = (char)0xaa;
                                     break;
                                 case EVENTTYPE_FILE:
-                                    c = 0xcd;
+                                    c = (char)0xcd;
                                     break;
                                 case EVENTTYPE_URL:
-                                    c = 0xfe;
+                                    c = (char)0xfe;
                                     break;
                                 case EVENTTYPE_ERRMSG:
-                                    c = 0x72;;
+                                    c = (char)0x72;;
                              }
                             if(fIsStatusChangeEvent)
                                 c = 0x4e;
