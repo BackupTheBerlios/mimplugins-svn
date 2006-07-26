@@ -44,8 +44,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "AVATARS_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O1 /Oy /Ob1 /I "../../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "AVATARS_EXPORTS" /YX"commonheaders.h" /FD /c
-# SUBTRACT CPP /Gy
+# ADD CPP /nologo /MD /W3 /GX /O1 /Oy /I "../../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "AVATARS_EXPORTS" /YX"commonheaders.h" /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0xc07 /d "NDEBUG"
@@ -55,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib msimg32.lib /nologo /base:"0x6b540000" /dll /pdb:none /machine:I386 /out:"..\..\bin\Release/plugins/loadavatars.dll"
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib msimg32.lib /nologo /base:"0x6b540000" /dll /pdb:none /machine:I386 /out:"..\..\bin\Release/plugins/loadavatars.dll" /OPT:NOWIN98
 
 !ELSEIF  "$(CFG)" == "avatars - Win32 Debug"
 
@@ -97,10 +96,8 @@ LINK32=link.exe
 # PROP Intermediate_Dir "avatars___Win32_Release_UNICODE"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /MD /W3 /GX /O1 /Oy /Ob1 /I "../../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "AVATARS_EXPORTS" /YX"commonheaders.h" /FD /c
-# SUBTRACT BASE CPP /Gy
-# ADD CPP /nologo /MD /W3 /GX /O1 /Oy /Ob1 /I "../../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "AVATARS_EXPORTS" /D "UNICODE" /D "_UNICODE" /YX"commonheaders.h" /FD /c
-# SUBTRACT CPP /Gy
+# ADD BASE CPP /nologo /MD /W3 /GX /O1 /Oy /I "../../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "AVATARS_EXPORTS" /YX"commonheaders.h" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O1 /Oy /I "../../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "AVATARS_EXPORTS" /D "UNICODE" /D "_UNICODE" /YX"commonheaders.h" /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0xc07 /d "NDEBUG"
@@ -110,7 +107,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib msimg32.lib /nologo /base:"0x6b540000" /dll /pdb:none /machine:I386 /out:"..\..\bin\Release/plugins/loadavatars.dll"
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib msimg32.lib /nologo /base:"0x6b540000" /dll /pdb:none /machine:I386 /out:"..\..\bin\Release Unicode/plugins/loadavatars.dll"
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib msimg32.lib /nologo /base:"0x6b540000" /dll /pdb:none /machine:I386 /out:"..\..\bin\Release Unicode/plugins/loadavatars.dll" /OPT:NOWIN98
 
 !ENDIF 
 
@@ -209,15 +206,6 @@ SOURCE=.\res\avatar.ico
 # Begin Source File
 
 SOURCE=.\avatars.rc
-
-!IF  "$(CFG)" == "avatars - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "avatars - Win32 Debug"
-
-!ELSEIF  "$(CFG)" == "avatars - Win32 Release UNICODE"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
