@@ -73,8 +73,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" /D "SRMM_EXPORTS" /D "UNICODE" /D "_MBCS" /Fp".\Release_Unicode/srmm.pch" /YX /GF /c
-# ADD CPP /nologo /MD /W3 /GX /Zi /O1 /I "../../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" /D "SRMM_EXPORTS" /D "UNICODE" /Fp".\Release_Unicode/srmm.pch" /Yu"commonheaders.h" /GF /c
-# SUBTRACT CPP /Fr
+# ADD CPP /nologo /MD /W3 /GX /Zi /O1 /I "../../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" /D "SRMM_EXPORTS" /D "UNICODE" /Fr /Fp".\Release_Unicode/srmm.pch" /Yu"commonheaders.h" /GF /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x809 /d "NDEBUG" /d "UNICODE"
@@ -84,8 +83,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib /nologo /base:"0x6a540000" /subsystem:windows /dll /machine:IX86 /out:"..\..\Bin\Release\Plugins\tabsrmm_unicode.dll" /implib:".\Release_Unicode/srmm.lib" /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib msimg32.lib shlwapi.lib /nologo /base:"0x6a540000" /subsystem:windows /dll /pdb:none /map /machine:IX86 /out:"..\..\Bin\Release Unicode\Plugins\tabsrmm.dll" /implib:".\Release_Unicode/srmm.lib"
-# SUBTRACT LINK32 /debug
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib msimg32.lib shlwapi.lib /nologo /base:"0x6a540000" /subsystem:windows /dll /pdb:none /map /machine:IX86 /out:"..\..\Bin\Release Unicode\Plugins\tabsrmm.dll" /implib:".\Release_Unicode/srmm.lib" /opt:NOWIN98
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Release"
 
@@ -111,7 +109,8 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib /nologo /base:"0x6a540000" /subsystem:windows /dll /machine:IX86 /out:"..\..\Bin\Release\Plugins\tabsrmm.dll" /implib:".\Release/srmm.lib" /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib msimg32.lib shlwapi.lib /nologo /base:"0x6a540000" /subsystem:windows /dll /map /debug /machine:IX86 /out:"..\..\Bin\Release\Plugins\tabsrmm.dll" /implib:".\Release/srmm.lib" /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib msimg32.lib shlwapi.lib /nologo /base:"0x6a540000" /subsystem:windows /dll /map /debug /machine:IX86 /out:"..\..\Bin\Release\Plugins\tabsrmm.dll" /implib:".\Release/srmm.lib" /pdbtype:sept /opt:NOWIN98
+# SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "tabSRMM - Win32 Debug Unicode"
 
@@ -218,6 +217,9 @@ DEP_CPP_CLIST=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_CLIST=\
+	"..\PopUp\m_popup.h"\
+	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
 # Begin Source File
@@ -271,6 +273,9 @@ DEP_CPP_COLOR=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_COLOR=\
+	"..\PopUp\m_popup.h"\
+	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
 # Begin Source File
@@ -323,6 +328,9 @@ DEP_CPP_LOG_C=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_LOG_C=\
+	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -381,6 +389,9 @@ DEP_CPP_MAIN_=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_MAIN_=\
+	"..\PopUp\m_popup.h"\
+	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
 # Begin Source File
@@ -433,6 +444,9 @@ DEP_CPP_MANAG=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_MANAG=\
+	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -487,6 +501,9 @@ DEP_CPP_MESSA=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_MESSA=\
+	"..\PopUp\m_popup.h"\
+	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
 # Begin Source File
@@ -539,6 +556,9 @@ DEP_CPP_OPTIO=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_OPTIO=\
+	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -593,6 +613,9 @@ DEP_CPP_SERVI=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_SERVI=\
+	"..\PopUp\m_popup.h"\
+	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
 # Begin Source File
@@ -646,6 +669,9 @@ DEP_CPP_TOOLS=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_TOOLS=\
+	"..\PopUp\m_popup.h"\
+	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
 # Begin Source File
@@ -698,6 +724,9 @@ DEP_CPP_WINDO=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_WINDO=\
+	"..\PopUp\m_popup.h"\
 	
 # ADD CPP /Yu"../commonheaders.h"
 # End Source File
@@ -753,6 +782,9 @@ DEP_CPP_CONTA=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_CONTA=\
+	"..\PopUp\m_popup.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -818,6 +850,9 @@ DEP_CPP_CONTAI=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_CONTAI=\
+	"..\PopUp\m_popup.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -885,6 +920,9 @@ DEP_CPP_EVENT=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_EVENT=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -949,6 +987,9 @@ DEP_CPP_FORMA=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_FORMA=\
+	"..\PopUp\m_popup.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -1023,6 +1064,9 @@ DEP_CPP_GENER=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_GENER=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1089,6 +1133,9 @@ DEP_CPP_HOTKE=\
 	".\sendqueue.h"\
 	".\templates.h"\
 	
+NODEP_CPP_HOTKE=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1154,6 +1201,9 @@ DEP_CPP_IMAGE=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_IMAGE=\
+	"..\PopUp\m_popup.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -1230,6 +1280,9 @@ DEP_CPP_MSGDI=\
 	".\templates.h"\
 	{$(INCLUDE)}"uxtheme.h"\
 	
+NODEP_CPP_MSGDI=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1301,6 +1354,9 @@ DEP_CPP_MSGDL=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_MSGDL=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1366,6 +1422,9 @@ DEP_CPP_MSGLO=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_MSGLO=\
+	"..\PopUp\m_popup.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -1439,6 +1498,9 @@ DEP_CPP_MSGOP=\
 	".\nen.h"\
 	".\templates.h"\
 	{$(INCLUDE)}"uxtheme.h"\
+	
+NODEP_CPP_MSGOP=\
+	"..\PopUp\m_popup.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -1514,6 +1576,9 @@ DEP_CPP_MSGS_=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_MSGS_=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1585,6 +1650,9 @@ DEP_CPP_SELEC=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_SELEC=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1651,6 +1719,9 @@ DEP_CPP_SENDQ=\
 	".\sendqueue.h"\
 	".\templates.h"\
 	
+NODEP_CPP_SENDQ=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1715,6 +1786,9 @@ DEP_CPP_SRMM_=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_SRMM_=\
+	"..\PopUp\m_popup.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -1788,6 +1862,9 @@ DEP_CPP_TABCT=\
 	".\templates.h"\
 	{$(INCLUDE)}"uxtheme.h"\
 	
+NODEP_CPP_TABCT=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1853,6 +1930,9 @@ DEP_CPP_TEMPL=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_TEMPL=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -1917,6 +1997,9 @@ DEP_CPP_THEME=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_THEME=\
+	"..\PopUp\m_popup.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -1984,6 +2067,9 @@ DEP_CPP_TRAYI=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_TRAYI=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -2049,6 +2135,9 @@ DEP_CPP_TSBUT=\
 	".\nen.h"\
 	".\templates.h"\
 	
+NODEP_CPP_TSBUT=\
+	"..\PopUp\m_popup.h"\
+	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
 
@@ -2113,6 +2202,9 @@ DEP_CPP_USERP=\
 	".\msgs.h"\
 	".\nen.h"\
 	".\templates.h"\
+	
+NODEP_CPP_USERP=\
+	"..\PopUp\m_popup.h"\
 	
 
 !IF  "$(CFG)" == "tabSRMM - Win32 Debug"
@@ -2238,6 +2330,10 @@ SOURCE=.\res\check.ico
 # End Source File
 # Begin Source File
 
+SOURCE=.\res\checked.ico
+# End Source File
+# Begin Source File
+
 SOURCE=".\res\angeli-icons\Close.ico"
 # End Source File
 # Begin Source File
@@ -2271,6 +2367,10 @@ SOURCE=..\..\src\res\dropuser.cur
 # Begin Source File
 
 SOURCE=.\res\error.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\expand.ico
 # End Source File
 # Begin Source File
 
@@ -2443,6 +2543,10 @@ SOURCE=res\Typing32.ico
 # Begin Source File
 
 SOURCE=res\Typing8.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\unchecked.ico
 # End Source File
 # Begin Source File
 
