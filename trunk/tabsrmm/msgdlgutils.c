@@ -40,6 +40,8 @@ extern      HMODULE g_hInst;
 extern      HANDLE hMessageWindowList;
 extern      StatusItems_t StatusItems[];
 extern      char *xStatusDescr[];
+extern      WNDPROC OldIEViewProc;
+extern      LRESULT CALLBACK IEViewSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 void ShowMultipleControls(HWND hwndDlg, const UINT * controls, int cControls, int state);
 
@@ -1624,7 +1626,7 @@ void SetMessageLog(HWND hwndDlg, struct MessageWindowData *dat)
         dat->hwndIEView = ieWindow.hwnd;
         ShowWindow(GetDlgItem(hwndDlg, IDC_LOG), SW_HIDE);
         EnableWindow(GetDlgItem(hwndDlg, IDC_LOG), FALSE);
-        GetRealIEViewWindow(hwndDlg, dat);
+        //GetRealIEViewWindow(hwndDlg, dat);
     }
     else if(!iWantIEView) {
         if(dat->hwndIEView) {
@@ -1632,11 +1634,14 @@ void SetMessageLog(HWND hwndDlg, struct MessageWindowData *dat)
             ieWindow.cbSize = sizeof(IEVIEWWINDOW);
             ieWindow.iType = IEW_DESTROY;
             ieWindow.hwnd = dat->hwndIEView;
+            if(OldIEViewProc)
+                SetWindowLong(dat->hwndIEView, GWL_WNDPROC, (LONG)OldIEViewProc);
             CallService(MS_IEVIEW_WINDOW, 0, (LPARAM)&ieWindow);
         }
         ShowWindow(GetDlgItem(hwndDlg, IDC_LOG), SW_SHOW);
         EnableWindow(GetDlgItem(hwndDlg, IDC_LOG), TRUE);
         dat->hwndIEView = 0;
+        dat->hwndIWebBrowserControl = 0;
     }
 }
 
@@ -2056,6 +2061,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
         BYTE borderType = myGlobals.bAvatarBoderType;
 		HPEN hPenBorder = 0, hPenOld = 0;
 		HRGN clipRgn = 0;
+        int  iRad = myGlobals.m_WinVerMajor >= 5 ? 4 : 6;
 
         if(bPanelPic) {
             GetObject(dat->ace ? dat->ace->hbmPic : myGlobals.g_hbmUnknown, sizeof(bminfo), &bminfo);
@@ -2148,7 +2154,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
                 else if(borderType == 3)
                     Rectangle(hdcDraw, rcEdge.left, rcEdge.top, rcEdge.right, rcEdge.bottom);
                 else if(borderType == 4) {
-                    clipRgn = CreateRoundRectRgn(rcEdge.left, rcEdge.top, rcEdge.right + 1, rcEdge.bottom + 1, 4, 4);
+                    clipRgn = CreateRoundRectRgn(rcEdge.left, rcEdge.top, rcEdge.right + 1, rcEdge.bottom + 1, iRad, iRad);
                     SelectClipRgn(hdcDraw, clipRgn);
                 }
             }
@@ -2175,7 +2181,7 @@ int MsgWindowDrawHandler(WPARAM wParam, LPARAM lParam, HWND hwndDlg, struct Mess
                 else if(borderType == 3)
                     Rectangle(hdcDraw, rcFrame.left, rcFrame.top, rcFrame.right, rcFrame.bottom);
                 else if(borderType == 4) {
-                    clipRgn = CreateRoundRectRgn(rcFrame.left, rcFrame.top, rcFrame.right + 1, rcFrame.bottom + 1, 4, 4);
+                    clipRgn = CreateRoundRectRgn(rcFrame.left, rcFrame.top, rcFrame.right + 1, rcFrame.bottom + 1, iRad, iRad);
                     SelectClipRgn(hdcDraw, clipRgn);
                 }
                 if(aceFlags & AVS_PREMULTIPLIED)

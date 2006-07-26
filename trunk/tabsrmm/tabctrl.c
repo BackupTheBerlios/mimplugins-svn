@@ -542,8 +542,8 @@ b_nonskinned:
                 */
                 if(!tabdat->pContainer->bSkinned && !tabdat->m_moderntabs)
                     FillRect(dc, rcItem, GetSysColorBrush(COLOR_3DFACE));
-                else if(tabdat->pContainer->bSkinned)
-                    SkinDrawBG(tabdat->hwnd, tabdat->pContainer->hwnd, tabdat->pContainer, rcItem, dc);
+                //else if(tabdat->pContainer->bSkinned)
+                //    SkinDrawBG(tabdat->hwnd, tabdat->pContainer->hwnd, tabdat->pContainer, rcItem, dc);
                 rcItem->bottom +=2;
             }
             else {
@@ -556,8 +556,8 @@ b_nonskinned:
                 */
                 if(!tabdat->pContainer->bSkinned && !tabdat->m_moderntabs)
                     FillRect(dc, rcItem, GetSysColorBrush(COLOR_3DFACE));
-                else if(tabdat->pContainer->bSkinned)
-                    SkinDrawBG(tabdat->hwnd, tabdat->pContainer->hwnd, tabdat->pContainer, rcItem, dc);
+                //else if(tabdat->pContainer->bSkinned)
+                //    SkinDrawBG(tabdat->hwnd, tabdat->pContainer->hwnd, tabdat->pContainer, rcItem, dc);
                 rcItem->bottom--;
                 rcItem->top -=2;
             }

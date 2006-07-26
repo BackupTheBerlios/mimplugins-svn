@@ -111,7 +111,7 @@ static      void LoadSkinItems(char *file, int onStartup);
 static      void IMG_CreateItem(ImageItem *item, const char *fileName, HDC hdc);
 static      void IMG_LoadItems(char *szFileName);
 void        IMG_DeleteItems();
-void        DrawAlpha(HDC hdcwnd, PRECT rc, DWORD basecolor, BYTE alpha, DWORD basecolor2, BOOL transparent, DWORD FLG_GRADIENT, DWORD FLG_CORNER, DWORD BORDERSTYLE, ImageItem *imageItem);
+void        DrawAlpha(HDC hdcwnd, PRECT rc, DWORD basecolor, int alpha, DWORD basecolor2, BYTE transparent, BYTE FLG_GRADIENT, BYTE FLG_CORNER, DWORD BORDERSTYLE, ImageItem *imageItem);
 void        SkinDrawBG(HWND hwndClient, HWND hwnd, struct ContainerWindowData *pContainer, RECT *rcClient, HDC hdcTarget);
 void        ReloadContainerSkin(int doLoad, int onStartup);
 

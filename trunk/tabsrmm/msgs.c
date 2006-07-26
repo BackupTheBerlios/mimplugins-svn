@@ -39,6 +39,7 @@ static char *relnotes[] = {
     "\\par\t\\b\\ul1 Release notes for version 1.1.0.5\\b0\\ul0\\par ",
     "*\tRe-enabled the option to enable/disable IEView globally. This option is now \"smart\" which means that it will detect when IEView has been installed (or uninstalled) and automatically enable itself when IEView is detected the first time.\\par ",
     "*\tMoved fonts for group chat module to a separate db location to avoid interferences with chat.dll. You'll most likely have to reconfigure your group chat fonts. Sorry.\\par ",
+    "*\tRedesigned the container options dialog to a modern and section based layout.\\par",
     NULL
 };
 

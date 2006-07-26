@@ -72,6 +72,7 @@ static DWORD CALLBACK StreamOut(DWORD_PTR dwCookie, LPBYTE pbBuff, LONG cb, LONG
 TCHAR *pszIDCSAVE_close = 0, *pszIDCSAVE_save = 0;
 
 static WNDPROC OldMessageEditProc, OldAvatarWndProc, OldMessageLogProc;
+WNDPROC OldIEViewProc = 0;
 WNDPROC OldSplitterProc = 0;
 
 static const UINT infoLineControls[] = { IDC_PROTOCOL, /* IDC_PROTOMENU, */ IDC_NAME, /* IDC_INFOPANELMENU */};
@@ -205,6 +206,19 @@ static void updateMathWindow(HWND hwndDlg, struct MessageWindowData *dat)
 }
 #endif
 
+LRESULT CALLBACK IEViewSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	struct MessageWindowData *mwdat = (struct MessageWindowData *)GetWindowLong(GetParent(hwnd), GWL_USERDATA);
+
+    switch(msg) {
+        case WM_NCCALCSIZE:
+            return(NcCalcRichEditFrame(hwnd, mwdat, ID_EXTBKHISTORY, msg, wParam, lParam, OldIEViewProc));
+		case WM_NCPAINT:
+			return(DrawRichEditFrame(hwnd, mwdat, ID_EXTBKHISTORY, msg, wParam, lParam, OldIEViewProc));
+	}
+	return CallWindowProc(OldIEViewProc, hwnd, msg, wParam, lParam);
+}
+
 /*
  * update state of the container - this is called whenever a tab becomes active, no matter how and
  * deals with various things like updating the title bar, removing flashing icons, updating the
@@ -304,6 +318,11 @@ static void MsgWindowUpdateState(HWND hwndDlg, struct MessageWindowData *dat, UI
             GetWindowRect(GetDlgItem(hwndDlg, IDC_LOG), &rcRTF);
             rcRTF.left += 20; rcRTF.top += 20;
             pt.x = rcRTF.left; pt.y = rcRTF.top;
+            if(DBGetContactSettingByte(NULL, SRMSGMOD_T, "subclassIEView", 0) && dat->hwndIWebBrowserControl == 0) {
+                WNDPROC wndProc = (WNDPROC)SetWindowLong(dat->hwndIEView, GWL_WNDPROC, (LONG)IEViewSubclassProc);
+                if(OldIEViewProc == 0)
+                    OldIEViewProc = wndProc;
+            }
             dat->hwndIWebBrowserControl = WindowFromPoint(pt);
         }
     }
@@ -497,7 +516,7 @@ UINT NcCalcRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID
         else
             return orig;
     }
-    if((mwdat->sendMode & SMODE_MULTIPLE || mwdat->sendMode & SMODE_CONTAINER) && skinID == ID_EXTBKINPUTAREA) {
+    if(mwdat && (mwdat->sendMode & SMODE_MULTIPLE || mwdat->sendMode & SMODE_CONTAINER) && skinID == ID_EXTBKINPUTAREA) {
         InflateRect(&nccp->rgrc[0], -1, -1);
         return WVR_REDRAW;
     }
@@ -513,12 +532,17 @@ UINT DrawRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, 
 {
 	StatusItems_t *item = &StatusItems[skinID];
 	LRESULT result = 0;
-    BOOL isMultipleReason = ((skinID == ID_EXTBKINPUTAREA) && (mwdat->sendMode & SMODE_MULTIPLE || mwdat->sendMode & SMODE_CONTAINER));
+    BOOL isMultipleReason;
 
     //SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_VSCROLL);
     //ShowScrollBar(hwnd, SB_VERT, FALSE);
     //EnableScrollBar(hwnd, SB_VERT, ESB_DISABLE_BOTH);
     result = CallWindowProc(OldWndProc, hwnd, msg, wParam, lParam);			// do default processing (otherwise, NO scrollbar as it is painted in NC_PAINT)
+    if(!mwdat)
+        return result;
+
+    isMultipleReason = ((skinID == ID_EXTBKINPUTAREA) && (mwdat->sendMode & SMODE_MULTIPLE || mwdat->sendMode & SMODE_CONTAINER));
+
 	if(isMultipleReason || ((mwdat && mwdat->hTheme) || (mwdat && mwdat->pContainer->bSkinned && !item->IGNORED && !mwdat->bFlatMsgLog))) {
 		HDC hdc = GetWindowDC(hwnd);
 		RECT rcWindow;
@@ -1872,6 +1896,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 SetWindowLong(GetDlgItem(hwndDlg, IDC_MULTISPLITTER), GWL_WNDPROC, (LONG) SplitterSubclassProc);
                 SetWindowLong(GetDlgItem(hwndDlg, IDC_PANELSPLITTER), GWL_WNDPROC, (LONG) SplitterSubclassProc);
                 SetWindowLong(GetDlgItem(hwndDlg, IDC_MSGINDICATOR), GWL_WNDPROC, (LONG) MsgIndicatorSubclassProc);
+                //SetMessageLog(hwndDlg, dat);
                 
                 /*
                  * load old messages from history (if wanted...)
@@ -5716,6 +5741,8 @@ verify:
                 ieWindow.cbSize = sizeof(IEVIEWWINDOW);
                 ieWindow.iType = IEW_DESTROY;
                 ieWindow.hwnd = dat->hwndIEView;
+                if(OldIEViewProc)
+                    SetWindowLong(dat->hwndIEView, GWL_WNDPROC, (LONG)OldIEViewProc);
                 CallService(MS_IEVIEW_WINDOW, 0, (LPARAM)&ieWindow);
             }
             // IEVIew MOD End
