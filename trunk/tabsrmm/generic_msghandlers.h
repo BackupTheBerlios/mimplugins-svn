@@ -41,3 +41,4 @@ LRESULT DM_UpdateLastMessage(HWND hwndDlg, struct MessageWindowData *dat);
 LRESULT DM_RecalcPictureSize(HWND hwndDlg, struct MessageWindowData *dat);
 LRESULT DM_WMCopyHandler(HWND hwnd, WNDPROC oldWndProc, WPARAM wParam, LPARAM lParam);
 LRESULT DM_MouseWheelHandler(HWND hwnd, HWND hwndParent, struct MessageWindowData *mwdat, WPARAM wParam, LPARAM lParam);
+LRESULT DM_ThemeChanged(HWND hwnd, struct MessageWindowData *dat);

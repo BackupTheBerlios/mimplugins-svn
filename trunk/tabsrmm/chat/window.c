@@ -26,9 +26,7 @@ extern COLORREF g_ContainerColorKey;
 extern StatusItems_t StatusItems[];
 extern LRESULT CALLBACK SplitterSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 extern NEN_OPTIONS nen_options;
-
-extern HMODULE  themeAPIHandle;
-extern HANDLE   (WINAPI *MyOpenThemeData)(HWND,LPCWSTR);
+extern HRESULT  (WINAPI *MyCloseThemeData)(HANDLE);
 
 extern MYGLOBALS	myGlobals;
 extern HBRUSH		hListBkgBrush;
@@ -45,6 +43,15 @@ static WNDPROC OldNicklistProc;
 static WNDPROC OldFilterButtonProc;
 static WNDPROC OldLogProc;
 static HKL hkl = NULL;
+
+extern PITA pfnIsThemeActive;
+extern POTD pfnOpenThemeData;
+extern PDTB pfnDrawThemeBackground;
+extern PCTD pfnCloseThemeData;
+extern PDTT pfnDrawThemeText;
+extern PITBPT pfnIsThemeBackgroundPartiallyTransparent;
+extern PDTPB  pfnDrawThemeParentBackground;
+extern PGTBCR pfnGetThemeBackgroundContentRect;
 
 typedef struct
 {
@@ -1470,11 +1477,7 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
             if(myGlobals.g_hMenuTrayUnread != 0 && dat->hContact != 0 && dat->szProto != NULL)
                 UpdateTrayMenu(0, dat->wStatus, dat->szProto, dat->szStatus, dat->hContact, FALSE);
            
-            dat->bFlatMsgLog = DBGetContactSettingByte(NULL, SRMSGMOD_T, "flatlog", 0);
-            if(!dat->bFlatMsgLog)
-                dat->hTheme = (themeAPIHandle && MyOpenThemeData) ? MyOpenThemeData(hwndDlg, L"EDIT") : 0;
-            else
-                dat->hTheme = 0;
+            DM_ThemeChanged(hwndDlg, dat);
 
             {
                 StatusItems_t *item_log = &StatusItems[ID_EXTBKHISTORY];
@@ -2930,6 +2933,11 @@ LABEL_SHOWWINDOW:
             ConfigureSmileyButton(hwndDlg, dat);
             SendMessage(hwndDlg, GC_REDRAWLOG, 0, 1);
             break;
+
+        case EM_THEMECHANGED:
+            if(dat->hTheme && pfnCloseThemeData)
+                pfnCloseThemeData(dat->hTheme);
+            return DM_ThemeChanged(hwndDlg, dat);
 
         case WM_NCDESTROY:
             if(dat) {

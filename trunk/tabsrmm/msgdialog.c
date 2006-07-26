@@ -52,14 +52,15 @@ extern StatusItems_t StatusItems[];
 extern struct GlobalLogSettings_t g_Settings;
 extern CRITICAL_SECTION cs_sessions;
 
-extern HMODULE  themeAPIHandle;
-extern HANDLE   (WINAPI *MyOpenThemeData)(HWND,LPCWSTR);
-extern HRESULT  (WINAPI *MyCloseThemeData)(HANDLE);
-extern BOOL     (WINAPI *MyIsThemeBackgroundPartiallyTransparent)(HANDLE,int,int);
-extern HRESULT  (WINAPI *MyDrawThemeParentBackground)(HWND,HDC,RECT *);
-extern HRESULT  (WINAPI *MyDrawThemeBackground)(HANDLE,HDC,int,int,const RECT *,const RECT *);
-extern HRESULT  (WINAPI *MyDrawThemeText)(HANDLE,HDC,int,int,LPCWSTR,int,DWORD,DWORD,const RECT *);
-extern HRESULT  (WINAPI *MyGetThemeBackgroundContentRect)(HANDLE, HDC, int, int, const RECT *, const RECT *);
+extern PITA pfnIsThemeActive;
+extern POTD pfnOpenThemeData;
+extern PDTB pfnDrawThemeBackground;
+extern PCTD pfnCloseThemeData;
+extern PDTT pfnDrawThemeText;
+extern PITBPT pfnIsThemeBackgroundPartiallyTransparent;
+extern PDTPB  pfnDrawThemeParentBackground;
+extern PGTBCR pfnGetThemeBackgroundContentRect;
+
 extern          char *FilterEventMarkersA(char *szText);
 
 char *xStatusDescr[] = { "Angry", "Duck", "Tired", "Party", "Beer", "Thinking", "Eating", "TV", "Friends", "Coffee",
@@ -500,11 +501,11 @@ UINT NcCalcRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID
             return WVR_REDRAW;
         }
     }
-    if(mwdat && mwdat->hTheme && wParam && MyGetThemeBackgroundContentRect) {
+    if(mwdat && mwdat->hTheme && wParam && pfnGetThemeBackgroundContentRect) {
         RECT rcClient;
         HDC hdc = GetDC(GetParent(hwnd));
 
-        if(MyGetThemeBackgroundContentRect(mwdat->hTheme, hdc, 1, 1, &nccp->rgrc[0], &rcClient) == S_OK) {
+        if(pfnGetThemeBackgroundContentRect(mwdat->hTheme, hdc, 1, 1, &nccp->rgrc[0], &rcClient) == S_OK) {
             if(EqualRect(&rcClient, &nccp->rgrc[0]))
                 InflateRect(&rcClient, -1, -1);
             CopyRect(&nccp->rgrc[0], &rcClient);
@@ -599,14 +600,14 @@ UINT DrawRichEditFrame(HWND hwnd, struct MessageWindowData *mwdat, UINT skinID, 
 			DeleteDC(dcMem);
             */
 		}
-		else if(MyDrawThemeBackground) {
+		else if(pfnDrawThemeBackground) {
             if(isMultipleReason) {
                 HBRUSH br = CreateSolidBrush(RGB(255, 130, 130));
                 FillRect(hdc, &rcWindow, br);
                 DeleteObject(br);
             }
             else
-                MyDrawThemeBackground(mwdat->hTheme, hdc, 1, 1, &rcWindow, &rcWindow);
+                pfnDrawThemeBackground(mwdat->hTheme, hdc, 1, 1, &rcWindow, &rcWindow);
         }
 		ReleaseDC(hwnd, hdc);
 		return result;
@@ -1617,12 +1618,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 TabCtrl_SetItem(hwndTab, newData->iTabID, &newData->item);
                 dat->iTabID = newData->iTabID;
 
-				dat->bFlatMsgLog = DBGetContactSettingByte(NULL, SRMSGMOD_T, "flatlog", 0);
-
-				if(!dat->bFlatMsgLog)
-					dat->hTheme = (themeAPIHandle && MyOpenThemeData) ? MyOpenThemeData(hwndDlg, L"EDIT") : 0;
-				else
-					dat->hTheme = 0;
+                DM_ThemeChanged(hwndDlg, dat);
 
                 pszIDCSAVE_close = TranslateT("Close session");
                 pszIDCSAVE_save = TranslateT("Save and close session");
@@ -5408,6 +5404,10 @@ verify:
             }
             return 0;
         }
+        case EM_THEMECHANGED:
+            if(dat->hTheme && pfnCloseThemeData)
+                pfnCloseThemeData(dat->hTheme);
+            return DM_ThemeChanged(hwndDlg, dat);
         case DM_PLAYINCOMINGSOUND:
             if(!dat)
                 return 0;
@@ -5626,8 +5626,8 @@ verify:
             if (dat->nTypeMode == PROTOTYPE_SELFTYPING_ON)
                 NotifyTyping(dat, PROTOTYPE_SELFTYPING_OFF);
 
-			if (dat->hTheme) {
-				MyCloseThemeData(dat->hTheme);
+			if (dat->hTheme && pfnCloseThemeData) {
+				pfnCloseThemeData(dat->hTheme);
 				dat->hTheme = 0;
 			}
             if (dat->hBkgBrush)

@@ -908,6 +908,15 @@ typedef BOOL    (WINAPI *PFWEX)(FLASHWINFO *);
 typedef BOOL    (WINAPI *PAB)(HDC, int, int, int, int, HDC, int, int, int, int, BLENDFUNCTION);
 typedef BOOL    (WINAPI *PGF)(HDC, PTRIVERTEX, ULONG, PVOID, ULONG, ULONG);
 
+typedef BOOL (WINAPI *PITA)();
+typedef HANDLE (WINAPI *POTD)(HWND, LPCWSTR);
+typedef UINT (WINAPI *PDTB)(HANDLE, HDC, int, int, RECT *, RECT *);
+typedef UINT (WINAPI *PCTD)(HANDLE);
+typedef UINT (WINAPI *PDTT)(HANDLE, HDC, int, int, LPCWSTR, int, DWORD, DWORD, RECT *);
+typedef BOOL (WINAPI *PITBPT)(HANDLE, int, int);
+typedef HRESULT (WINAPI *PDTPB)(HWND, HDC, RECT *);
+typedef HRESULT (WINAPI *PGTBCR)(HANDLE, HDC, int, int, const RECT *, const RECT *);
+
 // constants for the container management functions
 
 #define CNT_ENUM_DELETE 1           // delete the target container...

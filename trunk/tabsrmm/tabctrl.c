@@ -40,7 +40,6 @@ extern BOOL g_framelessSkinmode;
 extern BOOL g_skinnedContainers;
 extern ButtonSet g_ButtonSet;
 
-extern BOOL (WINAPI *MyEnableThemeDialogTexture)(HANDLE, DWORD);
 static LRESULT CALLBACK TabControlSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 extern LRESULT CALLBACK StatusBarSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 extern void GetIconSize(HICON hIcon, int* sizeX, int* sizeY);
@@ -50,17 +49,15 @@ HMODULE hUxTheme = 0;
 
 // function pointers, use typedefs for casting to shut up the compiler when using GetProcAddress()
 
-typedef BOOL (WINAPI *PITA)();
-typedef HANDLE (WINAPI *POTD)(HWND, LPCWSTR);
-typedef UINT (WINAPI *PDTB)(HANDLE, HDC, int, int, RECT *, RECT *);
-typedef UINT (WINAPI *PCTD)(HANDLE);
-typedef UINT (WINAPI *PDTT)(HANDLE, HDC, int, int, LPCWSTR, int, DWORD, DWORD, RECT *);
-
 PITA pfnIsThemeActive = 0;
 POTD pfnOpenThemeData = 0;
 PDTB pfnDrawThemeBackground = 0;
 PCTD pfnCloseThemeData = 0;
 PDTT pfnDrawThemeText = 0;
+PITBPT pfnIsThemeBackgroundPartiallyTransparent = 0;
+PDTPB  pfnDrawThemeParentBackground = 0;
+PGTBCR pfnGetThemeBackgroundContentRect = 0;
+BOOL (WINAPI *MyEnableThemeDialogTexture)(HANDLE, DWORD) = 0;
 
 #define FIXED_TAB_SIZE 100                  // default value for fixed width tabs
 
@@ -71,6 +68,9 @@ PDTT pfnDrawThemeText = 0;
 
 int InitVSApi()
 {
+    if(!IsWinVerXPPlus())
+        return 0;
+
     if((hUxTheme = LoadLibraryA("uxtheme.dll")) == 0)
         return 0;
 
@@ -79,9 +79,14 @@ int InitVSApi()
     pfnDrawThemeBackground = (PDTB)GetProcAddress(hUxTheme, "DrawThemeBackground");
     pfnCloseThemeData = (PCTD)GetProcAddress(hUxTheme, "CloseThemeData");
     pfnDrawThemeText = (PDTT)GetProcAddress(hUxTheme, "DrawThemeText");
-    
+    pfnIsThemeBackgroundPartiallyTransparent = (PITBPT)GetProcAddress(hUxTheme, "IsThemeBackgroundPartiallyTransparent");
+    pfnDrawThemeParentBackground = (PDTPB)GetProcAddress(hUxTheme, "DrawThemeParentBackground");
+    pfnGetThemeBackgroundContentRect = (PGTBCR)GetProcAddress(hUxTheme, "GetThemeBackgroundContentRect");
+
     MyEnableThemeDialogTexture = (BOOL (WINAPI *)(HANDLE, DWORD))GetProcAddress(hUxTheme, "EnableThemeDialogTexture");
-    if(pfnIsThemeActive != 0 && pfnOpenThemeData != 0 && pfnDrawThemeBackground != 0 && pfnCloseThemeData != 0 && pfnDrawThemeText != 0) {
+    if(pfnIsThemeActive != 0 && pfnOpenThemeData != 0 && pfnDrawThemeBackground != 0 && pfnCloseThemeData != 0 
+       && pfnDrawThemeText != 0 && pfnIsThemeBackgroundPartiallyTransparent != 0 && pfnDrawThemeParentBackground != 0
+       && pfnGetThemeBackgroundContentRect != 0) {
         return 1;
     }
     return 0;

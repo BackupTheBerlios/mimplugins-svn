@@ -596,6 +596,7 @@ BOOL CALLBACK HotkeyHandlerDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
             ReloadTabConfig();
             while(pContainer) {
                 SendMessage(GetDlgItem(pContainer->hwnd, IDC_MSGTABS), EM_THEMECHANGED, 0, 0);
+                BroadCastContainer(pContainer, EM_THEMECHANGED, 0, 0);
                 pContainer = pContainer->pNextContainer;
             }
             break;

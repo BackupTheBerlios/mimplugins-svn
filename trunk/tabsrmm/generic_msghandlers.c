@@ -33,8 +33,17 @@ $Id$
 extern MYGLOBALS myGlobals;
 extern NEN_OPTIONS nen_options;
 
-extern WCHAR *FilterEventMarkers(WCHAR *wszText);
-extern char  *FilterEventMarkersA(char *szText);
+extern WCHAR    *FilterEventMarkers(WCHAR *wszText);
+extern char     *FilterEventMarkersA(char *szText);
+
+extern PITA pfnIsThemeActive;
+extern POTD pfnOpenThemeData;
+extern PDTB pfnDrawThemeBackground;
+extern PCTD pfnCloseThemeData;
+extern PDTT pfnDrawThemeText;
+extern PITBPT pfnIsThemeBackgroundPartiallyTransparent;
+extern PDTPB  pfnDrawThemeParentBackground;
+extern PGTBCR pfnGetThemeBackgroundContentRect;
 
 /* 
  * action and callback procedures for the stock button objects
@@ -542,4 +551,16 @@ LRESULT DM_MouseWheelHandler(HWND hwnd, HWND hwndParent, struct MessageWindowDat
         return 0;
     }
     return 1;
+}
+
+LRESULT DM_ThemeChanged(HWND hwnd, struct MessageWindowData *dat)
+{
+    dat->bFlatMsgLog = DBGetContactSettingByte(NULL, SRMSGMOD_T, "flatlog", 0);
+
+    if(!dat->bFlatMsgLog)
+        dat->hTheme = (myGlobals.m_VSApiEnabled && pfnOpenThemeData) ? pfnOpenThemeData(hwnd, L"EDIT") : 0;
+    else
+        dat->hTheme = 0;
+
+    return 0;
 }
