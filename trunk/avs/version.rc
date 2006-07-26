@@ -97,7 +97,7 @@ BEGIN
             VALUE "CompanyName", "Written by Nightwish and Pescuma for Miranda IM project"
             VALUE "FileDescription", "loadavatars (UNICODE)"
             VALUE "FileVersion", "0, 0, 2, 4"
-            VALUE "InternalName", "loadavatars (UNICODE)"
+            VALUE "InternalName", "loadavatarsW"
             VALUE "LegalCopyright", "Copyright (C) 2006, Nightwish, Pescuma"
             VALUE "LegalTrademarks", "Licensed under the Gnu General Public License V2 or any later version"
             VALUE "OriginalFilename", "loadavatars.dll"
