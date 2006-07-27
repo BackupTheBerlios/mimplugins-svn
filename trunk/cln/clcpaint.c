@@ -427,7 +427,7 @@ static int __fastcall DrawAvatar(HDC hdcMem, RECT *rc, struct ClcContact *contac
 	}
 
 	if(g_CluiData.dwFlags & CLUI_FRAME_OVERLAYICONS && cstatus && (int)newHeight >= g_cysmIcon)
-		DrawIconEx(hdcMem, rc->left + (int)newWidth - 15, y + topoffset + (int)newHeight - 15, overlayicons[cstatus - ID_STATUS_OFFLINE], g_cxsmIcon, g_cysmIcon, 0, 0, DI_NORMAL | DI_COMPAT);
+		DrawIconEx(hdcMem, rc->left + (int)newWidth - 12, y + topoffset + (int)newHeight - 12, overlayicons[cstatus - ID_STATUS_OFFLINE], g_cxsmIcon, g_cysmIcon, 0, 0, DI_NORMAL | DI_COMPAT);
 
 	SelectClipRgn(hdcMem, NULL);
 	DeleteObject(rgn);
@@ -491,7 +491,7 @@ static BOOL pi_selectiveIcon;
 static BOOL av_left, av_right, av_rightwithnick;
 static BOOL av_wanted, mirror_rtl, mirror_always, mirror_rtltext;
 
-DWORD savedCORNER = -1;
+BYTE savedCORNER = -1;
 
 void __inline PaintItem(HDC hdcMem, struct ClcGroup *group, struct ClcContact *contact, int indent, int y, struct ClcData *dat, int index, HWND hwnd, DWORD style, RECT *clRect, BOOL *bFirstNGdrawn, int groupCountsFontTopShift, int rowHeight)
 {
@@ -981,13 +981,13 @@ bgskipped:
 		rc.bottom = rc.top + rowHeight;
 
 		if(av_left) {
-			leftOffset += DrawAvatar(hdcMem, &rc, contact, y, dat, iImage ? cstatus : 0, rowHeight);
+			leftOffset += DrawAvatar(hdcMem, &rc, contact, y, dat, (WORD)(iImage ? cstatus : 0), rowHeight);
 			rcContent.left += leftOffset;
 			leftX += leftOffset;
 		}
 		else {
 			rc.left = (rcContent.right - g_CluiData.avatarSize) + 1;
-			rightOffset += DrawAvatar(hdcMem, &rc, contact, y, dat, iImage ? cstatus : 0, rowHeight);
+			rightOffset += DrawAvatar(hdcMem, &rc, contact, y, dat, (WORD)(iImage ? cstatus : 0), rowHeight);
 			rcContent.right -= (rightOffset);
 		}
 	}
@@ -1027,7 +1027,7 @@ bgskipped:
 				rcContent.right -= 18;
 			}
 			else {
-				DWORD offset = 0;
+				LONG offset = 0;
 				BOOL centered = FALSE;
 				offset +=  (type != CLCIT_CONTACT || avatar_done || !(av_wanted) ? 20 : dwFlags & CLUI_FRAME_ALWAYSALIGNNICK && av_left && g_selectiveIcon ? g_CluiData.avatarSize + 2 : 20);
 				centered = (g_CluiData.bCenterStatusIcons && offset == g_CluiData.avatarSize + 2);
