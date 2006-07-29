@@ -90,7 +90,7 @@ extern BOOL CALLBACK SelectContainerDlgProc(HWND hwndDlg, UINT msg, WPARAM wPara
 extern BOOL CALLBACK DlgProcContainerOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 struct RTFColorTable {
-    TCHAR *szName;
+    TCHAR szName[10];
     COLORREF clr;
     int index;
     int menuid;

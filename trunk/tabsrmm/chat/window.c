@@ -1478,18 +1478,6 @@ BOOL CALLBACK RoomWndProc(HWND hwndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
                 UpdateTrayMenu(0, dat->wStatus, dat->szProto, dat->szStatus, dat->hContact, FALSE);
            
             DM_ThemeChanged(hwndDlg, dat);
-
-            {
-                StatusItems_t *item_log = &StatusItems[ID_EXTBKHISTORY];
-                StatusItems_t *item_msg = &StatusItems[ID_EXTBKINPUTAREA];
-
-                if(dat->bFlatMsgLog || dat->hTheme != 0 || (dat->pContainer->bSkinned && !item_log->IGNORED)) {
-                    SetWindowLong(GetDlgItem(hwndDlg, IDC_CHAT_LOG), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_CHAT_LOG), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
-                    SetWindowLong(GetDlgItem(hwndDlg, IDC_LIST), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_LIST), GWL_EXSTYLE) & ~(WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
-                }
-                if(dat->bFlatMsgLog || dat->hTheme != 0 || (dat->pContainer->bSkinned && !item_msg->IGNORED))
-                    SetWindowLong(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_CHAT_MESSAGE), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
-            }
 			SendMessage(GetDlgItem(hwndDlg, IDC_CHAT_LOG), EM_HIDESELECTION, TRUE, 0);
 
             splitterEdges = DBGetContactSettingByte(NULL, SRMSGMOD_T, "splitteredges", 1);
@@ -2935,8 +2923,10 @@ LABEL_SHOWWINDOW:
             break;
 
         case EM_THEMECHANGED:
-            if(dat->hTheme && pfnCloseThemeData)
+            if(dat->hTheme && pfnCloseThemeData) {
                 pfnCloseThemeData(dat->hTheme);
+                dat->hTheme = 0;
+            }
             return DM_ThemeChanged(hwndDlg, dat);
 
         case WM_NCDESTROY:

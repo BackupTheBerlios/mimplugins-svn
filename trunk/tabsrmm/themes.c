@@ -1917,8 +1917,8 @@ static void LoadSkinItems(char *file, int onStartup)
         mir_snprintf(szFinalName, MAX_PATH, "%s\\%s\\%s", szDrive, szPath, buffer);
         if(PathFileExistsA(szFinalName)) {
             ReadThemeFromINI(szFinalName, 0, FALSE, onStartup ? 0 : DBGetContactSettingByte(NULL, SRMSGMOD_T, "skin_loadmode", 0));
-            CacheMsgLogIcons();
             CacheLogFonts();
+            CacheMsgLogIcons();
         }
 	}
     GetPrivateProfileStringA("Global", "MenuBarBG", "None", buffer, 20, file);

@@ -45,7 +45,7 @@ extern TemplateSet RTL_Active, LTR_Active;
 extern HANDLE hMessageWindowList;
 extern HINSTANCE g_hInst;
 extern char *szWarnClose;
-extern struct RTFColorTable rtf_ctable[];
+extern struct RTFColorTable *rtf_ctable;
 extern PSLWA pSetLayeredWindowAttributes;
 extern COLORREF g_ContainerColorKey;
 extern StatusItems_t StatusItems[];
@@ -72,8 +72,7 @@ static DWORD CALLBACK StreamOut(DWORD_PTR dwCookie, LPBYTE pbBuff, LONG cb, LONG
 
 TCHAR *pszIDCSAVE_close = 0, *pszIDCSAVE_save = 0;
 
-static WNDPROC OldMessageEditProc, OldAvatarWndProc, OldMessageLogProc;
-WNDPROC OldIEViewProc = 0;
+static WNDPROC OldMessageEditProc, OldAvatarWndProc, OldMessageLogProc, OldIEViewProc = 0;;
 WNDPROC OldSplitterProc = 0;
 
 static const UINT infoLineControls[] = { IDC_PROTOCOL, /* IDC_PROTOMENU, */ IDC_NAME, /* IDC_INFOPANELMENU */};
@@ -319,10 +318,11 @@ static void MsgWindowUpdateState(HWND hwndDlg, struct MessageWindowData *dat, UI
             GetWindowRect(GetDlgItem(hwndDlg, IDC_LOG), &rcRTF);
             rcRTF.left += 20; rcRTF.top += 20;
             pt.x = rcRTF.left; pt.y = rcRTF.top;
-            if(DBGetContactSettingByte(NULL, SRMSGMOD_T, "subclassIEView", 0) && dat->hwndIWebBrowserControl == 0) {
+            if(DBGetContactSettingByte(NULL, SRMSGMOD_T, "subclassIEView", 0) && dat->oldIEViewProc == 0) {
                 WNDPROC wndProc = (WNDPROC)SetWindowLong(dat->hwndIEView, GWL_WNDPROC, (LONG)IEViewSubclassProc);
                 if(OldIEViewProc == 0)
                     OldIEViewProc = wndProc;
+                dat->oldIEViewProc = wndProc;
             }
             dat->hwndIWebBrowserControl = WindowFromPoint(pt);
         }
@@ -1601,6 +1601,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 HWND hwndItem;
 
                 struct NewMessageWindowLParam *newData = (struct NewMessageWindowLParam *) lParam;
+
                 dat = (struct MessageWindowData *) malloc(sizeof(struct MessageWindowData));
                 ZeroMemory((void *) dat, sizeof(struct MessageWindowData));
                 if (newData->iTabID >= 0) {
@@ -1609,6 +1610,9 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     hwndContainer = m_pContainer->hwnd;
                 }
                 SetWindowLong(hwndDlg, GWL_USERDATA, (LONG) dat);
+
+                if(rtf_ctable == NULL)
+                    RTF_CTableInit();
 
                 dat->wOldStatus = -1;
                 dat->iOldHash = -1;
@@ -1687,18 +1691,6 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 					dat->hHistoryEvents = (HANDLE *)malloc(dat->maxHistory * sizeof(HANDLE));
 				else
 					dat->hHistoryEvents = NULL;
-
-				{
-					StatusItems_t *item_log = &StatusItems[ID_EXTBKHISTORY];
-					StatusItems_t *item_msg = &StatusItems[ID_EXTBKINPUTAREA];
-
-					if(dat->bFlatMsgLog || dat->hTheme != 0 || (m_pContainer->bSkinned && !item_log->IGNORED))
-						SetWindowLong(GetDlgItem(hwndDlg, IDC_LOG), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_LOG), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
-					if(dat->bFlatMsgLog || dat->hTheme != 0 || (m_pContainer->bSkinned && !item_msg->IGNORED))
-						SetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
-					if(dat->hwndIEView)
-						SetWindowLong(dat->hwndIEView, GWL_EXSTYLE, GetWindowLong(dat->hwndIEView, GWL_EXSTYLE) & ~(WS_EX_STATICEDGE | WS_EX_CLIENTEDGE));
-				}
 
                 if(dat->bIsMeta)
                     SendMessage(hwndDlg, DM_UPDATEMETACONTACTINFO, 0, 0);
@@ -1868,6 +1860,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 /* OnO: higligh lines to their end */
                 SendDlgItemMessage(hwndDlg, IDC_LOG, EM_SETEDITSTYLE, SES_EXTENDBACKCOLOR, SES_EXTENDBACKCOLOR);
                 SendDlgItemMessage(hwndDlg, IDC_MESSAGE, EM_SETLANGOPTIONS, 0, (LPARAM) SendDlgItemMessage(hwndDlg, IDC_MESSAGE, EM_GETLANGOPTIONS, 0, 0) & ~IMF_AUTOKEYBOARD);
+
+                SendDlgItemMessage(hwndDlg, IDC_LOG, EM_SETLANGOPTIONS, 0, SendDlgItemMessage(hwndDlg, IDC_LOG, EM_GETLANGOPTIONS, 0, 0) & ~IMF_AUTOFONTSIZEADJUST);
 
                 /*
                  * add us to the tray list (if it exists)
@@ -2141,7 +2135,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             return 0;
         }
         case DM_OPTIONSAPPLIED:
-            dat->szSep1[0] = 0;
+            dat->szMicroLf[0] = 0;
             if (wParam == 1) {      // 1 means, the message came from message log options page, so reload the defaults...
                 if(DBGetContactSettingByte(dat->hContact, SRMSGMOD_T, "mwoverride", 0) == 0) {
                     dat->dwFlags &= ~(MWF_LOG_ALL);
@@ -2212,10 +2206,9 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 /*
                  * correct the input area text color to avoid a color from the table of usable bbcode colors
                  */
-                while(rtf_ctable[i].szName != NULL) {
+                for(i = 0; i < myGlobals.rtf_ctablesize; i++) {
                     if(rtf_ctable[i].clr == inputcharcolor)
                         inputcharcolor = RGB(GetRValue(inputcharcolor), GetGValue(inputcharcolor), GetBValue(inputcharcolor) == 0 ? GetBValue(inputcharcolor) + 1 : GetBValue(inputcharcolor) - 1);
-                    i++;
                 }
                 cf2.dwMask = CFM_COLOR | CFM_FACE | CFM_CHARSET | CFM_SIZE | CFM_WEIGHT | CFM_BOLD | CFM_ITALIC;
                 cf2.cbSize = sizeof(cf2);
@@ -2227,30 +2220,43 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 cf2.bPitchAndFamily = lf.lfPitchAndFamily;
                 cf2.yHeight = abs(lf.lfHeight) * 15;
                 SendDlgItemMessageA(hwndDlg, IDC_MESSAGE, EM_SETCHARFORMAT, 0, (LPARAM)&cf2);
-                
-                if (dat->dwFlags & MWF_LOG_RTL) {
+
+                /*
+                 * setup the rich edit control(s)
+                 * LOG is always set to RTL, because this is needed for proper bidirectional operation later.
+                 * The real text direction is then enforced by the streaming code which adds appropiate paragraph
+                 * and textflow formatting commands to the 
+                 */
+                {
                     PARAFORMAT2 pf2;
                     ZeroMemory((void *)&pf2, sizeof(pf2));
                     pf2.cbSize = sizeof(pf2);
                     pf2.dwMask = PFM_RTLPARA;
+                    pf2.wEffects = dat->dwFlags & MWF_LOG_RTL ? PFE_RTLPARA : 0;
+                    SendDlgItemMessage(hwndDlg, IDC_MESSAGE, EM_SETPARAFORMAT, 0, (LPARAM)&pf2);
+                    pf2.dwMask = PFM_RTLPARA | PFM_OFFSET | PFM_OFFSETINDENT | PFM_RIGHTINDENT;
                     pf2.wEffects = PFE_RTLPARA;
+                    pf2.dxOffset = dat->theme.left_indent + 30;
+                    pf2.dxStartIndent = 30;
+                    pf2.dxRightIndent = 30;
+                    SetDlgItemText(hwndDlg, IDC_LOG, _T(""));
+                    SendDlgItemMessage(hwndDlg, IDC_LOG, EM_SETPARAFORMAT, 0, (LPARAM)&pf2);
+                }
+
+                /*
+                 * set the scrollbars etc to RTL/LTR (only for manual RTL mode)
+                 */
+
+                if (dat->dwFlags & MWF_LOG_RTL) {
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE),GWL_EXSTYLE,GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE),GWL_EXSTYLE) | WS_EX_RIGHT | WS_EX_RTLREADING | WS_EX_LEFTSCROLLBAR);
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_LOG),GWL_EXSTYLE,GetWindowLong(GetDlgItem(hwndDlg, IDC_LOG),GWL_EXSTYLE) | WS_EX_RIGHT | WS_EX_RTLREADING | WS_EX_LEFTSCROLLBAR);
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_NOTES),GWL_EXSTYLE,GetWindowLong(GetDlgItem(hwndDlg, IDC_NOTES),GWL_EXSTYLE) | (WS_EX_RIGHT | WS_EX_RTLREADING | WS_EX_LEFTSCROLLBAR));
                     SetDlgItemText(hwndDlg, IDC_MESSAGE, _T(""));
-                    SendDlgItemMessage(hwndDlg, IDC_MESSAGE, EM_SETPARAFORMAT, 0, (LPARAM)&pf2);
                 } else {
-                    PARAFORMAT2 pf2;
-                    ZeroMemory((void *)&pf2, sizeof(pf2));
-                    pf2.cbSize = sizeof(pf2);
-                    pf2.dwMask = PFM_RTLPARA;
-                    pf2.wEffects = 0;
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE),GWL_EXSTYLE,GetWindowLong(GetDlgItem(hwndDlg, IDC_MESSAGE),GWL_EXSTYLE) &~ (WS_EX_RIGHT | WS_EX_RTLREADING | WS_EX_LEFTSCROLLBAR));
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_LOG),GWL_EXSTYLE,GetWindowLong(GetDlgItem(hwndDlg, IDC_LOG),GWL_EXSTYLE) &~ (WS_EX_RIGHT | WS_EX_RTLREADING | WS_EX_LEFTSCROLLBAR));
                     SetWindowLong(GetDlgItem(hwndDlg, IDC_NOTES),GWL_EXSTYLE,GetWindowLong(GetDlgItem(hwndDlg, IDC_NOTES),GWL_EXSTYLE) & ~(WS_EX_RIGHT | WS_EX_RTLREADING | WS_EX_LEFTSCROLLBAR));
                     SetDlgItemText(hwndDlg, IDC_MESSAGE, _T(""));
-                    SendDlgItemMessage(hwndDlg, IDC_MESSAGE, EM_SETPARAFORMAT, 0, (LPARAM)&pf2);
-    
                 }
                 InvalidateRect(GetDlgItem(hwndDlg, IDC_NOTES), NULL, FALSE);
                 if(szStreamOut != NULL) {
@@ -2763,7 +2769,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
             }
             return 0;
         case DM_REMAKELOG:
-            dat->szSep1[0] = 0;
+            dat->szMicroLf[0] = 0;
             dat->lastEventTime = 0;
             dat->iLastEventType = -1;
             StreamInEvents(hwndDlg, dat->hDbEventFirst, -1, 0, NULL);
@@ -3877,17 +3883,14 @@ quote_from_last:
                         if(iSelection == ID_FONT_DEFAULTCOLOR) {
                             int i = 0;
                             cf.crTextColor = DBGetContactSettingDword(NULL, SRMSGMOD_T, "Font16Col", 0);
-                            while(rtf_ctable[i].szName != NULL) {
+                            for(i = 0; i < myGlobals.rtf_ctablesize; i++) {
                                 if(rtf_ctable[i].clr == cf.crTextColor)
                                     cf.crTextColor = RGB(GetRValue(cf.crTextColor), GetGValue(cf.crTextColor), GetBValue(cf.crTextColor) == 0 ? GetBValue(cf.crTextColor) + 1 : GetBValue(cf.crTextColor) - 1);
-                                i++;
                             }
                             SendDlgItemMessage(hwndDlg, IDC_MESSAGE, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf);
                             break;
                         }
-                        for(i = 0;;i++) {
-                            if(rtf_ctable[i].szName == NULL)
-                                break;
+                        for(i = 0; i < RTF_CTABLE_DEFSIZE; i++) {
                             if(rtf_ctable[i].menuid == iSelection) {
                                 cf.crTextColor = rtf_ctable[i].clr;
                                 SendDlgItemMessage(hwndDlg, IDC_MESSAGE, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf);
@@ -5405,8 +5408,10 @@ verify:
             return 0;
         }
         case EM_THEMECHANGED:
-            if(dat->hTheme && pfnCloseThemeData)
+            if(dat->hTheme && pfnCloseThemeData) {
                 pfnCloseThemeData(dat->hTheme);
+                dat->hTheme = 0;
+            }
             return DM_ThemeChanged(hwndDlg, dat);
         case DM_PLAYINCOMINGSOUND:
             if(!dat)
@@ -5741,8 +5746,10 @@ verify:
                 ieWindow.cbSize = sizeof(IEVIEWWINDOW);
                 ieWindow.iType = IEW_DESTROY;
                 ieWindow.hwnd = dat->hwndIEView;
-                if(OldIEViewProc)
-                    SetWindowLong(dat->hwndIEView, GWL_WNDPROC, (LONG)OldIEViewProc);
+                if(dat->oldIEViewProc) {
+                    SetWindowLong(dat->hwndIEView, GWL_WNDPROC, (LONG)dat->oldIEViewProc);
+                    dat->oldIEViewProc = 0;
+                }
                 CallService(MS_IEVIEW_WINDOW, 0, (LPARAM)&ieWindow);
             }
             // IEVIew MOD End

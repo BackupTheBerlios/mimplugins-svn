@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 $Id: msglog.c 3304 2006-07-10 20:26:03Z nightwish2004 $
 */
-
 #include "commonheaders.h"
 #pragma hdrstop
 #include <ctype.h>
@@ -37,7 +36,7 @@ $Id: msglog.c 3304 2006-07-10 20:26:03Z nightwish2004 $
 
 extern      void ReleaseRichEditOle(IRichEditOle *ole);
 extern      MYGLOBALS myGlobals;
-extern      struct RTFColorTable rtf_ctable[];
+extern      struct RTFColorTable *rtf_ctable;
 extern      void ImageDataInsertBitmap(IRichEditOle *ole, HBITMAP hBm);
 
 struct CPTABLE cpTable[] = {
@@ -70,20 +69,14 @@ static TCHAR months_translated[12][30];
 
 static time_t today;
 
-char szSep0[40], szSep2[40];
-char szMsgPrefixColon[5], szMsgPrefixNoColon[5];
 DWORD dwExtraLf = 0;
 
 int g_groupBreak = TRUE;
 static TCHAR szMyName[110];
 static TCHAR *szYourName = NULL;
 
-static char *szDivider = "\\strike-----------------------------------------------------------------------------------------------------------------------------------\\strike0";
-static char *szGroupedSeparator = "> ";
+extern TCHAR *FormatRaw(DWORD dwFlags, const TCHAR *msg, int flags, const char *szProto, HANDLE hContact, BOOL *clr_added);
 
-extern TCHAR *FormatRaw(DWORD dwFlags, const TCHAR *msg, int flags, const char *szProto, HANDLE hContact);
-
-static char *g_par = "\\par", *g_rtlpar = "\\rtlpar";
 static int logPixelSY;
 static TCHAR szToday[22], szYesterday[22];
 char rtfFontsGlobal[MSGDLGFONTCOUNT + 2][RTFCACHELINESIZE];
@@ -115,6 +108,7 @@ struct LogStreamData
     int bufferOffset, bufferLen;
     int eventsToInsert;
     int isEmpty;
+    int isAppend;
     struct MessageWindowData *dlgDat;
     DBEVENTINFO *dbei;
 };
@@ -207,6 +201,94 @@ void CacheLogFonts()
 }
 
 /*
+#define RTFPICTHEADERMAXSIZE   78
+
+static void LoadMsgLogIcons(void)
+{
+	HICON hIcon = NULL;
+	HBITMAP hBmp, hoBmp;
+	HDC hdc, hdcMem;
+	BITMAPINFOHEADER bih = { 0 };
+	int widthBytes, i, iBrush;
+	RECT rc;
+	HBRUSH hBrush;
+	HBRUSH hBrushes[3];
+	int rtfHeaderSize;
+	PBYTE pBmpBits;
+    int   iIndex = 0, j = 0;
+    DWORD iSize = DBGetContactSettingDword(NULL, SRMSGMOD_T, "iconscale", 16);
+
+	g_hImageList = ImageList_Create(iSize, iSize, IsWinVerXPPlus()? ILC_COLOR32 | ILC_MASK : ILC_COLOR8 | ILC_MASK, sizeof(pLogIconBmpBits) / sizeof(pLogIconBmpBits[0]), 0);
+
+    hBrushes[0] = CreateSolidBrush(DBGetContactSettingDword(NULL, FONTMODULE, SRMSGSET_BKGCOLOUR, SRMSGDEFSET_BKGCOLOUR));
+    hBrushes[1] = CreateSolidBrush(myGlobals.crIncoming = DBGetContactSettingDword(NULL, FONTMODULE, "inbg", GetSysColor(COLOR_WINDOW)));
+    hBrushes[2] = CreateSolidBrush(DBGetContactSettingDword(NULL, FONTMODULE, "outbg", GetSysColor(COLOR_WINDOW)));
+
+	bih.biSize = sizeof(bih);
+	bih.biBitCount = 24;
+	bih.biCompression = BI_RGB;
+	bih.biHeight = iSize;
+	bih.biPlanes = 1;
+	bih.biWidth = iSize;
+	widthBytes = ((bih.biWidth * bih.biBitCount + 31) >> 5) * 4;
+	rc.top = rc.left = 0;
+	rc.right = bih.biWidth;
+	rc.bottom = bih.biHeight;
+	hdc = GetDC(NULL);
+	hBmp = CreateCompatibleBitmap(hdc, bih.biWidth, bih.biHeight);
+	hdcMem = CreateCompatibleDC(hdc);
+	pBmpBits = (PBYTE) malloc(widthBytes * bih.biHeight);
+
+    for(iBrush = 0; iBrush < 3; iBrush++) {
+        hBrush = hBrushes[iBrush];
+
+        for (i = 0; i < 7; i++) {
+
+            iIndex = ImageList_AddIcon(g_hImageList, Logicons[i]);
+            hIcon = ImageList_GetIcon(g_hImageList, iIndex, ILD_NORMAL);
+
+            pLogIconBmpBits[j] = (PBYTE) malloc(RTFPICTHEADERMAXSIZE + (bih.biSize + widthBytes * bih.biHeight) * 2);
+            //I can't seem to get binary mode working. No matter.
+            rtfHeaderSize = sprintf(pLogIconBmpBits[j], "{\\pict\\dibitmap0\\wbmbitspixel%u\\wbmplanes1\\wbmwidthbytes%u\\picw%u\\pich%u ", bih.biBitCount, widthBytes, (UINT) bih.biWidth, (UINT)bih.biHeight);
+            hoBmp = (HBITMAP) SelectObject(hdcMem, hBmp);
+            FillRect(hdcMem, &rc, hBrush);
+            DrawIconEx(hdcMem, 0, 0, hIcon, bih.biWidth, bih.biHeight, 0, NULL, DI_NORMAL);
+            SelectObject(hdcMem, hoBmp);
+            GetDIBits(hdc, hBmp, 0, bih.biHeight, pBmpBits, (BITMAPINFO *) & bih, DIB_RGB_COLORS);
+            DestroyIcon(hIcon);
+            {
+                int n;
+                for (n = 0; n < sizeof(BITMAPINFOHEADER); n++)
+                    sprintf(pLogIconBmpBits[j] + rtfHeaderSize + n * 2, "%02X", ((PBYTE) & bih)[n]);
+                for (n = 0; n < widthBytes * bih.biHeight; n += 4)
+                    sprintf(pLogIconBmpBits[j] + rtfHeaderSize + (bih.biSize + n) * 2, "%02X%02X%02X%02X", pBmpBits[n], pBmpBits[n + 1], pBmpBits[n + 2], pBmpBits[n + 3]);
+            }
+            logIconBmpSize[j] = rtfHeaderSize + (bih.biSize + widthBytes * bih.biHeight) * 2 + 1;
+            pLogIconBmpBits[j][logIconBmpSize[j] - 1] = '}';
+            j++;
+        }
+    }
+	free(pBmpBits);
+	DeleteDC(hdcMem);
+	DeleteObject(hBmp);
+	ReleaseDC(NULL, hdc);
+	DeleteObject(hBrushes[0]);
+    DeleteObject(hBrushes[1]);
+    DeleteObject(hBrushes[2]);
+    g_plogIcons_mustfree = TRUE;
+    ImageList_RemoveAll(g_hImageList);
+    ImageList_Destroy(g_hImageList);
+}
+
+static void FreeMsgLogIcons(void)
+{
+	int i;
+	for (i = 0; i < sizeof(pLogIconBmpBits) / sizeof(pLogIconBmpBits[0]); i++)
+		free(pLogIconBmpBits[i]);
+}
+*/
+
+/*
  * cache copies of all our msg log icons with 3 background colors to speed up the
  * process of inserting icons into the RichEdit control.
  */
@@ -220,6 +302,11 @@ void CacheMsgLogIcons()
     Logicons[4] = myGlobals.g_iconIn;
     Logicons[5] = myGlobals.g_iconStatus;
     Logicons[6] = myGlobals.g_iconErr;
+    /*
+    if(g_plogIcons_mustfree)
+        FreeMsgLogIcons();
+    LoadMsgLogIcons();
+    */
 }
 
 /*
@@ -476,47 +563,40 @@ static int AppendToBufferWithRTF(int mode, char **buffer, int *cbBufferEnd, int 
     return _mbslen(*buffer + *cbBufferEnd);
 }
 
-//free() the return value
-static char *CreateRTFHeader(struct MessageWindowData *dat)
+static void Build_RTF_Header(char **buffer, int *bufferEnd, int *bufferAlloced, struct MessageWindowData *dat)
 {
-    char *buffer, szTemp[30];
-    int bufferAlloced, bufferEnd;
-    int i;
     COLORREF colour;
-    
-    bufferEnd = 0;
-    bufferAlloced = 1024;
-    buffer = (char *) malloc(bufferAlloced);
-    buffer[0] = '\0';
+    int      i;
+    char     szTemp[30];
 
     // rtl
-	if (dat->dwFlags & MWF_LOG_RTL) 
-		AppendToBuffer(&buffer,&bufferEnd,&bufferAlloced,"{\\rtf1\\ansi\\deff0\\rtldoc{\\fonttbl");
-	else 
-		AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "{\\rtf1\\ansi\\deff0{\\fonttbl");
+    if (dat->dwFlags & MWF_LOG_RTL) 
+        AppendToBuffer(buffer, bufferEnd, bufferAlloced, "{\\rtf1\\ansi\\deff0{\\fonttbl");
+    else 
+        AppendToBuffer(buffer, bufferEnd, bufferAlloced, "{\\rtf1\\ansi\\deff0{\\fonttbl");
 
     for (i = 0; i < MSGDLGFONTCOUNT; i++)
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "{\\f%u\\fnil\\fcharset%u %s;}", i, dat->theme.logFonts[i].lfCharSet, dat->theme.logFonts[i].lfFaceName);
-    AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "{\\f%u\\fnil\\fcharset%u %s;}", MSGDLGFONTCOUNT, dat->theme.logFonts[i].lfCharSet, "Arial");
-    
-    AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "}{\\colortbl ");
+        AppendToBuffer(buffer, bufferEnd, bufferAlloced, "{\\f%u\\fnil\\fcharset%u %s;}", i, dat->theme.logFonts[i].lfCharSet, dat->theme.logFonts[i].lfFaceName);
+    AppendToBuffer(buffer, bufferEnd, bufferAlloced, "{\\f%u\\fnil\\fcharset%u %s;}", MSGDLGFONTCOUNT, dat->theme.logFonts[i].lfCharSet, "Arial");
+
+    AppendToBuffer(buffer, bufferEnd, bufferAlloced, "}{\\colortbl ");
     for (i = 0; i < MSGDLGFONTCOUNT; i++)
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(dat->theme.fontColors[i]), GetGValue(dat->theme.fontColors[i]), GetBValue(dat->theme.fontColors[i]));
+        AppendToBuffer(buffer, bufferEnd, bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(dat->theme.fontColors[i]), GetGValue(dat->theme.fontColors[i]), GetBValue(dat->theme.fontColors[i]));
     if (GetSysColorBrush(COLOR_HOTLIGHT) == NULL)
         colour = RGB(0, 0, 255);
     else
         colour = GetSysColor(COLOR_HOTLIGHT);
-    AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
+    AppendToBuffer(buffer, bufferEnd, bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
 
     /* OnO: Create incoming and outcoming colours */
     colour = dat->theme.inbg;
-    AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
+    AppendToBuffer(buffer, bufferEnd, bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
     colour = dat->theme.outbg;
-    AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
+    AppendToBuffer(buffer, bufferEnd, bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
     colour = dat->theme.bg;
-    AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
+    AppendToBuffer(buffer, bufferEnd, bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
     colour = dat->theme.hgrid;
-    AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
+    AppendToBuffer(buffer, bufferEnd, bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
 
     // custom template colors...
 
@@ -525,21 +605,19 @@ static char *CreateRTFHeader(struct MessageWindowData *dat)
         colour = dat->theme.custom_colors[i - 1];
         if(colour == 0)
             colour = RGB(1,1,1);
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
+        AppendToBuffer(buffer, bufferEnd, bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(colour), GetGValue(colour), GetBValue(colour));
     }
 
     // bbcode colors...
 
-    i = 0;
-    while(rtf_ctable[i].szName != NULL) {
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(rtf_ctable[i].clr), GetGValue(rtf_ctable[i].clr), GetBValue(rtf_ctable[i].clr));
-        i++;
-    }
+    for(i = 0; i < myGlobals.rtf_ctablesize; i++)
+        AppendToBuffer(buffer, bufferEnd, bufferAlloced, "\\red%u\\green%u\\blue%u;", GetRValue(rtf_ctable[i].clr), GetGValue(rtf_ctable[i].clr), GetBValue(rtf_ctable[i].clr));
 
     /*                                                              
      * paragraph header                                                                
     */
-    AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "}\\pard");
+    //AppendToBuffer(buffer, bufferEnd, bufferAlloced, "}\\pard");
+    AppendToBuffer(buffer, bufferEnd, bufferAlloced, "}");
 
     // indent
     if(dat->dwFlags & MWF_LOG_INDENT) {
@@ -547,16 +625,31 @@ static char *CreateRTFHeader(struct MessageWindowData *dat)
         int rIndent = dat->theme.right_indent;
 
         if(iIndent) {
-            if(dat->dwFlags & MWF_LOG_RTL)
-                AppendToBuffer(&buffer,&bufferEnd,&bufferAlloced,"\\ri%u\\fi-%u\\li%u\\tx%u", iIndent + 30, iIndent, rIndent, iIndent + 30);
-            else
-                AppendToBuffer(&buffer,&bufferEnd,&bufferAlloced,"\\li%u\\fi-%u\\ri%u\\tx%u", iIndent + 30, iIndent, rIndent, iIndent + 30);
+            //if(dat->dwFlags & MWF_LOG_RTL)
+            //    AppendToBuffer(buffer,bufferEnd,bufferAlloced,"\\ri%u\\fi-%u\\li%u\\tx%u", iIndent + 30, iIndent, rIndent, iIndent + 30);
+            //else
+                //AppendToBuffer(buffer,bufferEnd,bufferAlloced,"\\li%u\\fi-%u\\ri%u\\tx%u", iIndent + 30, iIndent, rIndent, iIndent + 30);
+            //AppendToBuffer(buffer,bufferEnd,bufferAlloced,"\\li-%u\\fi-%u\\ri%u\\tx%u", 2 * (iIndent + 30), iIndent, rIndent, iIndent + 30);
         }
     }
     else {
-        AppendToBuffer(&buffer,&bufferEnd,&bufferAlloced,"\\li%u\\ri%u\\fi%u\\tx%u", 2*15, 2*15, 0, 70 * 15);
+        AppendToBuffer(buffer,bufferEnd,bufferAlloced,"\\li%u\\ri%u\\fi%u\\tx%u", 2*15, 2*15, 0, 70 * 15);
     }
+}
 
+
+//free() the return value
+static char *CreateRTFHeader(struct MessageWindowData *dat)
+{
+    char *buffer;
+    int bufferAlloced, bufferEnd;
+    
+    bufferEnd = 0;
+    bufferAlloced = 1024;
+    buffer = (char *) malloc(bufferAlloced);
+    buffer[0] = '\0';
+
+    Build_RTF_Header(&buffer, &bufferEnd, &bufferAlloced, dat);
     //AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "}");
     return buffer;
 }
@@ -616,10 +709,9 @@ static char *Template_CreateRTFFromDbEvent(struct MessageWindowData *dat, HANDLE
 #if !defined(_UNICODE)
     char *szName;
 #endif    
-    TCHAR *szFinalTimestamp, szDummy = '\0';
+    TCHAR *szFinalTimestamp;
     int bufferAlloced, bufferEnd, iTemplateLen;
     DBEVENTINFO dbei = { 0 };
-    int showColon = 0;
     int isSent = 0;
     int iFontIDOffset = 0, i = 0;
     TCHAR *szTemplate;
@@ -628,11 +720,16 @@ static char *Template_CreateRTFFromDbEvent(struct MessageWindowData *dat, HANDLE
     struct tm event_time;
     TemplateSet *this_templateset;
     BOOL isBold = FALSE, isItalic = FALSE, isUnderline = FALSE;
-	char *this_par;
     DWORD dwEffectiveFlags;
     DWORD dwFormattingParams = MAKELONG(myGlobals.m_FormatWholeWordsOnly, dat->dwFlagsEx & MWF_SHOW_BBCODE);
     char  *szProto = dat->bIsMeta ? dat->szMetaProto : dat->szProto;
     BOOL  fIsStatusChangeEvent = FALSE;
+    TCHAR *msg, *formatted;
+
+    bufferEnd = 0;
+    bufferAlloced = 1024;
+    buffer = (char *) malloc(bufferAlloced);
+    buffer[0] = '\0';
 
     if(streamData->dbei != 0)
         dbei = *(streamData->dbei);
@@ -648,9 +745,56 @@ static char *Template_CreateRTFFromDbEvent(struct MessageWindowData *dat, HANDLE
             return NULL;
         }
     }
+
+#if defined( _UNICODE )
+    {
+        int wlen;
+        int msglen = lstrlenA((char *) dbei.pBlob) + 1;
+        BOOL clr_added = FALSE;
+
+        if(dbei.eventType == EVENTTYPE_MESSAGE && !isSent)
+            dat->stats.lastReceivedChars = msglen - 1;
+        if ((dbei.cbBlob >= (DWORD)(2 * msglen)) && !(dat->sendMode & SMODE_FORCEANSI)) {
+            msg = (wchar_t *) &dbei.pBlob[msglen];
+            wlen = safe_wcslen(msg, (dbei.cbBlob - msglen) / 2);
+            if(wlen <= (msglen - 1) && wlen > 0){
+                TrimMessage(msg);
+                formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact, &clr_added);
+                //AppendUnicodeToBuffer(&buffer, &bufferEnd, &bufferAlloced, formatted, MAKELONG(isSent, dat->isHistory));
+            }
+            else
+                goto nounicode;
+        }
+        else {
+nounicode:
+            msg = (TCHAR *) alloca(sizeof(TCHAR) * msglen);
+            MultiByteToWideChar(dat->codePage, 0, (char *) dbei.pBlob, -1, msg, msglen);
+            TrimMessage(msg);
+            formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact, &clr_added);
+            //AppendUnicodeToBuffer(&buffer, &bufferEnd, &bufferAlloced, formatted, MAKELONG(isSent, dat->isHistory));
+        }
+        if(clr_added)
+            dat->clr_added = TRUE;
+    }
+#else   // unicode
+    {
+        BOOL clr_added = FALSE;
+        msg = (char *) dbei.pBlob;
+        if(dbei.eventType == EVENTTYPE_MESSAGE && !isSent)
+            dat->stats.lastReceivedChars = lstrlenA(msg);
+        TrimMessage(msg);
+        formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact, &clr_added);
+    }
+    //AppendToBufferWithRTF(MAKELONG(isSent, dat->isHistory), &buffer, &bufferEnd, &bufferAlloced, "%s", formatted);
+#endif      // unicode
+
     dat->stats.lastReceivedChars = 0;
     fIsStatusChangeEvent = IsStatusEvent(dbei.eventType);
-    // RTL setup
+
+    if(dat->isAutoRTL & 2) {                                      // means: last \\par was deleted to avoid new line at end of log
+        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\par");
+        dat->isAutoRTL &= ~2;
+    }
 
     if(dat->dwFlags & MWF_LOG_RTL)
         dbei.flags |= DBEF_RTL;
@@ -658,9 +802,7 @@ static char *Template_CreateRTFFromDbEvent(struct MessageWindowData *dat, HANDLE
     if(dbei.flags & DBEF_RTL)
         dat->isAutoRTL |= 1;
 
-    dwEffectiveFlags = (dat->isAutoRTL & 1) ? (dat->dwFlags & ~(MWF_LOG_GRID | MWF_LOG_INDIVIDUALBKG)) : dat->dwFlags;
-
-    this_par = g_par;
+    dwEffectiveFlags = dat->dwFlags;
 
     dat->isHistory = (dbei.timestamp < (DWORD)dat->stats.started && (dbei.flags & DBEF_READ || dbei.flags & DBEF_SENT));
     iFontIDOffset = dat->isHistory ? 8 : 0;     // offset into the font table for either history (old) or new events... (# of fonts per configuration set)
@@ -671,81 +813,47 @@ static char *Template_CreateRTFFromDbEvent(struct MessageWindowData *dat, HANDLE
 		CallService(MS_CLIST_REMOVEEVENT,(WPARAM)hContact,(LPARAM)hDbEvent);
 	}
 
-    bufferEnd = 0;
-    bufferAlloced = 1024;
-    buffer = (char *) malloc(bufferAlloced);
-    buffer[0] = '\0';
     g_groupBreak = TRUE;
-
-    if(dat->isAutoRTL & 1) {
-        if(dat->isAutoRTL & 2) {                     // first append flag
-            dat->isAutoRTL &= ~2;
-            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s", LOWORD(dat->iLastEventType) & DBEF_RTL ? "\\rtlpar\\par\\rtlpar" : "\\par");
-        }
-    }
 
     if(dat->dwFlags & MWF_DIVIDERWANTED) {
         static char szStyle_div[128] = "\0";
         if(szStyle_div[0] == 0)
             mir_snprintf(szStyle_div, 128, "\\f%u\\cf%u\\ul0\\b%d\\i%d\\fs%u", H_MSGFONTID_DIVIDERS, H_MSGFONTID_DIVIDERS, 0, 0, 5);
 
-        if(!(dat->isAutoRTL & 1))
-            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\par\\sl-1\\highlight%d %s ", H_MSGFONTID_DIVIDERS, szStyle_div);
+        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\sl-1\\slmult0\\highlight%d\\cf%d\\-\\par\\sl0", H_MSGFONTID_DIVIDERS, H_MSGFONTID_DIVIDERS);
         dat->dwFlags &= ~MWF_DIVIDERWANTED;
-        
-        /*
-        if(dat->dwFlags & MWF_LOG_INDIVIDUALBKG)
-            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s\\highlight%d", this_par, MSGDLGFONTCOUNT + 1 + ((LOWORD(dat->iLastEventType) & DBEF_SENT) ? 1 : 0));
-        else
-            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, this_par);
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s\\tab", GetRTFFont(H_MSGFONTID_DIVIDERS));
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, szDivider);
-        dat->dwFlags &= ~MWF_DIVIDERWANTED;
-        */
     }
     if(dwEffectiveFlags & MWF_LOG_GROUPMODE && (dbei.flags == LOWORD(dat->iLastEventType)) && dbei.eventType == EVENTTYPE_MESSAGE && HIWORD(dat->iLastEventType) == EVENTTYPE_MESSAGE && (dbei.timestamp - dat->lastEventTime) < 86400) {
         g_groupBreak = FALSE;
         if((time_t)dbei.timestamp > today && dat->lastEventTime < today) {
             g_groupBreak = TRUE;
-            goto nogroup;
-        }
-        if(prefixParaBreak) {
-            if(!(dat->isAutoRTL & 1))
-                AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, szSep2);
-            else
-                AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, dbei.flags & DBEF_RTL ? "\\rtlpar\\sl0 " : "\\ltrpar\\sl0 ");
         }
     }
-    else {
-nogroup:        
-        if(prefixParaBreak) { // || ((dbei.flags & DBEF_RTL) != (LOWORD(dat->iLastEventType) & DBEF_RTL))) {
-            if(dwExtraLf && !(dat->isAutoRTL & 1))
-                AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, dat->szExtraLf, MSGDLGFONTCOUNT + 1 + ((LOWORD(dat->iLastEventType) & DBEF_SENT) ? 1 : 0));
-            if(dwEffectiveFlags & MWF_LOG_GRID) {
-                AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, szSep0, GetRTFFont(MSGDLGFONTCOUNT));
-                AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, dat->szSep1, MSGDLGFONTCOUNT + 4);
-            }
-            else if(!(dat->isAutoRTL & 1))
-                AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, szSep2);
-            else
-                AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, dbei.flags & DBEF_RTL ? "\\rtlpar\\sl0 " : "\\ltrpar\\sl0 ");
-        }
-    }
+	if(!streamData->isEmpty && g_groupBreak && (dwEffectiveFlags & MWF_LOG_GRID))
+		AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\sl-1\\slmult0\\highlight%d\\cf%d\\-\\par\\sl0", MSGDLGFONTCOUNT + 4, MSGDLGFONTCOUNT + 4);
 
-    if(dat->isAutoRTL & 1) {
-        if(dbei.flags & DBEF_RTL)
-            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s", "\\rtlpar ");
-        else
-            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s", "\\ltrpar ");
-    }
+    if (dbei.flags & DBEF_RTL)
+        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\rtlpar");
+    else
+        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\ltrpar");
 
     /* OnO: highlight start */
     if(dwEffectiveFlags & MWF_LOG_INDIVIDUALBKG)
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\highlight%d", MSGDLGFONTCOUNT + 1 + ((isSent) ? 1 : 0));
+        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\highlight%d\\cf%d", MSGDLGFONTCOUNT + 1 + ((isSent) ? 1 : 0), MSGDLGFONTCOUNT + 1 + ((isSent) ? 1 : 0));
     else if(dwEffectiveFlags & MWF_LOG_GRID)
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\highlight%d", MSGDLGFONTCOUNT + 3);
+        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\highlight%d\\cf%d", MSGDLGFONTCOUNT + 3, MSGDLGFONTCOUNT + 3);
     else
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\highlight%d", MSGDLGFONTCOUNT + 3);
+        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\highlight%d\\cf%d", MSGDLGFONTCOUNT + 3, MSGDLGFONTCOUNT + 3);
+
+    streamData->isEmpty = FALSE;
+
+    if (dat->isAutoRTL & 1) {
+		if(dbei.flags & DBEF_RTL) {
+			AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\ltrch\\rtlch");
+		}else{
+			AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\rtlch\\ltrch");
+		}
+	}
 
     /*
      * templated code starts here
@@ -877,6 +985,18 @@ nogroup:
                         }
                         AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s\\fs1  #~#%01d%c%s ", GetRTFFont(MSGFONTID_SYMBOLS_IN), icon, isSent ? '>' : '<', GetRTFFont(isSent ? MSGFONTID_MYMSG + iFontIDOffset : MSGFONTID_YOURMSG + iFontIDOffset));
                         //AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s #~#%01d%c%s ", GetRTFFont(MSGDLGFONTCOUNT), icon, isSent ? '>' : '<', GetRTFFont(isSent ? MSGFONTID_MYMSG + iFontIDOffset : MSGFONTID_YOURMSG + iFontIDOffset));
+
+                        /*
+                        if(dwEffectiveFlags & MWF_LOG_INDIVIDUALBKG)
+                            icon += isSent ? 14 : 7;
+
+                		AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\f0\\-");
+                		while (bufferAlloced - bufferEnd < logIconBmpSize[icon])
+                			bufferAlloced += 1024;
+                		buffer = (char *) realloc(buffer, bufferAlloced);
+                		CopyMemory(buffer + bufferEnd, pLogIconBmpBits[icon], logIconBmpSize[icon]);
+                		bufferEnd += logIconBmpSize[icon];
+                		AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, " ");*/
                     }
                     else
                         skipToNext = TRUE;
@@ -1097,10 +1217,6 @@ nogroup:
                         case EVENTTYPE_ERRMSG:
                         case EVENTTYPE_STATUSCHANGE:
                         {
-                            TCHAR *msg, *formatted;
-#if defined(_UNICODE)
-                            int wlen;
-#endif
                             if(fIsStatusChangeEvent || dbei.eventType == EVENTTYPE_ERRMSG) {
                                 if(dbei.eventType == EVENTTYPE_ERRMSG && dbei.cbBlob == 0)
                                     break;
@@ -1120,37 +1236,8 @@ nogroup:
                                     AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s ", GetRTFFont(isSent ? MSGFONTID_MYMSG + iFontIDOffset : MSGFONTID_YOURMSG + iFontIDOffset));
                             }
                 #if defined( _UNICODE )
-                            {
-                                int msglen = lstrlenA((char *) dbei.pBlob) + 1;
-
-                                if(dbei.eventType == EVENTTYPE_MESSAGE && !isSent)
-                                    dat->stats.lastReceivedChars = msglen - 1;
-                                if ((dbei.cbBlob >= (DWORD)(2 * msglen)) && !(dat->sendMode & SMODE_FORCEANSI)) {
-                                    msg = (wchar_t *) &dbei.pBlob[msglen];
-                                    wlen = safe_wcslen(msg, (dbei.cbBlob - msglen) / 2);
-                                    if(wlen <= (msglen - 1) && wlen > 0){
-                                        TrimMessage(msg);
-                                        formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact);
-                                        AppendUnicodeToBuffer(&buffer, &bufferEnd, &bufferAlloced, formatted, MAKELONG(isSent, dat->isHistory));
-                                    }
-                                    else
-                                        goto nounicode;
-                                }
-                                else {
-                nounicode:
-                                    msg = (TCHAR *) alloca(sizeof(TCHAR) * msglen);
-                                    MultiByteToWideChar(dat->codePage, 0, (char *) dbei.pBlob, -1, msg, msglen);
-                                    TrimMessage(msg);
-                                    formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact);
-                                    AppendUnicodeToBuffer(&buffer, &bufferEnd, &bufferAlloced, formatted, MAKELONG(isSent, dat->isHistory));
-                                }
-                            }
+                            AppendUnicodeToBuffer(&buffer, &bufferEnd, &bufferAlloced, formatted, MAKELONG(isSent, dat->isHistory));
                 #else   // unicode
-                            msg = (char *) dbei.pBlob;
-                            if(dbei.eventType == EVENTTYPE_MESSAGE && !isSent)
-                                dat->stats.lastReceivedChars = lstrlenA(msg);
-                            TrimMessage(msg);
-                            formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact);
                             AppendToBufferWithRTF(MAKELONG(isSent, dat->isHistory), &buffer, &bufferEnd, &bufferAlloced, "%s", formatted);
                 #endif      // unicode
                             AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s", "\\b0\\ul0\\i0 ");
@@ -1189,19 +1276,12 @@ nogroup:
                 case '-':       // grid line
                 {
                     TCHAR color = szTemplate[i + 2];
-                    if(dat->isAutoRTL & 1) {
-                        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s%s\\sl-1", g_par, GetRTFFont(MSGDLGFONTCOUNT));
-                        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, dbei.flags & DBEF_RTL ? dat->szSep1_RTL : dat->szSep1, MSGDLGFONTCOUNT + 3);
-                    } else {
-                        if(color >= '0' && color <= '4') {
-                            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s%s\\sl-1", this_par, GetRTFFont(MSGDLGFONTCOUNT));
-                            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, dat->szSep1, MSGDLGFONTCOUNT + 5 + (color - '0'));
-                            i++;
-                        }
-                        else {
-                            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "%s%s\\sl-1", this_par, GetRTFFont(MSGDLGFONTCOUNT));
-                            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, dat->szSep1, MSGDLGFONTCOUNT + 4);
-                        }
+                    if(color >= '0' && color <= '4') {
+                        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\par\\sl-1\\slmult0\\highlight%d\\cf%d\\-\\par\\sl0", MSGDLGFONTCOUNT + 5 + (color - '0'), MSGDLGFONTCOUNT + 5 + (color - '0'));
+                        i++;
+                    }
+                    else {
+                        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\par\\sl-1\\slmult0\\highlight%d\\cf%d\\-\\par\\sl0", MSGDLGFONTCOUNT + 4, MSGDLGFONTCOUNT + 4);
                     }
                     break;
                 }
@@ -1212,16 +1292,12 @@ nogroup:
                 {
                     TCHAR color = szTemplate[i + 2];
 
-                    if(!(dat->isAutoRTL & 1)) {
-                        if(color >= '0' && color <= '4') {
-                            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\highlight%d", MSGDLGFONTCOUNT + 5 + (color - '0'));
-                            i++;
-                        }
-                        else
-                            AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\highlight%d", (dat->dwFlags & MWF_LOG_INDIVIDUALBKG) ? (MSGDLGFONTCOUNT + 1 + (isSent ? 1 : 0)) : MSGDLGFONTCOUNT + 3);
+                    if(color >= '0' && color <= '4') {
+                        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\highlight%d", MSGDLGFONTCOUNT + 5 + (color - '0'));
+                        i++;
                     }
                     else
-                        skipToNext = TRUE;
+                        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\highlight%d", (dat->dwFlags & MWF_LOG_INDIVIDUALBKG) ? (MSGDLGFONTCOUNT + 1 + (isSent ? 1 : 0)) : MSGDLGFONTCOUNT + 3);
                     break;
                 }
                 case '|':       // tab
@@ -1311,11 +1387,11 @@ skip:
     }
 
     if(dat->hHistoryEvents)
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, dbei.flags & DBEF_RTL ? dat->szMicroLf_RTL : dat->szMicroLf, MSGDLGFONTCOUNT + 1 + ((isSent) ? 1 : 0), hDbEvent);
-    else
-        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, dbei.flags & DBEF_RTL ? dat->szMicroLf_RTL : dat->szMicroLf);
+        AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, dat->szMicroLf, MSGDLGFONTCOUNT + 1 + ((isSent) ? 1 : 0), hDbEvent);
 
-    //AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "}");
+    //AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\par\\sl-1\\slmult0\\highlight%d\\cf%d\\-\\par", H_MSGFONTID_DIVIDERS, H_MSGFONTID_DIVIDERS);
+
+    AppendToBuffer(&buffer, &bufferEnd, &bufferAlloced, "\\par");
 
     if(streamData->dbei == 0)
         free(dbei.pBlob);
@@ -1347,7 +1423,7 @@ static DWORD CALLBACK LogStreamInEvents(DWORD_PTR dwCookie, LPBYTE pbBuff, LONG 
                             break;
                     } while (dat->buffer == NULL && dat->hDbEvent);
                     if (dat->buffer) {
-                        dat->isEmpty = 0;
+                        //dat->isEmpty = 0;
                         break;
                     }
                 }
@@ -1378,24 +1454,12 @@ static void SetupLogFormatting(struct MessageWindowData *dat)
 {
     DWORD   dwExtraLf = myGlobals.m_ExtraMicroLF;
 
-    if(dat->dwFlags & MWF_LOG_INDIVIDUALBKG || dat->dwFlags & MWF_LOG_GRID) {
-        mir_snprintf(dat->szSep1, 151, "\\highlight%s \\par\\sl0%s", "%d", GetRTFFont(H_MSGFONTID_YOURTIME));
-        mir_snprintf(dat->szSep1_RTL, 151, "\\highlight%s \\rtlpar\\sl0%s", "%d", GetRTFFont(H_MSGFONTID_YOURTIME));
-    }
-    else {
-        mir_snprintf(dat->szSep1, 151, "\\par\\sl0%s", GetRTFFont(H_MSGFONTID_YOURTIME));
-        mir_snprintf(dat->szSep1_RTL, 151, "\\rtlpar\\sl0%s", GetRTFFont(H_MSGFONTID_YOURTIME));
-    }
-
     if(dat->hHistoryEvents) {
-        mir_snprintf(dat->szMicroLf, sizeof(dat->szMicroLf), "%s%s\\par\\ltrpar\\sl-1%s ", GetRTFFont(MSGDLGFONTCOUNT), "\\v\\cf%d \\ ~-+%d+-~\\v0 ", GetRTFFont(MSGDLGFONTCOUNT));
-        mir_snprintf(dat->szMicroLf_RTL, sizeof(dat->szMicroLf_RTL), "%s%s\\rtlpar\\par\\rtlpar\\sl-1%s.", GetRTFFont(MSGDLGFONTCOUNT), "\\v\\cf%d \\ ~-+%d+-~\\v0 ", GetRTFFont(MSGDLGFONTCOUNT));
+        mir_snprintf(dat->szMicroLf, sizeof(dat->szMicroLf), "%s", "\\v\\cf%d \\ ~-+%d+-~\\v0 ");
     }
     else {
         mir_snprintf(dat->szMicroLf, sizeof(dat->szMicroLf), "%s\\par\\ltrpar\\sl-1%s ", GetRTFFont(MSGDLGFONTCOUNT), GetRTFFont(MSGDLGFONTCOUNT));
-        mir_snprintf(dat->szMicroLf_RTL, sizeof(dat->szMicroLf_RTL), "%s\\rtlpar\\par\\rtlpar\\sl-1%s.", GetRTFFont(MSGDLGFONTCOUNT), GetRTFFont(MSGDLGFONTCOUNT));
     }
-    mir_snprintf(dat->szExtraLf, sizeof(dat->szExtraLf), dat->dwFlags & MWF_LOG_INDIVIDUALBKG ? "\\par\\sl-%d\\highlight%s \\par" : "\\par\\sl-%d \\par", dwExtraLf * 15, "%d");
 }
 
 void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, DBEVENTINFO *dbei_s)
@@ -1473,17 +1537,11 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
 
     // separator strings used for grid lines, message separation and so on...
 
+    dat->clr_added = FALSE;
+
     dwExtraLf = myGlobals.m_ExtraMicroLF;
-    if(dat->szSep1[0] == 0)
+    if(dat->szMicroLf[0] == 0)
         SetupLogFormatting(dat);
-
-	strcpy(szSep0, fAppend ? "\\par%s\\sl-1" : "%s\\sl-1");
-
-	strcpy(szSep2, fAppend ? "\\par\\sl0" : "\\sl1000");
-    //strcpy(szSep2_RTL, fAppend ? "\\rtlpar\\rtlmark\\par\\sl1000" : "\\sl1000");
-
-    strcpy(szMsgPrefixColon, ": ");
-    strcpy(szMsgPrefixNoColon, " ");
 
     ZeroMemory(&ci, sizeof(ci));
 	szMyName[0] = 0;
@@ -1555,7 +1613,8 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
     streamData.dbei = dbei_s;
     stream.pfnCallback = LogStreamInEvents;
     stream.dwCookie = (DWORD_PTR) & streamData;
-    
+    streamData.isAppend = fAppend;
+
     if (fAppend) {
         GETTEXTLENGTHEX gtxl = {0};
 #if defined(_UNICODE)
@@ -1565,25 +1624,33 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
         gtxl.codepage = CP_ACP;
         gtxl.flags = GTL_DEFAULT | GTL_PRECISE;
 #endif        
+        fi.chrg.cpMin = SendDlgItemMessage(hwndDlg, IDC_LOG, EM_GETTEXTLENGTHEX, (WPARAM)&gtxl, 0);
         sel.cpMin = sel.cpMax = GetWindowTextLength(GetDlgItem(hwndDlg, IDC_LOG));
         SendDlgItemMessage(hwndDlg, IDC_LOG, EM_EXSETSEL, 0, (LPARAM) & sel);
-
-        fi.chrg.cpMin = SendDlgItemMessage(hwndDlg, IDC_LOG, EM_GETTEXTLENGTHEX, (WPARAM)&gtxl, 0);
     }
-    else
+    else {
+        SetDlgItemText(hwndDlg, IDC_LOG, _T(""));
+        sel.cpMin = 0;
+        sel.cpMax = GetWindowTextLength(hwndrtf);
+        SendDlgItemMessage(hwndDlg, IDC_LOG, EM_EXSETSEL, 0, (LPARAM) &sel);
         fi.chrg.cpMin = 0;
+        dat->isAutoRTL = 0;
+    }
 
     startAt = fi.chrg.cpMin;
     
     SendMessage(hwndrtf, WM_SETREDRAW, FALSE, 0);
 
-    SendDlgItemMessage(hwndDlg, IDC_LOG, EM_STREAMIN, fAppend ? SFF_SELECTION | SF_RTF : SF_RTF, (LPARAM) & stream);
+	SendDlgItemMessage(hwndDlg, IDC_LOG, EM_STREAMIN, fAppend ? SFF_SELECTION | SF_RTF : SFF_SELECTION |  SF_RTF, (LPARAM) & stream);
+    //SendDlgItemMessage(hwndDlg, IDC_LOG, EM_STREAMIN, fAppend ? SFF_SELECTION | SF_RTF : SF_RTF, (LPARAM) & stream);
     SendDlgItemMessage(hwndDlg, IDC_LOG, EM_EXSETSEL, 0, (LPARAM) & oldSel);
     SendDlgItemMessage(hwndDlg, IDC_LOG, EM_HIDESELECTION, FALSE, 0);
     dat->hDbEventLast = streamData.hDbEventLast;
     
+    if(dat->dwFlags & MWF_LOG_INDIVIDUALBKG)
+        SendMessage(hwndrtf, EM_SETBKGNDCOLOR, 0, LOWORD(dat->iLastEventType) & DBEF_SENT ? dat->theme.outbg : dat->theme.inbg);
 
-    if (fAppend) {
+    if (!(dat->isAutoRTL & 1)) {
         GETTEXTLENGTHEX gtxl = {0};
         PARAFORMAT2 pf2 = {0};
 
@@ -1597,35 +1664,11 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
         sel.cpMax = SendDlgItemMessage(hwndDlg, IDC_LOG, EM_GETTEXTLENGTHEX, (WPARAM)&gtxl, 0);
         sel.cpMin = sel.cpMax - 1;
         SendDlgItemMessage(hwndDlg, IDC_LOG, EM_EXSETSEL, 0, (LPARAM) & sel);
-        if(!(dat->isAutoRTL & 1))
-            SendDlgItemMessage(hwndDlg, IDC_LOG, EM_REPLACESEL, FALSE, (LPARAM)_T(""));
-#if defined(_UNICODE)
-        if(dat->iLastEventType & DBEF_RTL || dat->isAutoRTL & 1) {
-            pf2.dwMask = PFM_RTLPARA;
-            pf2.wEffects = PFE_RTLPARA;
-            pf2.cbSize = sizeof(pf2);
-            sel.cpMin = (wasFirstAppend ? startAt + 1 : startAt);
-            sel.cpMax = -1;
-            SendDlgItemMessage(hwndDlg, IDC_LOG, EM_EXSETSEL, 0, (LPARAM)&sel);
-            //if(dat->iLastEventType & DBEF_RTL)
-            //    SendDlgItemMessage(hwndDlg, IDC_LOG, EM_SETPARAFORMAT, 0, (LPARAM)&pf2);
-            if(dat->dwFlags & MWF_LOG_INDIVIDUALBKG) {
-                COLORREF col = (LOWORD(dat->iLastEventType) & DBEF_SENT ? dat->theme.outbg : dat->theme.inbg);
-                CHARFORMAT2 cf2 = {0};
-
-                cf2.cbSize = sizeof(cf2);
-                cf2.dwMask = CFM_BACKCOLOR;
-                cf2.crBackColor = col;
-                SendDlgItemMessage(hwndDlg, IDC_LOG, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf2);
-            }
-        }
-#endif
-    } else
-        dat->isAutoRTL |= 2;                           // set first append flag
-
-
+        SendDlgItemMessage(hwndDlg, IDC_LOG, EM_REPLACESEL, FALSE, (LPARAM)_T(""));
+        dat->isAutoRTL |= 2;
+    } 
     ReplaceIcons(hwndDlg, dat, startAt, fAppend);
-
+    dat->clr_added = FALSE;
     if(ci.pszVal)
         mir_free(ci.pszVal);
 
@@ -1646,13 +1689,44 @@ static void ReplaceIcons(HWND hwndDlg, struct MessageWindowData *dat, LONG start
     TEXTRANGEA tr;
     COLORREF crDefault;
     struct MsgLogIcon theIcon;
-    char trbuffer[20];
+    char trbuffer[40];
     DWORD dwScale = DBGetContactSettingDword(NULL, SRMSGMOD_T, "iconscale", 0);
     tr.lpstrText = trbuffer;
 
     hwndrtf = GetDlgItem(hwndDlg, IDC_LOG);
     fi.chrg.cpMin = startAt;
 
+    if(dat->clr_added) {
+        unsigned int length;
+        int index;
+        CHARRANGE cr;
+        fi.lpstrText = "##col##";
+        fi.chrg.cpMax = -1;
+        ZeroMemory((void *)&cf2, sizeof(cf2));
+        cf2.cbSize = sizeof(cf2);
+        cf2.dwMask = CFM_COLOR;
+        while (SendMessageA(hwndrtf, EM_FINDTEXTEX, FR_DOWN, (LPARAM)&fi) > -1) {
+            tr.chrg.cpMin = fi.chrgText.cpMin;
+            tr.chrg.cpMax = tr.chrg.cpMin + 18;
+            trbuffer[0] = 0;
+            SendMessageA(hwndrtf, EM_GETTEXTRANGE, 0, (LPARAM)&tr);
+            trbuffer[18] = 0;
+            cr.cpMin = fi.chrgText.cpMin;
+            cr.cpMax = cr.cpMin + 18;
+            SendMessage(hwndrtf, EM_EXSETSEL, 0, (LPARAM)&cr);
+            SendMessageA(hwndrtf, EM_REPLACESEL, FALSE, (LPARAM)"");
+            length = (unsigned int)atol(&trbuffer[7]);
+            index = atol(&trbuffer[14]);
+            if(length > 0 && length < 20000 && index >= RTF_CTABLE_DEFSIZE && index < myGlobals.rtf_ctablesize) {
+                cf2.crTextColor = rtf_ctable[index].clr;
+                cr.cpMin = fi.chrgText.cpMin;
+                cr.cpMax = cr.cpMin + length;
+                SendMessage(hwndrtf, EM_EXSETSEL, 0, (LPARAM)&cr);
+                SendMessage(hwndrtf, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf2);
+            }
+        }
+    }
+    fi.chrg.cpMin = startAt;
     if(dat->dwFlags & MWF_LOG_SHOWICONS) {
         BYTE bIconIndex = 0;
         char bDirection = 0;
@@ -1916,3 +1990,4 @@ char *Utf8_Encode(const WCHAR *str)
 }
 
 #endif
+

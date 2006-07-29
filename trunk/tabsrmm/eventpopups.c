@@ -677,8 +677,9 @@ static BOOL CALLBACK PopupDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
             PopupAct(hWnd, pdata->pluginOptions->maskActR, pdata);
             break;
         case UM_FREEPLUGINDATA:
-            if(!pdata->iActionTaken)
-                PopupAct(hWnd, pdata->pluginOptions->maskActTE, pdata);
+            //if(!pdata->iActionTaken)
+            //    PopupAct(hWnd, pdata->pluginOptions->maskActTE, pdata);
+            PopUpList[NumberPopupData(pdata->hContact)] = NULL;
             PopupCount--;
             if(pdata->eventData)
                 free(pdata->eventData);
@@ -686,7 +687,7 @@ static BOOL CALLBACK PopupDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
             return TRUE;
         case UM_INITPOPUP:
             pdata->hWnd = hWnd;
-            if (pdata->iSeconds != 0)
+            if (pdata->iSeconds > 0)
                 SetTimer(hWnd, TIMER_TO_ACTION, pdata->iSeconds * 1000, NULL);
             break;
         case WM_MOUSEWHEEL:
@@ -1055,8 +1056,9 @@ static BOOL CALLBACK PopupDlgProcW(HWND hWnd, UINT message, WPARAM wParam, LPARA
             PopupActW(hWnd, pdata->pluginOptions->maskActR, pdata);
             break;
         case UM_FREEPLUGINDATA:
-            if(!pdata->iActionTaken)
-                PopupActW(hWnd, pdata->pluginOptions->maskActTE, pdata);
+            //if(!pdata->iActionTaken)
+            //    PopupActW(hWnd, pdata->pluginOptions->maskActTE, pdata);
+            PopUpList[NumberPopupData(pdata->hContact)] = NULL;
             PopupCount--;
             if(pdata->eventData)
                 free(pdata->eventData);
@@ -1064,7 +1066,7 @@ static BOOL CALLBACK PopupDlgProcW(HWND hWnd, UINT message, WPARAM wParam, LPARA
             return TRUE;
         case UM_INITPOPUP:
             pdata->hWnd = hWnd;
-            if (pdata->iSeconds != 0)
+            if (pdata->iSeconds > 0)
                 SetTimer(hWnd, TIMER_TO_ACTION, pdata->iSeconds * 1000, NULL);
             break;
         case WM_MOUSEWHEEL:
@@ -1085,7 +1087,7 @@ static BOOL CALLBACK PopupDlgProcW(HWND hWnd, UINT message, WPARAM wParam, LPARA
         case WM_TIMER:
             if (wParam != TIMER_TO_ACTION)
                 break;
-            if (pdata->iSeconds != -1)
+            if (pdata->iSeconds > 0)
                 KillTimer(hWnd, TIMER_TO_ACTION);
             PopupActW(hWnd, pdata->pluginOptions->maskActTE, pdata);
             break;
@@ -1100,7 +1102,7 @@ static int PopupShowW(NEN_OPTIONS *pluginOptions, HANDLE hContact, HANDLE hEvent
     POPUPDATAW pud;
     PLUGIN_DATAW *pdata;
     DBEVENTINFO dbe;
-    long iSeconds;
+    long iSeconds = 0;
     int iPreviewLimit = nen_options.iLimitPreview, result;
     BOOL isUnicode = 0;
     char *szPreview = NULL;

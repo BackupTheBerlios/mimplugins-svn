@@ -96,6 +96,7 @@ extern      int g_sessionshutdown;
 extern      BOOL CALLBACK DlgProcTemplateHelp(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern      ICONDESC *g_skinIcons;
 extern      int g_nrSkinIcons;
+extern      struct RTFColorTable *rtf_ctable;
 
 HANDLE g_hEvent_MsgWin;
 
@@ -1165,6 +1166,10 @@ int SplitmsgShutdown(void)
 
     UnloadIcons();
     FreeTabConfig();
+
+    if(rtf_ctable)
+        free(rtf_ctable);
+
     UnloadTSButtonModule(0, 0);
     if(myGlobals.m_hbmMsgArea)
         DeleteObject(myGlobals.m_hbmMsgArea);

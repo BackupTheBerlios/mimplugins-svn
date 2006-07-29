@@ -125,6 +125,7 @@ void        ReloadGlobals();
 static void LoadIconTheme();
 static int  LoadFromIconLib();
 static  int SetupIconLibConfig();
+void        RTF_CTableInit();
 
 BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 int         InitOptions(void);

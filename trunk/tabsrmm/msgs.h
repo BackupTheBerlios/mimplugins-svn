@@ -418,12 +418,13 @@ struct MessageWindowData {
 	BYTE    bFlatMsgLog;
     BYTE    isIRC;
     PVOID   si;
-    char    szSep1[152], szMicroLf[128], szExtraLf[50];
-    char    szSep1_RTL[152], szMicroLf_RTL[128];
+    char    szMicroLf[128];
     DWORD   isAutoRTL;
     int     nMax;            // max message size
     int     textLen;         // current text len
     LONG    ipFieldHeight;
+    WNDPROC oldIEViewProc;
+    BOOL    clr_added;
 };
 
 typedef struct _recentinfo {
@@ -578,6 +579,7 @@ typedef struct _globals {
     BOOL        g_DisableScrollbars;
     BOOL        m_visualMessageSizeIndicator;
     BOOL        m_autoSplit;
+    int         rtf_ctablesize;
 } MYGLOBALS;
 
 typedef struct _tag_ICONDESC {
@@ -1052,6 +1054,8 @@ static __inline int mir_snprintfW(wchar_t *buffer, size_t count, const wchar_t* 
 
 #define BUDDYPOUNCE_SERVICENAME "BuddyPounce/AddToPounce"
 #define IDC_TBFIRSTUID 10000            // first uId for custom buttons
+
+#define RTF_CTABLE_DEFSIZE 8
 
 #include "templates.h"
 

@@ -40,13 +40,12 @@ extern      HMODULE g_hInst;
 extern      HANDLE hMessageWindowList;
 extern      StatusItems_t StatusItems[];
 extern      char *xStatusDescr[];
-extern      WNDPROC OldIEViewProc;
 extern      LRESULT CALLBACK IEViewSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 void ShowMultipleControls(HWND hwndDlg, const UINT * controls, int cControls, int state);
 
 
-struct RTFColorTable rtf_ctable[] = {
+static struct RTFColorTable _rtf_ctable[] = {
     _T("red"), RGB(255, 0, 0), 0, ID_FONT_RED,
     _T("blue"), RGB(0, 0, 255), 0, ID_FONT_BLUE,
     _T("green"), RGB(0, 255, 0), 0, ID_FONT_GREEN,
@@ -55,8 +54,11 @@ struct RTFColorTable rtf_ctable[] = {
 	_T("cyan"), RGB(0, 255, 255), 0, ID_FONT_CYAN,
     _T("black"), 0, 0, ID_FONT_BLACK,
     _T("white"), RGB(255, 255, 255), 0, ID_FONT_WHITE,
-    NULL, 0, 0, 0
+    _T(""), 0, 0, 0
 };
+
+struct RTFColorTable *rtf_ctable = 0;
+unsigned int g_ctable_size;
 
 #ifndef SHVIEW_THUMBNAIL
     #define SHVIEW_THUMBNAIL 0x702D
@@ -75,7 +77,6 @@ static int g_status_events[] = {
 };
 
 static int g_status_events_size = 0;
-
 #define MAX_REGS(_A_) ( sizeof(_A_) / sizeof(_A_[0]) )
 
 BOOL IsStatusEvent(int eventType) 
@@ -90,6 +91,40 @@ BOOL IsStatusEvent(int eventType)
 			return TRUE;
     }
 	return FALSE;
+}
+
+void RTF_CTableInit()
+{
+    //int i;
+    rtf_ctable = (struct RTFColorTable *)malloc(sizeof(struct RTFColorTable) * RTF_CTABLE_DEFSIZE);
+    ZeroMemory(rtf_ctable, sizeof(struct RTFColorTable) * RTF_CTABLE_DEFSIZE);
+    CopyMemory(rtf_ctable, _rtf_ctable, sizeof(struct RTFColorTable) * RTF_CTABLE_DEFSIZE);
+    /*
+    for(i = 0; i < RTF_CTABLE_DEFSIZE; i++) {
+        rtf_ctable[i].clr = _rtf_ctable[i].clr;
+        rtf_ctable[i].index = _rtf_ctable[i].index;
+        rtf_ctable[i].menuid = _rtf_ctable[i].menuid;
+        lstrcpyn(rtf_ctable[i].szName, _rtf_ctable[i].szName, 9);
+        rtf_ctable[i].szName[9] = 0;
+    }*/
+    myGlobals.rtf_ctablesize = RTF_CTABLE_DEFSIZE;
+    g_ctable_size = RTF_CTABLE_DEFSIZE;
+}
+
+void RTF_ColorAdd(const TCHAR *tszColname, size_t length)
+{
+    TCHAR tszTemp[40], *stopped;
+    COLORREF clr;
+
+    myGlobals.rtf_ctablesize++;
+    g_ctable_size++;
+    rtf_ctable = (struct RTFColorTable *)realloc(rtf_ctable, sizeof(struct RTFColorTable) * g_ctable_size);
+    mir_sntprintf(rtf_ctable[g_ctable_size - 1].szName, length, tszColname);
+    rtf_ctable[g_ctable_size - 1].menuid = rtf_ctable[g_ctable_size - 1].index = 0;
+
+    clr = _tcstol(tszColname, &stopped, 16);
+    rtf_ctable[g_ctable_size - 1].clr = (RGB(GetBValue(clr), GetGValue(clr), GetRValue(clr)));
+    //_DebugTraceW(L"adding color: %s", rtf_ctable[g_ctable_size - 1].szName);
 }
 
 void RearrangeTab(HWND hwndDlg, struct MessageWindowData *dat, int iMode)
@@ -660,8 +695,8 @@ int MsgWindowMenuHandler(HWND hwndDlg, struct MessageWindowData *dat, int select
                         else if(result == IDYES)
                             dwFlags |= THEME_READ_TEMPLATES;
                         ReadThemeFromINI(szFilename, 0, 0, dwFlags);
-                        CacheMsgLogIcons();
                         CacheLogFonts();
+                        CacheMsgLogIcons();
                         WindowList_Broadcast(hMessageWindowList, DM_OPTIONSAPPLIED, 1, 0);
                         WindowList_Broadcast(hMessageWindowList, DM_FORCEDREMAKELOG, (WPARAM)hwndDlg, (LPARAM)(dat->dwFlags & MWF_LOG_ALL));
                     }
@@ -1155,8 +1190,8 @@ static void CreateColorMap(TCHAR *Text)
 
 	p2 = _tcsstr(p1, _T("\\red"));
 
-    while(rtf_ctable[i].szName != NULL)
-        rtf_ctable[i++].index = 0;
+    for(i = 0; i < RTF_CTABLE_DEFSIZE; i++)
+        rtf_ctable[i].index = 0;
     
     default_color = (COLORREF)DBGetContactSettingDword(NULL, SRMSGMOD_T, "Font16Col", 0);
     
@@ -1165,11 +1200,7 @@ static void CreateColorMap(TCHAR *Text)
 		if( _stscanf(p2, lpszFmt, &szRed, &szGreen, &szBlue) > 0 )
 		{
 			int i;
-			for (i = 0;;i ++) {
-                if(rtf_ctable[i].szName == NULL)
-                    break;
-//                if(rtf_ctable[i].clr == default_color)
-//                    continue;
+			for (i = 0; i < RTF_CTABLE_DEFSIZE; i++) {
 				if(rtf_ctable[i].clr == RGB(_ttoi(szRed), _ttoi(szGreen), _ttoi(szBlue)))
 					rtf_ctable[i].index = iIndex;
 			}
@@ -1189,10 +1220,9 @@ static void CreateColorMap(TCHAR *Text)
 int RTFColorToIndex(int iCol)
 {
     int i = 0;
-    while(rtf_ctable[i].szName != NULL) {
+    for(i = 0; i < RTF_CTABLE_DEFSIZE; i++) {
         if(rtf_ctable[i].index == iCol)
             return i + 1;
-        i++;
     }
     return 0;
 }
@@ -1634,9 +1664,10 @@ void SetMessageLog(HWND hwndDlg, struct MessageWindowData *dat)
             ieWindow.cbSize = sizeof(IEVIEWWINDOW);
             ieWindow.iType = IEW_DESTROY;
             ieWindow.hwnd = dat->hwndIEView;
-            if(OldIEViewProc)
-                SetWindowLong(dat->hwndIEView, GWL_WNDPROC, (LONG)OldIEViewProc);
+            if(dat->oldIEViewProc)
+                SetWindowLong(dat->hwndIEView, GWL_WNDPROC, (LONG)dat->oldIEViewProc);
             CallService(MS_IEVIEW_WINDOW, 0, (LPARAM)&ieWindow);
+            dat->oldIEViewProc = 0;
         }
         ShowWindow(GetDlgItem(hwndDlg, IDC_LOG), SW_SHOW);
         EnableWindow(GetDlgItem(hwndDlg, IDC_LOG), TRUE);

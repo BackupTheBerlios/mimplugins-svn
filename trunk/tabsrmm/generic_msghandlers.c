@@ -32,6 +32,7 @@ $Id$
 
 extern MYGLOBALS myGlobals;
 extern NEN_OPTIONS nen_options;
+extern StatusItems_t StatusItems[];
 
 extern WCHAR    *FilterEventMarkers(WCHAR *wszText);
 extern char     *FilterEventMarkersA(char *szText);
@@ -555,6 +556,9 @@ LRESULT DM_MouseWheelHandler(HWND hwnd, HWND hwndParent, struct MessageWindowDat
 
 LRESULT DM_ThemeChanged(HWND hwnd, struct MessageWindowData *dat)
 {
+    StatusItems_t *item_log = &StatusItems[ID_EXTBKHISTORY];
+    StatusItems_t *item_msg = &StatusItems[ID_EXTBKINPUTAREA];
+
     dat->bFlatMsgLog = DBGetContactSettingByte(NULL, SRMSGMOD_T, "flatlog", 0);
 
     if(!dat->bFlatMsgLog)
@@ -562,5 +566,18 @@ LRESULT DM_ThemeChanged(HWND hwnd, struct MessageWindowData *dat)
     else
         dat->hTheme = 0;
 
-    return 0;
+    if(dat->bType == SESSIONTYPE_IM) {
+        if(dat->bFlatMsgLog || dat->hTheme != 0 || (dat->pContainer->bSkinned && !item_log->IGNORED))
+            SetWindowLong(GetDlgItem(hwnd, IDC_LOG), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwnd, IDC_LOG), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
+        if(dat->bFlatMsgLog || dat->hTheme != 0 || (dat->pContainer->bSkinned && !item_msg->IGNORED))
+            SetWindowLong(GetDlgItem(hwnd, IDC_MESSAGE), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwnd, IDC_MESSAGE), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
+    }
+    else {
+        if(dat->bFlatMsgLog || dat->hTheme != 0 || (dat->pContainer->bSkinned && !item_log->IGNORED)) {
+            SetWindowLong(GetDlgItem(hwnd, IDC_CHAT_LOG), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwnd, IDC_CHAT_LOG), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
+            SetWindowLong(GetDlgItem(hwnd, IDC_LIST), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwnd, IDC_LIST), GWL_EXSTYLE) & ~(WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
+        }
+        if(dat->bFlatMsgLog || dat->hTheme != 0 || (dat->pContainer->bSkinned && !item_msg->IGNORED))
+            SetWindowLong(GetDlgItem(hwnd, IDC_CHAT_MESSAGE), GWL_EXSTYLE, GetWindowLong(GetDlgItem(hwnd, IDC_CHAT_MESSAGE), GWL_EXSTYLE) & ~WS_EX_STATICEDGE);
+    }
 }

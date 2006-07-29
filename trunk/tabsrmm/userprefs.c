@@ -345,3 +345,4 @@ BOOL CALLBACK DlgProcUserPrefs(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
     }
     return FALSE;
 }
+
