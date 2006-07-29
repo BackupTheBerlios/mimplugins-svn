@@ -1334,7 +1334,8 @@ static BOOL CALLBACK DlgProcSkinOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
             CheckDlgButton(hwndDlg, IDC_SKIN_LOADTEMPLATES, loadMode & THEME_READ_TEMPLATES);
 
             if(!DBGetContactSetting(NULL, SRMSGMOD_T, "ContainerSkin", &dbv)) {
-                SetDlgItemTextA(hwndDlg, IDC_SKINFILENAME, dbv.pszVal);
+                if(lstrlenA(dbv.pszVal) > 4)
+                    SetDlgItemTextA(hwndDlg, IDC_SKINFILENAME, dbv.pszVal);
                 DBFreeVariant(&dbv);
             }
             else

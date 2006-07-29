@@ -2005,7 +2005,7 @@ void ReloadContainerSkin(int doLoad, int onStartup)
     IMG_DeleteItems();
 
     if(doLoad) {
-        if(/*pSetLayeredWindowAttributes == 0 || */ MyAlphaBlend == 0)
+        if(pSetLayeredWindowAttributes == 0 || MyAlphaBlend == 0)
             return;
 
         if(!DBGetContactSetting(NULL, SRMSGMOD_T, "ContainerSkin", &dbv)) {

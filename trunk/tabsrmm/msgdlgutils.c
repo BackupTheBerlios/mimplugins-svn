@@ -95,36 +95,28 @@ BOOL IsStatusEvent(int eventType)
 
 void RTF_CTableInit()
 {
-    //int i;
     rtf_ctable = (struct RTFColorTable *)malloc(sizeof(struct RTFColorTable) * RTF_CTABLE_DEFSIZE);
     ZeroMemory(rtf_ctable, sizeof(struct RTFColorTable) * RTF_CTABLE_DEFSIZE);
     CopyMemory(rtf_ctable, _rtf_ctable, sizeof(struct RTFColorTable) * RTF_CTABLE_DEFSIZE);
-    /*
-    for(i = 0; i < RTF_CTABLE_DEFSIZE; i++) {
-        rtf_ctable[i].clr = _rtf_ctable[i].clr;
-        rtf_ctable[i].index = _rtf_ctable[i].index;
-        rtf_ctable[i].menuid = _rtf_ctable[i].menuid;
-        lstrcpyn(rtf_ctable[i].szName, _rtf_ctable[i].szName, 9);
-        rtf_ctable[i].szName[9] = 0;
-    }*/
     myGlobals.rtf_ctablesize = RTF_CTABLE_DEFSIZE;
     g_ctable_size = RTF_CTABLE_DEFSIZE;
 }
 
 void RTF_ColorAdd(const TCHAR *tszColname, size_t length)
 {
-    TCHAR tszTemp[40], *stopped;
+    TCHAR *stopped;
     COLORREF clr;
 
     myGlobals.rtf_ctablesize++;
     g_ctable_size++;
     rtf_ctable = (struct RTFColorTable *)realloc(rtf_ctable, sizeof(struct RTFColorTable) * g_ctable_size);
-    mir_sntprintf(rtf_ctable[g_ctable_size - 1].szName, length, tszColname);
+    clr = _tcstol(tszColname, &stopped, 16);
+    mir_sntprintf(rtf_ctable[g_ctable_size - 1].szName, length + 1, _T("%06x"), clr);
     rtf_ctable[g_ctable_size - 1].menuid = rtf_ctable[g_ctable_size - 1].index = 0;
 
     clr = _tcstol(tszColname, &stopped, 16);
     rtf_ctable[g_ctable_size - 1].clr = (RGB(GetBValue(clr), GetGValue(clr), GetRValue(clr)));
-    //_DebugTraceW(L"adding color: %s", rtf_ctable[g_ctable_size - 1].szName);
+    //_DebugTraceA("adding color: %s (%d)", rtf_ctable[g_ctable_size - 1].szName, length);
 }
 
 void RearrangeTab(HWND hwndDlg, struct MessageWindowData *dat, int iMode)
@@ -2924,3 +2916,65 @@ int MY_pathToAbsolute(const char *pSrc, char *pOut)
     }
 }
 
+void GetMyNick(HWND hwndDlg, struct MessageWindowData *dat)
+{
+    CONTACTINFO ci;
+
+    ZeroMemory(&ci, sizeof(ci));
+    ci.cbSize = sizeof(ci);
+    ci.hContact = NULL;
+    ci.szProto = dat->bIsMeta ? dat->szMetaProto : dat->szProto;
+    ci.dwFlag = CNF_DISPLAY;
+#if defined(_UNICODE)
+    if(myGlobals.bUnicodeBuild)
+        ci.dwFlag |= CNF_UNICODE;
+    if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
+        if(ci.type == CNFT_ASCIIZ) {
+            if(myGlobals.bUnicodeBuild) {
+                _tcsncpy(dat->szMyNickname, ci.pszVal, 110);
+                dat->szMyNickname[109] = 0;
+                if(!_tcscmp(dat->szMyNickname, _T("'(Unknown Contact)'"))) {
+                    ci.dwFlag &= ~CNF_UNICODE;
+                    mir_free(ci.pszVal);
+                    ci.pszVal = NULL;
+                    if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
+                        ZeroMemory(dat->szMyNickname, sizeof(dat->szMyNickname));
+                        MultiByteToWideChar(dat->codePage, 0, (char *)ci.pszVal, lstrlenA((char *)ci.pszVal), dat->szMyNickname, 110);
+                        dat->szMyNickname[109] = 0;
+                    }
+                }
+            }
+            else {
+                ZeroMemory(dat->szMyNickname, sizeof(dat->szMyNickname));
+                MultiByteToWideChar(dat->codePage, 0, (char *)ci.pszVal, lstrlenA((char *)ci.pszVal), dat->szMyNickname, 110);
+                dat->szMyNickname[109] = 0;
+            }
+            if(ci.pszVal) {
+                mir_free(ci.pszVal);
+                ci.pszVal = NULL;
+            }
+        }
+        else if(ci.type == CNFT_DWORD)
+            _ltow(ci.dVal, dat->szMyNickname, 10);
+        else
+            _tcsncpy(dat->szMyNickname, _T("<undef>"), 110);
+    }
+    else
+        _tcsncpy(dat->szMyNickname, _T("<undef>"), 110);
+#else
+    if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
+        if(ci.type == CNFT_ASCIIZ) {
+            _tcsncpy(dat->szMyNickname, ci.pszVal, 110);
+            dat->szMyNickname[109] = 0;
+            mir_free(ci.pszVal);
+            ci.pszVal = NULL;
+        }
+        else if(ci.type == CNFT_DWORD)
+            _ltoa(ci.dVal, dat->szMyNickname, 10);
+        else
+            _tcsncpy(szMyName, "<undef>", 110);
+    }
+    else
+        _tcsncpy(dat->szMyNickname, "<undef>", 110);
+#endif
+}

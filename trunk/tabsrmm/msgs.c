@@ -40,6 +40,7 @@ static char *relnotes[] = {
     "*\tRe-enabled the option to enable/disable IEView globally. This option is now \"smart\" which means that it will detect when IEView has been installed (or uninstalled) and automatically enable itself when IEView is detected the first time.\\par ",
     "*\tMoved fonts for group chat module to a separate db location to avoid interferences with chat.dll. You'll most likely have to reconfigure your group chat fonts. Sorry.\\par ",
     "*\tRedesigned the container options dialog to a modern and section based layout.\\par",
+	"*\tMany improvemtns for bidirectional text support in the message history. Most formatting options are now working, including grid lines.\\par",
     NULL
 };
 
@@ -789,7 +790,7 @@ static int MessageSettingChanged(WPARAM wParam, LPARAM lParam)
 
     HANDLE hwnd = WindowList_Find(hMessageWindowList,(HANDLE)wParam);
 
-    if(hwnd == 0) {      // we are not interested in this event if there is no open message window/tab
+    if(hwnd == 0 && wParam != 0) {      // we are not interested in this event if there is no open message window/tab
         szProto = (char *) CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
         if (lstrcmpA(cws->szModule, "CList") && (szProto == NULL || lstrcmpA(cws->szModule, szProto)))
             return 0;                       // filter out settings we aren't interested in...
@@ -800,7 +801,13 @@ static int MessageSettingChanged(WPARAM wParam, LPARAM lParam)
         return 0;       // for the hContact.
     }
 
+    if(wParam == 0 && strstr("Nick,yahoo_id", cws->szSetting)) {
+        WindowList_Broadcast(hMessageWindowList, DM_OWNNICKCHANGED, 0, (LPARAM)cws->szModule);
+        return 0;
+    }
+
     szProto = (char *) CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
+
     if (lstrcmpA(cws->szModule, "CList") && (szProto == NULL || lstrcmpA(cws->szModule, szProto)))
         return 0;
     

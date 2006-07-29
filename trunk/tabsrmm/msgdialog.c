@@ -1648,7 +1648,8 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 
 				GetContactUIN(hwndDlg, dat);
                 GetClientIcon(dat, hwndDlg);
-                
+                GetMyNick(hwndDlg, dat);
+
                 dat->showUIElements = m_pContainer->dwFlags & CNT_HIDETOOLBAR ? 0 : 1;
                 dat->sendMode |= DBGetContactSettingByte(dat->hContact, SRMSGMOD_T, "forceansi", 0) ? SMODE_FORCEANSI : 0;
                 dat->sendMode |= dat->hContact == 0 ? SMODE_MULTIPLE : 0;
@@ -2486,6 +2487,9 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
         case DM_UPDATESTATUSMSG:
             GetCachedStatusMsg(hwndDlg, dat);
             InvalidateRect(GetDlgItem(hwndDlg, IDC_PANELNICK), NULL, FALSE);
+            return 0;
+        case DM_OWNNICKCHANGED:
+            GetMyNick(hwndDlg, dat);
             return 0;
         case DM_ADDDIVIDER:
             if(!(dat->dwFlags & MWF_DIVIDERSET) && myGlobals.m_UseDividers) {

@@ -367,7 +367,7 @@ struct MessageWindowData {
     HICON   hSmileyIcon;
     char    *szProto;
     char    *szMetaProto;
-    TCHAR   szNickname[130];
+    TCHAR   szNickname[130], szMyNickname[130];
     char    szStatus[50];
     WORD    wStatus, wMetaStatus;
     int     iLastEventType;
@@ -747,7 +747,7 @@ struct ProtocolData {
 #define DM_CONTACTSETTINGCHANGED (WM_USER+52)
 #define DM_UPDATESTATUSMSG   (WM_USER+53)
 #define DM_PROTOACK          (WM_USER+54)
-//#define DM_QUERYSAVEDCLIENTAREA    (WM_USER+55) ** FREE **
+#define DM_OWNNICKCHANGED    (WM_USER+55)
 #define DM_CONFIGURETOOLBAR  (WM_USER+56)
 #define DM_LOADBUTTONBARICONS (WM_USER+57)
 #define DM_ACTIVATETOOLTIP   (WM_USER+58)

@@ -69,10 +69,8 @@ static TCHAR months_translated[12][30];
 
 static time_t today;
 
-DWORD dwExtraLf = 0;
-
 int g_groupBreak = TRUE;
-static TCHAR szMyName[110];
+static TCHAR *szMyName = NULL;
 static TCHAR *szYourName = NULL;
 
 extern TCHAR *FormatRaw(DWORD dwFlags, const TCHAR *msg, int flags, const char *szProto, HANDLE hContact, BOOL *clr_added);
@@ -750,7 +748,6 @@ static char *Template_CreateRTFFromDbEvent(struct MessageWindowData *dat, HANDLE
     {
         int wlen;
         int msglen = lstrlenA((char *) dbei.pBlob) + 1;
-        BOOL clr_added = FALSE;
 
         if(dbei.eventType == EVENTTYPE_MESSAGE && !isSent)
             dat->stats.lastReceivedChars = msglen - 1;
@@ -759,7 +756,7 @@ static char *Template_CreateRTFFromDbEvent(struct MessageWindowData *dat, HANDLE
             wlen = safe_wcslen(msg, (dbei.cbBlob - msglen) / 2);
             if(wlen <= (msglen - 1) && wlen > 0){
                 TrimMessage(msg);
-                formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact, &clr_added);
+                formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact, &dat->clr_added);
                 //AppendUnicodeToBuffer(&buffer, &bufferEnd, &bufferAlloced, formatted, MAKELONG(isSent, dat->isHistory));
             }
             else
@@ -770,20 +767,17 @@ nounicode:
             msg = (TCHAR *) alloca(sizeof(TCHAR) * msglen);
             MultiByteToWideChar(dat->codePage, 0, (char *) dbei.pBlob, -1, msg, msglen);
             TrimMessage(msg);
-            formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact, &clr_added);
+            formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact, &dat->clr_added);
             //AppendUnicodeToBuffer(&buffer, &bufferEnd, &bufferAlloced, formatted, MAKELONG(isSent, dat->isHistory));
         }
-        if(clr_added)
-            dat->clr_added = TRUE;
     }
 #else   // unicode
     {
-        BOOL clr_added = FALSE;
         msg = (char *) dbei.pBlob;
         if(dbei.eventType == EVENTTYPE_MESSAGE && !isSent)
             dat->stats.lastReceivedChars = lstrlenA(msg);
         TrimMessage(msg);
-        formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact, &clr_added);
+        formatted = FormatRaw(dat->dwFlags, msg, dwFormattingParams, szProto, dat->hContact, &dat->clr_added);
     }
     //AppendToBufferWithRTF(MAKELONG(isSent, dat->isHistory), &buffer, &bufferEnd, &bufferAlloced, "%s", formatted);
 #endif      // unicode
@@ -1539,70 +1533,12 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
 
     dat->clr_added = FALSE;
 
-    dwExtraLf = myGlobals.m_ExtraMicroLF;
     if(dat->szMicroLf[0] == 0)
         SetupLogFormatting(dat);
 
-    ZeroMemory(&ci, sizeof(ci));
-	szMyName[0] = 0;
-
-    ci.cbSize = sizeof(ci);
-    ci.hContact = NULL;
-    ci.szProto = dat->bIsMeta ? dat->szMetaProto : dat->szProto;
-    ci.dwFlag = CNF_DISPLAY;
-#if defined(_UNICODE)
-	if(myGlobals.bUnicodeBuild)
-		ci.dwFlag |= CNF_UNICODE;
-	if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
-		if(ci.type == CNFT_ASCIIZ) {
-			if(myGlobals.bUnicodeBuild) {
-				_tcsncpy(szMyName, ci.pszVal, 110);
-				szMyName[109] = 0;
-				if(!_tcscmp(szMyName, _T("'(Unknown Contact)'"))) {
-					ci.dwFlag &= ~CNF_UNICODE;
-					mir_free(ci.pszVal);
-					ci.pszVal = NULL;
-					if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
-						ZeroMemory(szMyName, sizeof(szMyName));
-						MultiByteToWideChar(dat->codePage, 0, (char *)ci.pszVal, lstrlenA((char *)ci.pszVal), szMyName, 110);
-						szMyName[109] = 0;
-					}
-				}
-			}
-			else {
-				ZeroMemory(szMyName, sizeof(szMyName));
-				MultiByteToWideChar(dat->codePage, 0, (char *)ci.pszVal, lstrlenA((char *)ci.pszVal), szMyName, 110);
-				szMyName[109] = 0;
-			}
-			if(ci.pszVal) {
-				mir_free(ci.pszVal);
-				ci.pszVal = NULL;
-			}
-		}
-		else if(ci.type == CNFT_DWORD)
-			_ltow(ci.dVal, szMyName, 10);
-		else
-			_tcsncpy(szMyName, _T("<undef>"), 110);
-	}
-	else
-		_tcsncpy(szMyName, _T("<undef>"), 110);
-#else
-	if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
-		if(ci.type == CNFT_ASCIIZ) {
-			_tcsncpy(szMyName, ci.pszVal, 110);
-			szMyName[109] = 0;
-			mir_free(ci.pszVal);
-			ci.pszVal = NULL;
-		}
-		else if(ci.type == CNFT_DWORD)
-			_ltoa(ci.dVal, szMyName, 10);
-		else
-			_tcsncpy(szMyName, "<undef>", 110);
-	}
-	else
-		_tcsncpy(szMyName, "<undef>", 110);
-#endif
     szYourName = dat->szNickname;
+    szMyName = dat->szMyNickname;
+
     SendDlgItemMessage(hwndDlg, IDC_LOG, EM_HIDESELECTION, TRUE, 0);
     SendDlgItemMessage(hwndDlg, IDC_LOG, EM_EXGETSEL, 0, (LPARAM) & oldSel);
     streamData.hContact = dat->hContact;

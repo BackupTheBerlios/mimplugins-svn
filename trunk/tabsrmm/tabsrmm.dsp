@@ -73,7 +73,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" /D "SRMM_EXPORTS" /D "UNICODE" /D "_MBCS" /Fp".\Release_Unicode/srmm.pch" /YX /GF /c
-# ADD CPP /nologo /GB /MD /W3 /GX /Zi /O1 /Gy /I "../../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" /D "SRMM_EXPORTS" /D "UNICODE" /Fp".\Release_Unicode/srmm.pch" /Yu"commonheaders.h" /GF /c
+# ADD CPP /nologo /MD /W3 /GX /Zi /O1 /I "../../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" /D "SRMM_EXPORTS" /D "UNICODE" /Fp".\Release_Unicode/srmm.pch" /Yu"commonheaders.h" /GF /c
 # SUBTRACT CPP /Fr
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -2331,10 +2331,6 @@ SOURCE=.\res\check.ico
 # End Source File
 # Begin Source File
 
-SOURCE=.\res\checked.ico
-# End Source File
-# Begin Source File
-
 SOURCE=".\res\angeli-icons\Close.ico"
 # End Source File
 # Begin Source File
@@ -2368,10 +2364,6 @@ SOURCE=..\..\src\res\dropuser.cur
 # Begin Source File
 
 SOURCE=.\res\error.ico
-# End Source File
-# Begin Source File
-
-SOURCE=.\res\expand.ico
 # End Source File
 # Begin Source File
 
@@ -2544,10 +2536,6 @@ SOURCE=res\Typing32.ico
 # Begin Source File
 
 SOURCE=res\Typing8.ico
-# End Source File
-# Begin Source File
-
-SOURCE=.\res\unchecked.ico
 # End Source File
 # Begin Source File
 
