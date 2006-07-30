@@ -1648,7 +1648,6 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 
 				GetContactUIN(hwndDlg, dat);
                 GetClientIcon(dat, hwndDlg);
-                GetMyNick(hwndDlg, dat);
 
                 dat->showUIElements = m_pContainer->dwFlags & CNT_HIDETOOLBAR ? 0 : 1;
                 dat->sendMode |= DBGetContactSettingByte(dat->hContact, SRMSGMOD_T, "forceansi", 0) ? SMODE_FORCEANSI : 0;
@@ -1700,6 +1699,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 dat->bTabFlash = FALSE;
                 dat->mayFlashTab = FALSE;
                 //dat->iTabImage = newData->iTabImage;
+                GetMyNick(hwndDlg, dat);
 
                 
                 dat->multiSplitterX = (int) DBGetContactSettingDword(NULL, SRMSGMOD, "multisplit", 150);
@@ -2232,14 +2232,19 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     PARAFORMAT2 pf2;
                     ZeroMemory((void *)&pf2, sizeof(pf2));
                     pf2.cbSize = sizeof(pf2);
-                    pf2.dwMask = PFM_RTLPARA;
+
                     pf2.wEffects = dat->dwFlags & MWF_LOG_RTL ? PFE_RTLPARA : 0;
+                    pf2.dwMask = PFM_RTLPARA;
                     SendDlgItemMessage(hwndDlg, IDC_MESSAGE, EM_SETPARAFORMAT, 0, (LPARAM)&pf2);
-                    pf2.dwMask = PFM_RTLPARA | PFM_OFFSET | PFM_OFFSETINDENT | PFM_RIGHTINDENT;
+
                     pf2.wEffects = PFE_RTLPARA;
+                    pf2.dwMask |= PFM_OFFSET;
+                    if(dat->dwFlags & MWF_INITMODE) {
+                        pf2.dwMask |= (PFM_RIGHTINDENT | PFM_OFFSETINDENT);
+                        pf2.dxStartIndent = 30;
+                        pf2.dxRightIndent = 30;
+                    }
                     pf2.dxOffset = dat->theme.left_indent + 30;
-                    pf2.dxStartIndent = 30;
-                    pf2.dxRightIndent = 30;
                     SetDlgItemText(hwndDlg, IDC_LOG, _T(""));
                     SendDlgItemMessage(hwndDlg, IDC_LOG, EM_SETPARAFORMAT, 0, (LPARAM)&pf2);
                 }
@@ -2479,6 +2484,7 @@ BOOL CALLBACK DlgProcMessage(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                 // care about MetaContacts and update the statusbar icon with the currently "most online" contact...
                 if(dat->bIsMeta) {
                     PostMessage(hwndDlg, DM_UPDATEMETACONTACTINFO, 0, 0);
+                    PostMessage(hwndDlg, DM_OWNNICKCHANGED, 0, 0);
                     if(m_pContainer->dwFlags & CNT_UINSTATUSBAR)
                         DM_UpdateLastMessage(hwndDlg, dat);
                 }

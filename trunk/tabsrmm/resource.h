@@ -493,6 +493,7 @@
 #define IDC_TITLEBOX                    1402
 #define IDC_DESC                        1404
 #define IDC_LABEL_PRIVATETHEME          1405
+#define IDC_SKIN_WIN9XWARN              1406
 #define IDC_WHITERECT                   2000
 #define IDC_TABSRMM                     2001
 #define IDC_COPYRIGHT                   2002
@@ -691,7 +692,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        11
 #define _APS_NEXT_COMMAND_VALUE         40249
-#define _APS_NEXT_CONTROL_VALUE         1406
+#define _APS_NEXT_CONTROL_VALUE         1407
 #define _APS_NEXT_SYMED_VALUE           40282
 #endif
 #endif

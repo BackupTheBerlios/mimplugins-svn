@@ -1462,7 +1462,6 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
     struct LogStreamData streamData = { 0 };
     struct MessageWindowData *dat = (struct MessageWindowData *) GetWindowLong(hwndDlg, GWL_USERDATA);
     CHARRANGE oldSel, sel;
-    CONTACTINFO ci;
     HWND hwndrtf;
     LONG startAt = 0;
     FINDTEXTEXA fi;
@@ -1583,9 +1582,13 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
     SendDlgItemMessage(hwndDlg, IDC_LOG, EM_HIDESELECTION, FALSE, 0);
     dat->hDbEventLast = streamData.hDbEventLast;
     
-    if(dat->dwFlags & MWF_LOG_INDIVIDUALBKG)
-        SendMessage(hwndrtf, EM_SETBKGNDCOLOR, 0, LOWORD(dat->iLastEventType) & DBEF_SENT ? dat->theme.outbg : dat->theme.inbg);
-
+    if(dat->isAutoRTL & 1) {
+        if(dat->dwFlags & MWF_LOG_INDIVIDUALBKG)
+            SendMessage(hwndrtf, EM_SETBKGNDCOLOR, 0, LOWORD(dat->iLastEventType) & DBEF_SENT ? dat->theme.outbg : dat->theme.inbg);
+        else
+            SendMessage(hwndrtf, EM_SETBKGNDCOLOR, 0, dat->theme.bg);
+    }
+    
     if (!(dat->isAutoRTL & 1)) {
         GETTEXTLENGTHEX gtxl = {0};
         PARAFORMAT2 pf2 = {0};
@@ -1605,8 +1608,6 @@ void StreamInEvents(HWND hwndDlg, HANDLE hDbEventFirst, int count, int fAppend, 
     } 
     ReplaceIcons(hwndDlg, dat, startAt, fAppend);
     dat->clr_added = FALSE;
-    if(ci.pszVal)
-        mir_free(ci.pszVal);
 
     SendMessage(hwndDlg, DM_FORCESCROLL, (WPARAM)&pt, (LPARAM)psi);
     SendDlgItemMessage(hwndDlg, IDC_LOG, WM_SETREDRAW, TRUE, 0);

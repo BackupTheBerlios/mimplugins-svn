@@ -1849,6 +1849,8 @@ void GetLocaleID(struct MessageWindowData *dat, char *szKLName)
 {
     char szLI[20], *stopped = NULL;
     USHORT langID;
+    WORD   wCtype2[3];
+    PARAFORMAT2 pf2 = {0};
 
     langID = (USHORT)strtol(szKLName, &stopped, 16);
     dat->lcid = MAKELCID(langID, 0);
@@ -1856,6 +1858,26 @@ void GetLocaleID(struct MessageWindowData *dat, char *szKLName)
     dat->lcID[0] = toupper(szLI[0]);
     dat->lcID[1] = toupper(szLI[1]);
     dat->lcID[2] = 0;
+    GetStringTypeA(dat->lcid, CT_CTYPE2, "הצü", 3, wCtype2);
+    pf2.cbSize = sizeof(pf2);
+    pf2.dwMask = PFM_RTLPARA;
+    SendDlgItemMessage(dat->hwnd, IDC_MESSAGE, EM_GETPARAFORMAT, 0, (LPARAM)&pf2);
+    if(wCtype2[0] == C2_RIGHTTOLEFT || wCtype2[1] == C2_RIGHTTOLEFT || wCtype2[2] == C2_RIGHTTOLEFT) {
+        ZeroMemory(&pf2, sizeof(pf2));
+        pf2.dwMask = PFM_RTLPARA;
+        pf2.cbSize = sizeof(pf2);
+        pf2.wEffects = PFE_RTLPARA;
+        //SendDlgItemMessage(dat->hwnd, IDC_MESSAGE, EM_SETPARAFORMAT, 0, (LPARAM)&pf2);
+    }
+    else {
+        if(pf2.wEffects & PFE_RTLPARA) {
+            ZeroMemory(&pf2, sizeof(pf2));
+            pf2.dwMask = PFM_RTLPARA;
+            pf2.cbSize = sizeof(pf2);
+            pf2.wEffects = 0;
+            //SendDlgItemMessage(dat->hwnd, IDC_MESSAGE, EM_SETPARAFORMAT, 0, (LPARAM)&pf2);
+        }
+    }
 }
 
 // Returns true if the unicode buffer only contains 7-bit characters.
@@ -2930,25 +2952,8 @@ void GetMyNick(HWND hwndDlg, struct MessageWindowData *dat)
         ci.dwFlag |= CNF_UNICODE;
     if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
         if(ci.type == CNFT_ASCIIZ) {
-            if(myGlobals.bUnicodeBuild) {
-                _tcsncpy(dat->szMyNickname, ci.pszVal, 110);
-                dat->szMyNickname[109] = 0;
-                if(!_tcscmp(dat->szMyNickname, _T("'(Unknown Contact)'"))) {
-                    ci.dwFlag &= ~CNF_UNICODE;
-                    mir_free(ci.pszVal);
-                    ci.pszVal = NULL;
-                    if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
-                        ZeroMemory(dat->szMyNickname, sizeof(dat->szMyNickname));
-                        MultiByteToWideChar(dat->codePage, 0, (char *)ci.pszVal, lstrlenA((char *)ci.pszVal), dat->szMyNickname, 110);
-                        dat->szMyNickname[109] = 0;
-                    }
-                }
-            }
-            else {
-                ZeroMemory(dat->szMyNickname, sizeof(dat->szMyNickname));
-                MultiByteToWideChar(dat->codePage, 0, (char *)ci.pszVal, lstrlenA((char *)ci.pszVal), dat->szMyNickname, 110);
-                dat->szMyNickname[109] = 0;
-            }
+            _tcsncpy(dat->szMyNickname, ci.pszVal, 110);
+            dat->szMyNickname[109] = 0;
             if(ci.pszVal) {
                 mir_free(ci.pszVal);
                 ci.pszVal = NULL;
@@ -2960,7 +2965,7 @@ void GetMyNick(HWND hwndDlg, struct MessageWindowData *dat)
             _tcsncpy(dat->szMyNickname, _T("<undef>"), 110);
     }
     else
-        _tcsncpy(dat->szMyNickname, _T("<undef>"), 110);
+        _tcsncpy(dat->szMyNickname, _T(""), 110);
 #else
     if(!CallService(MS_CONTACT_GETCONTACTINFO, 0, (LPARAM)&ci)) {
         if(ci.type == CNFT_ASCIIZ) {
@@ -2972,9 +2977,11 @@ void GetMyNick(HWND hwndDlg, struct MessageWindowData *dat)
         else if(ci.type == CNFT_DWORD)
             _ltoa(ci.dVal, dat->szMyNickname, 10);
         else
-            _tcsncpy(szMyName, "<undef>", 110);
+            _tcsncpy(dat->szMyNickname, "<undef>", 110);
     }
     else
         _tcsncpy(dat->szMyNickname, "<undef>", 110);
 #endif
+    if(ci.pszVal)
+        mir_free(ci.pszVal);
 }

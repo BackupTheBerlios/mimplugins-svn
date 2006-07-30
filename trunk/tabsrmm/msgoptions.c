@@ -1323,9 +1323,12 @@ static BOOL CALLBACK DlgProcSkinOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
         case WM_INITDIALOG:
         {
             DBVARIANT dbv;
+			static UINT _ctrls[] = { IDC_SKINFILENAME, IDC_SELECTSKINFILE, IDC_USESKIN, IDC_UNLOAD, IDC_RELOADSKIN,
+				IDC_SKIN_LOADFONTS, IDC_SKIN_LOADTEMPLATES, 0};
+
             BYTE loadMode = DBGetContactSettingByte(NULL, SRMSGMOD_T, "skin_loadmode", 0);
             TranslateDialogDefault(hwndDlg);
-
+	
             //SendDlgItemMessage(hwndDlg, IDC_CORNERSPIN, UDM_SETRANGE, 0, MAKELONG(10, 0));
             //SendDlgItemMessage(hwndDlg, IDC_CORNERSPIN, UDM_SETPOS, 0, g_CluiData.cornerRadius);
 
@@ -1340,6 +1343,16 @@ static BOOL CALLBACK DlgProcSkinOpts(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
             }
             else
                 SetDlgItemText(hwndDlg, IDC_SKINFILENAME, _T(""));
+
+            if(myGlobals.m_WinVerMajor < 5) {
+				int i = 0;
+
+                EnableWindow(hwndDlg, FALSE);
+				ShowWindow(GetDlgItem(hwndDlg, IDC_SKIN_WIN9XWARN), SW_SHOW);
+				while(_ctrls[i] != 0) 
+					ShowWindow(GetDlgItem(hwndDlg, _ctrls[i++]), SW_HIDE);
+			}
+
             return TRUE;
         }
         case WM_COMMAND:
@@ -1439,11 +1452,14 @@ static BOOL CALLBACK SkinOptionsDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
          RECT rcClient;
          int oPage = DBGetContactSettingByte(NULL, SRMSGMOD_T, "skin_opage", 0);
          SKINDESCRIPTION sd;
+		 HWND hwndFirstPage;
 
          GetClientRect(hwnd, &rcClient);
          iInit = TRUE;
          tci.mask = TCIF_PARAM|TCIF_TEXT;
          tci.lParam = (LPARAM)CreateDialog(g_hInst,MAKEINTRESOURCE(IDD_OPT_SKIN), hwnd, DlgProcSkinOpts);
+		 hwndFirstPage = (HWND)tci.lParam;
+
          tci.pszText = TranslateT("Load and apply");
 			TabCtrl_InsertItem(GetDlgItem(hwnd, IDC_OPTIONSTAB), 0, &tci);
          MoveWindow((HWND)tci.lParam,5,25,rcClient.right-9,rcClient.bottom-60,1);
@@ -1461,41 +1477,47 @@ static BOOL CALLBACK SkinOptionsDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
          if(MyEnableThemeDialogTexture)
              MyEnableThemeDialogTexture((HWND)tci.lParam, ETDT_ENABLETAB);
 
-         if(ServiceExists(MS_CLNSE_INVOKE)) {
+         if(myGlobals.m_WinVerMajor >= 5) {
+             if(ServiceExists(MS_CLNSE_INVOKE)) {
 
-             ZeroMemory(&sd, sizeof(sd));
-             sd.cbSize = sizeof(sd);
-             sd.StatusItems = &StatusItems[0];
-             sd.hWndParent = hwnd;
-             sd.hWndTab = GetDlgItem(hwnd, IDC_OPTIONSTAB);
-             sd.pfnSaveCompleteStruct = 0;
-             sd.lastItem = ID_EXTBK_LAST;
-             sd.firstItem = 0;
-             sd.pfnClcOptionsChanged = 0;
-             sd.hwndCLUI = 0;
-             hwndSkinEdit = (HWND)CallService(MS_CLNSE_INVOKE, 0, (LPARAM)&sd);
-         }
+                 ZeroMemory(&sd, sizeof(sd));
+                 sd.cbSize = sizeof(sd);
+                 sd.StatusItems = &StatusItems[0];
+                 sd.hWndParent = hwnd;
+                 sd.hWndTab = GetDlgItem(hwnd, IDC_OPTIONSTAB);
+                 sd.pfnSaveCompleteStruct = 0;
+                 sd.lastItem = ID_EXTBK_LAST;
+                 sd.firstItem = 0;
+                 sd.pfnClcOptionsChanged = 0;
+                 sd.hwndCLUI = 0;
+                 hwndSkinEdit = (HWND)CallService(MS_CLNSE_INVOKE, 0, (LPARAM)&sd);
+             }
 
-         if(hwndSkinEdit) {
-             ShowWindow(hwndSkinEdit, SW_HIDE);
-             ShowWindow(sd.hwndImageEdit, SW_HIDE);
-             TabCtrl_SetCurSel(GetDlgItem(hwnd, IDC_OPTIONSTAB), oPage);
-             if(MyEnableThemeDialogTexture) {
-                 MyEnableThemeDialogTexture(hwndSkinEdit, ETDT_ENABLETAB);
-                 MyEnableThemeDialogTexture(sd.hwndImageEdit, ETDT_ENABLETAB);
+             if(hwndSkinEdit) {
+                 ShowWindow(hwndSkinEdit, SW_HIDE);
+                 ShowWindow(sd.hwndImageEdit, SW_HIDE);
+                 TabCtrl_SetCurSel(GetDlgItem(hwnd, IDC_OPTIONSTAB), oPage);
+                 if(MyEnableThemeDialogTexture) {
+                     MyEnableThemeDialogTexture(hwndSkinEdit, ETDT_ENABLETAB);
+                     MyEnableThemeDialogTexture(sd.hwndImageEdit, ETDT_ENABLETAB);
+                 }
+             }
+             {
+                 TCITEM item = {0};
+                 int iTabs = TabCtrl_GetItemCount(GetDlgItem(hwnd, IDC_OPTIONSTAB));
+
+                 if(oPage >= iTabs)
+                     oPage = iTabs - 1;
+
+                 item.mask = TCIF_PARAM;
+                 TabCtrl_GetItem(GetDlgItem(hwnd, IDC_OPTIONSTAB), oPage, &item);
+                 ShowWindow((HWND)item.lParam, SW_SHOW);
+                 TabCtrl_SetCurSel(GetDlgItem(hwnd, IDC_OPTIONSTAB), oPage);
              }
          }
-         {
-             TCITEM item = {0};
-             int iTabs = TabCtrl_GetItemCount(GetDlgItem(hwnd, IDC_OPTIONSTAB));
-
-             if(oPage >= iTabs)
-                 oPage = iTabs - 1;
-
-             item.mask = TCIF_PARAM;
-             TabCtrl_GetItem(GetDlgItem(hwnd, IDC_OPTIONSTAB), oPage, &item);
-             ShowWindow((HWND)item.lParam, SW_SHOW);
-             TabCtrl_SetCurSel(GetDlgItem(hwnd, IDC_OPTIONSTAB), oPage);
+         else {
+             TabCtrl_SetCurSel(GetDlgItem(hwnd, IDC_OPTIONSTAB), 0);
+			 ShowWindow(hwndFirstPage, SW_SHOW);
          }
          //EnableWindow(GetDlgItem(hwnd, IDC_EXPORT), TabCtrl_GetCurSel(GetDlgItem(hwnd, IDC_OPTIONSTAB)) != 0);
          //EnableWindow(GetDlgItem(hwnd, IDC_IMPORT), TabCtrl_GetCurSel(GetDlgItem(hwnd, IDC_OPTIONSTAB)) != 0);
@@ -1685,10 +1707,18 @@ void ReloadGlobals()
      {
          char str[512];
          CallService(MS_SYSTEM_GETVERSIONTEXT, (WPARAM)500, (LPARAM)(char*)str);
-         if(strstr(str, "Unicode"))
+         if(strstr(str, "Unicode")) {
              myGlobals.bUnicodeBuild = TRUE;
-         else
+#if !defined(_UNICODE)
+             MessageBoxA(0, "You are running a ANSI version of tabSRMM under a unicode Miranda core. This is an unsupported configuration and can cause various problems. Please consider using the UNICODE build", "Warning", MB_OK);
+#endif
+         }
+         else {
+#if defined(_UNICODE)
+             MessageBoxA(0, "You are running a UNICODE version of tabSRMM under a non-unicode Miranda core. This is an unsupported configuration and can cause various problems. Please consider using the ANSI build", "Warning", MB_OK);
+#endif
              myGlobals.bUnicodeBuild = FALSE;
+         }
      }
      myGlobals.ncm.cbSize = sizeof(NONCLIENTMETRICS);
      SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &myGlobals.ncm, 0);

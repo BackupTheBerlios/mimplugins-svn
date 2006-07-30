@@ -400,7 +400,7 @@ STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "Tab label colors",IDC_STATIC,6,10,144,80
-    CONTROL         "Use windows colors",IDC_LABELUSEWINCOLORS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,19,136,10
+    CONTROL         "Use windows colors",IDC_LABELUSEWINCOLORS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,19,133,10
     LTEXT           "Normal",IDC_STATIC,14,31,77,13
     LTEXT           "Selected",IDC_STATIC,14,47,77,13
     LTEXT           "Unread",IDC_STATIC,14,60,77,13
@@ -509,6 +509,7 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,89,281,11
     CONTROL         "Load templates provided by skin (use with care, will overwrite your templates)",IDC_SKIN_LOADTEMPLATES,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,100,281,11
+    CTEXT           "Skinning is only available when running under Windows 2000 or later",IDC_SKIN_WIN9XWARN,17,39,270,20,NOT WS_VISIBLE
 END
 
 
