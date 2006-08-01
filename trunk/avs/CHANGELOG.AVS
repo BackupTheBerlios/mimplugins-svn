@@ -1,6 +1,12 @@
 
         Version history:
 
+0.0.2.4 - 2006/07/30
+
+      * bugfix (missing protocol avatars after migrating to new relpath)
+      * added proper version info resource record (showing ansi/unicode)      
+      * added project files for Visual C++ 6 (source code release only)
+
 0.0.2.3 - 2006/07/11
 
       * should now work better with metacontacts. Subcontact avatar changes are

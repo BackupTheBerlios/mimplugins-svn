@@ -250,7 +250,8 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
                     switch (((LPNMHDR) lParam)->code) {
                         case LVN_ITEMCHANGED:
                             SendMessage(GetParent(hwndDlg), PSM_CHANGED, 0, 0);
-                            break;
+                            //break;
+                            //LVN_
                         case NM_CLICK:
                         {
                             int iItem = ListView_GetSelectionMark(hwndList);

@@ -68,7 +68,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 4), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 5), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -1362,7 +1362,9 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     int i, j;
     DBVARIANT dbv = {0};
 
-	// Folders plugin support
+    InitPolls();
+
+    // Folders plugin support
 	if (ServiceExists(MS_FOLDERS_REGISTER_PATH))
 	{
 		hMyAvatarsFolder = (HANDLE) FoldersRegisterCustomPath(Translate("Avatars"), Translate("My Avatars"), 
@@ -1424,12 +1426,14 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 #if defined(_UNICODE)
         char *szVersionUrl = "http://miranda.or.at/files/avs/versionW.txt";
         char *szUpdateUrl = "http://miranda.or.at/files/avs/avsW.zip";
+        char *szFLVersionUrl = "http://addons.miranda-im.org/details.php?action=viewfile&id=2990";
+        char *szFLUpdateurl = "http://addons.miranda-im.org/feed.php?dlfile=2990";
 #else
 		char *szVersionUrl = "http://miranda.or.at/files/avs/version.txt";
 		char *szUpdateUrl = "http://miranda.or.at/files/avs/avs.zip";
+        char *szFLVersionUrl = "http://addons.miranda-im.org/details.php?action=viewfile&id=2361";
+        char *szFLUpdateurl = "http://addons.miranda-im.org/feed.php?dlfile=2361";
 #endif
-		char *szFLVersionUrl = "http://www.miranda-im.org/download/details.php?action=viewfile&id=2361";
-		char *szFLUpdateurl = "http://www.miranda-im.org/download/feed.php?dlfile=2361";
 		char *szPrefix = "avs ";
 
 		upd.cbSize = sizeof(upd);
@@ -1438,7 +1442,11 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 		upd.cpbVersion = strlen((char *)upd.pbVersion);
 		upd.szVersionURL = szFLVersionUrl;
 		upd.szUpdateURL = szFLUpdateurl;
-		upd.pbVersionPrefix = (BYTE *)"<span class=\"fileNameHeader\">Updater ";
+#if defined(_UNICODE)
+        upd.pbVersionPrefix = (BYTE *)"<span class=\"fileNameHeader\">Avatar service (UNICODE) ";
+#else
+		upd.pbVersionPrefix = (BYTE *)"<span class=\"fileNameHeader\">Avatar service ";
+#endif
 
 		upd.szBetaUpdateURL = szUpdateUrl;
 		upd.szBetaVersionURL = szVersionUrl;
@@ -1785,7 +1793,6 @@ static int LoadAvatarModule()
 {
 	init_mir_malloc();
 	init_list_interface();
-	InitPolls();
 
 	InitializeCriticalSection(&cachecs);
 
