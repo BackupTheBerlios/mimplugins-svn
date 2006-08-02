@@ -68,7 +68,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 5), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 6), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -677,6 +677,44 @@ struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL add)
 	return foundNode;
 }
 
+#define POLYNOMIAL (0x488781ED) /* This is the CRC Poly */
+#define TOPBIT (1 << (WIDTH - 1)) /* MSB */
+#define WIDTH 32
+
+int GetFileHash(char* filename)
+{
+   HANDLE hFile = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+   if(hFile == INVALID_HANDLE_VALUE)
+	   return 0;
+
+	int remainder = 0;
+	char data[1024];
+	DWORD dwRead;
+	do
+	{
+		// Read file chunk
+		dwRead = 0;
+		ReadFile(hFile, data, 1024, &dwRead, NULL);
+
+		/* loop through each byte of data */
+		for (int byte = 0; byte < (int) dwRead; ++byte) {
+			/* store the next byte into the remainder */
+			remainder ^= (data[byte] << (WIDTH - 8));
+			/* calculate for all 8 bits in the byte */
+			for (int bit = 8; bit > 0; --bit) {
+				/* check if MSB of remainder is a one */
+				if (remainder & TOPBIT)
+					remainder = (remainder << 1) ^ POLYNOMIAL;
+				else
+					remainder = (remainder << 1);
+			}
+		}
+	} while(dwRead == 1024);
+
+	CloseHandle(hFile);
+
+	return remainder;
+}
 
 static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 {
@@ -709,6 +747,7 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 			cacn.hContact = pai->hContact;
 			cacn.format = pai->format;
 			strcpy(cacn.filename, pai->filename);
+			mir_snprintf(cacn.hash, sizeof(cacn.hash), "AVS-HASH-%x", GetFileHash(cacn.filename));
 			NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)cacn.hContact, (LPARAM)&cacn);
         }
         else if(ack->result == ACKRESULT_FAILED) 

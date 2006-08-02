@@ -59,7 +59,6 @@ BEGIN
     CONTROL         "Make avatars grayscale",IDC_MAKE_GRAYSCALE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,196,241,13
     CONTROL         "When setting avatars, always make it square",IDC_SET_MAKE_SQUARE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,208,241,11
-    CONTROL         "Enable history",IDC_HISTORY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,232,241,10
 END
 
 IDD_OPENSUBCLASS DIALOGEX 0, 0, 246, 18

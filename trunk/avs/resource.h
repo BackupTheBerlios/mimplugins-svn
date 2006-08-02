@@ -41,8 +41,6 @@
 #define IDC_BKG_COLOR_DIFFERENCE_L      1019
 #define IDC_MAKE_TRANSP_PROPORTIONAL    1020
 #define IDC_MAKE_MY_AVATARS_TRANSP      1021
-#define IDC_CHECK2                      1022
-#define IDC_HISTORY                     1022
 
 // Next default values for new objects
 // 

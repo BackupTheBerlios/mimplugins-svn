@@ -180,11 +180,6 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 			EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_TRANSP_PROPORTIONAL), enabled);
 			EnableWindow(GetDlgItem(hwndDlg, IDC_MAKE_MY_AVATARS_TRANSP), enabled);
 
-			if (ServiceExists("AvatarHistory/IsEnabled"))
-	            CheckDlgButton(hwndDlg, IDC_HISTORY, DBGetContactSettingByte(NULL, "AvatarHistory", "Enable", 1) ? TRUE : FALSE);
-			else
-				ShowWindow(GetDlgItem(hwndDlg, IDC_HISTORY), FALSE);
-
             dialoginit = FALSE;
             return TRUE;
         }
@@ -324,9 +319,6 @@ BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPara
 							DBWriteContactSettingWord(NULL, AVS_MODULE, "TranspBkgNumPoints", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_NUM_POINTS_SPIN, UDM_GETPOS, 0, 0));
 							DBWriteContactSettingWord(NULL, AVS_MODULE, "TranspBkgColorDiff", (WORD) SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_GETPOS, 0, 0));
 							DBWriteContactSettingByte(NULL, AVS_MODULE, "SetAllwaysMakeSquare", IsDlgButtonChecked(hwndDlg, IDC_SET_MAKE_SQUARE) ? 1 : 0);
-
-							if (ServiceExists("AvatarHistory/IsEnabled"))
-								DBWriteContactSettingByte(NULL, "AvatarHistory", "Enable", IsDlgButtonChecked(hwndDlg, IDC_HISTORY) ? 1 : 0);
                         }
                     }
             }

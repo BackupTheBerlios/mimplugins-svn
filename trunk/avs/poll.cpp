@@ -282,6 +282,7 @@ static void RequestThread(void *vParam)
 
 							if (DBGetContactSettingByte(NULL, AVS_MODULE, "RemoveAvatarWhenContactRemoves", 1)) 
 							{
+								// Delete settings
 								DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
 								if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
 									DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
