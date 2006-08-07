@@ -42,7 +42,7 @@ ThreadQueue requestQueue = {0};
 static void RequestThread(void *vParam);
 
 extern char *g_szMetaName;
-extern int ChangeAvatar(HANDLE hContact);
+extern int ChangeAvatar(HANDLE hContact, BOOL fLoad, BOOL fNotifyHist = FALSE, int pa_format = 0);
 extern int DeleteAvatar(HANDLE hContact);
 extern void MakePathRelative(HANDLE hContact, char *path);
 
@@ -261,7 +261,7 @@ static void RequestThread(void *vParam)
 						pai_s.hContact = hContact;
 						pai_s.format = PA_FORMAT_UNKNOWN;
 						pai_s.filename[0] = '\0';
-
+                        //_DebugTrace(hContact, "schedule request");
 						int result = CallProtoService(szProto, PS_GETAVATARINFO, GAIF_FORCE, (LPARAM)&pai_s);
 						if (result == GAIR_SUCCESS) 
 						{
@@ -274,7 +274,7 @@ static void RequestThread(void *vParam)
 							DBWriteContactSettingString(hContact, "ContactPhoto", "File", pai_s.filename);
 							MakePathRelative(hContact, pai_s.filename);
 							// Fix cache
-							ChangeAvatar(hContact);
+							ChangeAvatar(hContact, TRUE, FALSE, pai_s.format);
 						}
 						else if (result == GAIR_NOAVATAR) 
 						{
@@ -289,10 +289,9 @@ static void RequestThread(void *vParam)
 								DBDeleteContactSetting(hContact, "ContactPhoto", "File");
 
 								// Fix cache
-								ChangeAvatar(hContact);
+								ChangeAvatar(hContact, FALSE, TRUE, 0);
 							}
-
-							NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)hContact, NULL);
+							//NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)hContact, NULL);
 						}
 						else if (result == GAIR_WAITFOR) 
 						{

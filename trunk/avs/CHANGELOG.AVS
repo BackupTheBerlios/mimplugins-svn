@@ -1,6 +1,19 @@
 
         Version history:
 
+0.0.2.6 - 2006/08/03
+
+	  * added file hashing (pescuma)
+	  * rewrote the picture loading code. It is now running in a background thread
+	    at low priority. The loader thread is the only instance which actually writes 
+	    to the cache entries. It does this with a small delay and notifies the hook
+	    subscribers when a picture has been loaded. While it is not fully loaded,
+	    the fallback protocol picture may be used. This makes connecting or 
+	    loading the clist with lots of avatars significantly faster at the cost
+	    of delayed picture appearance.
+	    It may also help with the sporadic lockups since the part of the code which
+	    runs in the callers thread context is now much simpler.
+
 0.0.2.5 - 2006/07/30
 
 	  * fixed updater support

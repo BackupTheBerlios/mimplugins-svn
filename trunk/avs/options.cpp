@@ -38,8 +38,8 @@ extern HICON g_hIcon;
 extern int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szProto);
 extern int ProtectAvatar(WPARAM wParam, LPARAM lParam);
 extern int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode);
-extern int DeleteAvatar(HANDLE hContact);
-extern int ChangeAvatar(HANDLE hContact);
+extern int ChangeAvatar(HANDLE hContact, BOOL fLoad, BOOL fNotifyHist = FALSE, int pa_format = 0);
+extern void DeleteAvatarFromCache(HANDLE, BOOL);
 extern HBITMAP LoadPNG(struct avatarCacheEntry *ace, char *szFilename);
 extern HANDLE GetContactThatHaveTheAvatar(HANDLE hContact, int locked = -1);
 
@@ -435,10 +435,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 				}
                 case IDOK:
                 {
-					BOOL locked = IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR);
-					SaveTransparentData(hwndDlg, hContact, locked);
-                    ProtectAvatar((WPARAM)hContact, locked ? 1 : 0);
-
+                    BOOL locked = IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR);
 					int hidden = IsDlgButtonChecked(hwndDlg, IDC_HIDEAVATAR) ? 1 : 0;
 					SetAvatarAttribute(hContact, AVS_HIDEONCLIST, hidden);
                     if(hidden != DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0))
@@ -452,6 +449,12 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                 case IDCANCEL:
                     DestroyWindow(hwndDlg);
                     break;
+                case IDC_PROTECTAVATAR:
+                {
+                    BOOL locked = IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR);
+                    ProtectAvatar((WPARAM)hContact, locked ? 1 : 0);
+                    break;
+                }
                 case IDC_CHANGE:
 				{
                     SetAvatar((WPARAM)hContact, 0);
@@ -494,7 +497,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
                     DBDeleteContactSetting(hContact, szProto, "AvatarHash");
                     DBDeleteContactSetting(hContact, szProto, "AvatarSaved");
-					DeleteAvatar(hContact);
+					DeleteAvatarFromCache(hContact, FALSE);
 
 					QueueAdd(requestQueue, hContact);
 
@@ -515,7 +518,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                     DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
-					DeleteAvatar(hContact);
+					DeleteAvatarFromCache(hContact, FALSE);
                     SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
                     InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
                     break;
@@ -590,7 +593,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
         case DM_REALODAVATAR:
         {
 			SaveTransparentData(hwndDlg, hContact, IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR));
-            ChangeAvatar(hContact);
+            ChangeAvatar(hContact, TRUE);
 			InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
             break;
         }
@@ -717,7 +720,7 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
                     DBDeleteContactSetting(hContact, szProto, "AvatarHash");
                     DBDeleteContactSetting(hContact, szProto, "AvatarSaved");
-					DeleteAvatar(hContact);
+					DeleteAvatarFromCache(hContact, FALSE);
 
 					QueueAdd(requestQueue, hContact);
                     break;
@@ -737,7 +740,7 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                     DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
-					DeleteAvatar(hContact);
+                    DeleteAvatarFromCache(hContact, FALSE);
                     SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
                     InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
                     break;
@@ -788,7 +791,7 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
         case DM_REALODAVATAR:
         {
 			SaveTransparentData(hwndDlg, hContact, IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR));
-            ChangeAvatar(hContact);
+            ChangeAvatar(hContact, TRUE);
 			InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
             break;
         }

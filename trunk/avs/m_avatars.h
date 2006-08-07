@@ -84,8 +84,11 @@ typedef struct avatarCacheEntry AVATARCACHEENTRY;
 struct CacheNode {
 	struct CacheNode *pNextNode;
 	struct avatarCacheEntry ace;
-	CRITICAL_SECTION cs;
+	//CRITICAL_SECTION cs;
 	BOOL loaded;
+    int   mustLoad;
+    DWORD dwFlags;
+    int   pa_format;
 };
 
 #define AVDRQ_FALLBACKPROTO 1              // use the protocol picture as fallback (currently not used)
@@ -282,5 +285,13 @@ typedef struct {
 // lParam = NULL
 #define MS_AV_RESIZEBITMAP "SV_Avatars/ResizeBitmap"
 
+/*
+ * flags for internal use ONLY
+ */
+
+#define MC_ISMASTERCONTACT 0x01
+#define MC_ISSUBCONTACT    0x02
+#define AVH_MUSTNOTIFY     0x04             // node->dwFlags (loader thread must notify avatar history about change/delete event)
+#define AVS_DELETENODEFOREVER 0x08
 
 #endif

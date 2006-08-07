@@ -35,6 +35,8 @@ BOOL            g_AvatarHistoryAvail = FALSE;
 static long     hwndSetMyAvatar = 0;
 static HANDLE   hMyAvatarsFolder = 0;
 static HANDLE   hProtocolAvatarsFolder = 0;
+static HANDLE   hLoaderEvent = 0;
+static HANDLE  hLoaderThread = 0;
 
 int g_protocount = 0;
 
@@ -46,7 +48,7 @@ static struct   CacheNode *g_Cache = 0;
 struct          protoPicCacheEntry *g_ProtoPictures = 0;
 static struct   protoPicCacheEntry *g_MyAvatars = 0;
 
-static  CRITICAL_SECTION cachecs;
+static  CRITICAL_SECTION cachecs, alloccs;
 char    *g_szMetaName = NULL;
 
 
@@ -56,10 +58,11 @@ char    *g_szMetaName = NULL;
 
 // Stores the id of the dialog
 
-int			ChangeAvatar(HANDLE hContact);
+int         ChangeAvatar(HANDLE hContact, BOOL fLoad, BOOL fNotifyHist = FALSE, int pa_format = 0);
 static int	ShutdownProc(WPARAM wParam, LPARAM lParam);
 static int  OkToExitProc(WPARAM wParam, LPARAM lParam);
 static int  OnDetailsInit(WPARAM wParam, LPARAM lParam);
+static int  GetFileHash(char* filename);
 
 PLUGININFO pluginInfo = {
     sizeof(PLUGININFO), 
@@ -84,7 +87,6 @@ extern BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam
 
 
 static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp);
-int DeleteAvatar(HANDLE hContact);
 
 
 // Functions to set avatar for a protocol
@@ -250,15 +252,35 @@ int AVS_pathToAbsolute(const char *pSrc, char *pOut)
     }
 }
 
-static void NotifyMetaAware(HANDLE hContact, AVATARCACHEENTRY *ace)
+static void NotifyMetaAware(HANDLE hContact, struct CacheNode *node = NULL, AVATARCACHEENTRY *ace = NULL)
 {
+    if(ace == NULL)
+        ace = &node->ace;
+
     NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)ace);
-    if(g_MetaAvail && DBGetContactSettingByte(NULL, g_szMetaName, "Enabled", 0)) {
-        if(DBGetContactSettingByte(hContact, g_szMetaName, "IsSubcontact", 0)) {
-            HANDLE hMasterContact = (HANDLE)DBGetContactSettingDword(hContact, g_szMetaName, "Handle", 0);
-            if(hMasterContact)
+   
+    if(g_MetaAvail && (node->dwFlags & MC_ISSUBCONTACT) && DBGetContactSettingByte(NULL, g_szMetaName, "Enabled", 0)) {
+        HANDLE hMasterContact = (HANDLE)DBGetContactSettingDword(hContact, g_szMetaName, "Handle", 0);
+
+        if(hMasterContact && (HANDLE)CallService(MS_MC_GETMOSTONLINECONTACT, (WPARAM)hMasterContact, 0) == hContact &&
+           !DBGetContactSettingByte(hMasterContact, "ContactPhoto", "Locked", 0))
                 NotifyEventHooks(hEventChanged, (WPARAM)hMasterContact, (LPARAM)ace);
+    }
+    if(node->dwFlags & AVH_MUSTNOTIFY) {
+        // Fire the event for avatar history
+        node->dwFlags &= ~AVH_MUSTNOTIFY;
+        if(node->loaded) {
+            CONTACTAVATARCHANGEDNOTIFICATION cacn = {0};
+            cacn.cbSize = sizeof(CONTACTAVATARCHANGEDNOTIFICATION);
+            cacn.hContact = hContact;
+            cacn.format = node->pa_format;
+            strncpy(cacn.filename, node->ace.szFilename, MAX_PATH);
+            cacn.filename[MAX_PATH - 1] = 0;
+            mir_snprintf(cacn.hash, sizeof(cacn.hash), "AVS-HASH-%x", GetFileHash(cacn.filename));
+            NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)cacn.hContact, (LPARAM)&cacn);
         }
+        else
+            NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)hContact, NULL);
     }
 }
 
@@ -279,10 +301,10 @@ static struct CacheNode *AllocCacheBlock()
 
 	for(int i = 0; i < CACHE_BLOCKSIZE - 1; i++)
 	{
-		InitializeCriticalSection(&allocedBlock[i].cs);
+		//InitializeCriticalSection(&allocedBlock[i].cs);
 		allocedBlock[i].pNextNode = &allocedBlock[i + 1];				// pre-link the alloced block
 	}
-	InitializeCriticalSection(&allocedBlock[CACHE_BLOCKSIZE - 1].cs);
+	//InitializeCriticalSection(&allocedBlock[CACHE_BLOCKSIZE - 1].cs);
 
 	if(g_Cache == NULL)													// first time only...
 		g_Cache = allocedBlock;
@@ -356,7 +378,7 @@ int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode)
 
             cacheNode->ace.dwFlags = mode ? cacheNode->ace.dwFlags | attrib : cacheNode->ace.dwFlags & ~attrib;
             if(cacheNode->ace.dwFlags != dwFlags)
-                NotifyMetaAware(hContact, &cacheNode->ace);
+                NotifyMetaAware(hContact, cacheNode);
                 //NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&cacheNode->ace);
             break;
         }
@@ -645,8 +667,16 @@ struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL add)
 	{
 		if(cacheNode->ace.hContact == hContact)
 		{
-			LeaveCriticalSection(&cachecs);
-			return cacheNode;
+            cacheNode->ace.t_lastAccess = time(NULL);
+            if(cacheNode->loaded) {
+                LeaveCriticalSection(&cachecs);
+                return cacheNode;
+            }
+            else {
+                LeaveCriticalSection(&cachecs);
+                return add ? NULL : cacheNode;                      // return 0 only to the service (client) as it calls with add = TRUE
+                                                                    // internal functions get the cache node when it exists.
+            }
 		}
 
 		if(foundNode == NULL && cacheNode->ace.hContact == 0)
@@ -660,19 +690,26 @@ struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL add)
 	if (add)
 	{
 		if(foundNode == NULL) {					// no free entry found, create a new and append it to the list
+            EnterCriticalSection(&alloccs);     // protect memory block allocation
 			struct CacheNode *newNode = AllocCacheBlock();
 			AddToList(newNode);
 			foundNode = newNode;
+            LeaveCriticalSection(&alloccs);
 		}
 
 		foundNode->ace.hContact = hContact;
+        if(g_MetaAvail)
+            foundNode->dwFlags |= (DBGetContactSettingByte(hContact, g_szMetaName, "IsSubcontact", 0) ? MC_ISSUBCONTACT : 0);
 		foundNode->loaded = FALSE;
+        foundNode->mustLoad = 1;                                 // pic loader will watch this and load images
+        LeaveCriticalSection(&cachecs);
+        SetEvent(hLoaderEvent);                                     // wake him up
+        return NULL;
 	}
 	else
 	{
 		foundNode = NULL;
 	}
-
     LeaveCriticalSection(&cachecs);
 	return foundNode;
 }
@@ -681,7 +718,7 @@ struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL add)
 #define TOPBIT (1 << (WIDTH - 1)) /* MSB */
 #define WIDTH 32
 
-int GetFileHash(char* filename)
+static int GetFileHash(char* filename)
 {
    HANDLE hFile = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
    if(hFile == INVALID_HANDLE_VALUE)
@@ -739,16 +776,7 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 			DBWriteContactSettingString(pai->hContact, "ContactPhoto", "File", pai->filename);
             MakePathRelative(pai->hContact, pai->filename);
 			// Fix cache
-			ChangeAvatar(pai->hContact);
-
-			// Fire the event
-			CONTACTAVATARCHANGEDNOTIFICATION cacn = {0};
-			cacn.cbSize = sizeof(CONTACTAVATARCHANGEDNOTIFICATION);
-			cacn.hContact = pai->hContact;
-			cacn.format = pai->format;
-			strcpy(cacn.filename, pai->filename);
-			mir_snprintf(cacn.hash, sizeof(cacn.hash), "AVS-HASH-%x", GetFileHash(cacn.filename));
-			NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)cacn.hContact, (LPARAM)&cacn);
+			ChangeAvatar(pai->hContact, TRUE, TRUE, pai->format);
         }
         else if(ack->result == ACKRESULT_FAILED) 
 		{
@@ -759,19 +787,16 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 				if (!DBGetContactSettingByte(ack->hContact, "ContactPhoto", "Locked", 0))
 					DBDeleteContactSetting(ack->hContact, "ContactPhoto", "Backup");
 				DBDeleteContactSetting(ack->hContact, "ContactPhoto", "File");
-
 				// Fix cache
-				ChangeAvatar(ack->hContact);
+				ChangeAvatar(ack->hContact, FALSE, FALSE, 0);
 			}
         }
 		else if(ack->result == ACKRESULT_STATUS) 
 		{
 			DBWriteContactSettingByte(ack->hContact, "ContactPhoto", "NeedUpdate", 1);
-
 			QueueAdd(requestQueue, ack->hContact);
 		}
     }
-	
     return 0;
 }
 
@@ -787,9 +812,9 @@ int ProtectAvatar(WPARAM wParam, LPARAM lParam)
         if(!was_locked)
             MakePathRelative(hContact);
         DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", lParam ? 1 : 0);
-        if(wParam == 0)
+        if(lParam == 0)
             MakePathRelative(hContact);
-        ChangeAvatar(hContact);
+        ChangeAvatar(hContact, TRUE);
     }
     return 0;
 }
@@ -865,7 +890,7 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
 {
     HANDLE hContact = 0;
     BYTE is_locked = 0;
-    char FileName[MAX_PATH];
+    char FileName[MAX_PATH], szBackupName[MAX_PATH];
     char *szFinalName = NULL;
     HANDLE hFile = 0;
     BYTE locking_request;
@@ -923,14 +948,14 @@ int SetAvatar(WPARAM wParam, LPARAM lParam)
 
     CloseHandle(hFile);
 
-	DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
-	if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
-		DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
-	//DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
+    AVS_pathToRelative(szFinalName, szBackupName);
+    DBWriteContactSettingString(hContact, "ContactPhoto", "Backup", szBackupName);
+
+    DBWriteContactSettingByte(hContact, "ContactPhoto", "Locked", is_locked);
     DBWriteContactSettingString(hContact, "ContactPhoto", "File", szFinalName);
     MakePathRelative(hContact, szFinalName);
 	// Fix cache
-	ChangeAvatar(hContact);
+	ChangeAvatar(hContact, TRUE);
 
     return 0;
 }
@@ -1269,10 +1294,10 @@ HANDLE GetContactThatHaveTheAvatar(HANDLE hContact, int locked = -1) {
 				hContact = (HANDLE)CallService(MS_MC_GETMOSTONLINECONTACT, (WPARAM)hContact, 0);
 		}
     }
-
 	return hContact;
 }
 
+/*
 static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
 {
     if(wParam == 0 || g_shutDown)
@@ -1317,43 +1342,81 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
 		LeaveCriticalSection(&node->cs);
         return (int) &node->ace;
     }
+} */
+
+static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
+{
+    if(wParam == 0 || g_shutDown)
+		return 0;
+
+	HANDLE hContact = (HANDLE) wParam;
+	hContact = GetContactThatHaveTheAvatar(hContact);
+
+	// Get the node
+    struct CacheNode *node = FindAvatarInCache(hContact, TRUE);
+	if (node == NULL)
+        return (int) GetProtoDefaultAvatar(hContact);
+    else
+        return (int) &node->ace;
+
+    /*
+    int requestAvatar = 0;
+
+	EnterCriticalSection(&node->cs);
+
+	// Load if needed
+	if (!node->loaded) 
+	{
+		// See if this contact need an update (do this only the first time the contact is loaded
+		if (DBGetContactSettingByte(hContact, "ContactPhoto", "NeedUpdate", 0))
+			QueueAdd(requestQueue, hContact);
+
+		requestAvatar = CreateAvatarInCache(hContact, &node->ace, NULL);
+		node->loaded = TRUE;
+	}
+
+	node->ace.t_lastAccess = time(NULL);
+
+	if (node->ace.hbmPic == NULL) 
+	{
+		LeaveCriticalSection(&node->cs);
+
+		if (requestAvatar == -2)
+			QueueAdd(requestQueue, hContact);
+
+        return (int) GetProtoDefaultAvatar(hContact);
+    }
+    else 
+	{
+		LeaveCriticalSection(&node->cs);
+        return (int) &node->ace;
+    }
+    */
 }
+
 
 // Just delete an avatar from cache
 // An cache entry is never deleted. What is deleted is the image handle inside it
 // This is done this way to keep track of which avatars avs have to keep track
-static void DeleteAvatarFromCache(HANDLE hContact, BOOL forever)
+void DeleteAvatarFromCache(HANDLE hContact, BOOL forever)
 {
+    hContact = GetContactThatHaveTheAvatar(hContact);
+
 	struct CacheNode *node = FindAvatarInCache(hContact, FALSE);
-	if (node == NULL)
-		return;
-
-	EnterCriticalSection(&node->cs);
-	if (node->ace.hbmPic != NULL)
-	{
-		DeleteObject(node->ace.hbmPic);
-		ZeroMemory(&node->ace, sizeof(struct avatarCacheEntry));
-		if (!forever)
-			node->ace.hContact = hContact;								// Mark that this contact is beeing handled
+	if (node == NULL) {
+        struct CacheNode temp_node = {0};
+        if(g_MetaAvail)
+            temp_node.dwFlags |= (DBGetContactSettingByte(hContact, g_szMetaName, "IsSubcontact", 0) ? MC_ISSUBCONTACT : 0);
+        NotifyMetaAware(hContact, &temp_node, (AVATARCACHEENTRY *)GetProtoDefaultAvatar(hContact));
+        return;
     }
-	LeaveCriticalSection(&node->cs);
+    node->mustLoad = -1;                        // mark for deletion
+    SetEvent(hLoaderEvent);
+    if(forever)
+        node->dwFlags |= AVS_DELETENODEFOREVER;
 }
 
-// Delete an avatar from cache, replace it by proto avatar and notify hooks
-int DeleteAvatar(HANDLE hContact)
-{
-	if(g_shutDown)
-		return 0;
-
-	DeleteAvatarFromCache(hContact, FALSE);
-
-    NotifyMetaAware(hContact, (AVATARCACHEENTRY *) GetProtoDefaultAvatar(hContact));
-    //NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)GetProtoDefaultAvatar(hContact));
-
-    return 0;
-}
-
-int ChangeAvatar(HANDLE hContact)
+int ChangeAvatar(HANDLE hContact, BOOL fLoad, BOOL fNotifyHist, int pa_format)
 {
     if(g_shutDown)
 		return 0;
@@ -1363,45 +1426,131 @@ int ChangeAvatar(HANDLE hContact)
 	// Get the node
     struct CacheNode *node = FindAvatarInCache(hContact, FALSE);
 	if (node == NULL)
-		return NULL;
+		return 0;
 
-	EnterCriticalSection(&node->cs);
+    if(fNotifyHist)
+        node->dwFlags |= AVH_MUSTNOTIFY;
 
-	// Free if needed
-	if (node->ace.hbmPic != NULL) 
-	{
-		DeleteObject(node->ace.hbmPic);
-		ZeroMemory(&node->ace, sizeof(struct avatarCacheEntry));
-		node->ace.hContact = hContact;
-    }
-
-	// Load
-	CreateAvatarInCache(hContact, &node->ace, NULL);
-	node->loaded = TRUE;
-
-	if (node->ace.hbmPic == NULL) 
-	{
-		LeaveCriticalSection(&node->cs);
-
-        NotifyMetaAware(hContact, (AVATARCACHEENTRY *)GetProtoDefaultAvatar(hContact));
-		//NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)GetProtoDefaultAvatar(hContact));
-    }
-    else 
-	{
-		LeaveCriticalSection(&node->cs);
-        NotifyMetaAware(hContact, &node->ace);
-		//NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&node->ace);
-    }
-
-	return 0;
+    node->mustLoad = fLoad ? 1 : -1;
+    node->pa_format = pa_format;
+    SetEvent(hLoaderEvent);
+    return 0;
 }
+
+static DWORD WINAPI PicLoader(LPVOID param)
+{
+    DWORD dwDelay = DBGetContactSettingDword(NULL, AVS_MODULE, "picloader_sleeptime", 80);
+
+	if(dwDelay < 30)
+		dwDelay = 30;
+	else if(dwDelay > 100)
+		dwDelay = 100;
+
+    while(!g_shutDown) {
+        struct CacheNode *node = g_Cache;
+
+        while(node) {
+            if(node->mustLoad > 0 && node->ace.hContact) {
+                node->mustLoad = 0;
+                AVATARCACHEENTRY ace_temp;
+				struct CacheNode *pTempNode;
+
+                if (DBGetContactSettingByte(node->ace.hContact, "ContactPhoto", "NeedUpdate", 0))
+                    QueueAdd(requestQueue, node->ace.hContact);
+
+                CopyMemory(&ace_temp, &node->ace, sizeof(AVATARCACHEENTRY));
+
+                int result = CreateAvatarInCache(node->ace.hContact, &ace_temp, NULL);
+
+                if (result == -2)
+                    QueueAdd(requestQueue, node->ace.hContact);
+
+                EnterCriticalSection(&cachecs);
+				if(result == 1 && ace_temp.hbmPic != 0) {
+                    HBITMAP oldPic = node->ace.hbmPic;
+
+                    CopyMemory(&node->ace, &ace_temp, sizeof(AVATARCACHEENTRY));
+                    node->loaded = TRUE;
+					pTempNode = node->pNextNode;
+					LeaveCriticalSection(&cachecs);
+                    if(oldPic)
+                        DeleteObject(oldPic);
+                    NotifyMetaAware(node->ace.hContact, node);
+					node = pTempNode;
+                }
+				else {
+					node = node->pNextNode;
+					LeaveCriticalSection(&cachecs);
+				}
+                if(g_shutDown)
+                    break;
+                Sleep(dwDelay);
+            }
+            else if(node->mustLoad < 0 && node->ace.hContact) {         // delete this picture
+                HANDLE hContact = node->ace.hContact;
+                node->mustLoad = 0;
+                node->loaded = 0;
+                if(node->ace.hbmPic)
+                    DeleteObject(node->ace.hbmPic);
+                ZeroMemory(&node->ace, sizeof(AVATARCACHEENTRY));
+                if(node->dwFlags & AVS_DELETENODEFOREVER)
+                    node->dwFlags &= ~AVS_DELETENODEFOREVER;
+                else {                                                  // restore node contact and notify events
+                    node->ace.hContact = hContact;
+                    NotifyMetaAware(hContact, node, (AVATARCACHEENTRY *)GetProtoDefaultAvatar(hContact));
+                }
+                EnterCriticalSection(&alloccs);
+                node = node->pNextNode;
+                LeaveCriticalSection(&alloccs);
+            }
+			else {
+				EnterCriticalSection(&alloccs);
+				node = node->pNextNode;
+				LeaveCriticalSection(&alloccs);
+			}
+        }
+        WaitForSingleObject(hLoaderEvent, INFINITE);
+        ResetEvent(hLoaderEvent);
+    }
+    return 0;
+}
+
+static int MetaChanged(WPARAM wParam, LPARAM lParam)
+{
+    if(wParam == 0 || g_shutDown)
+        return 0;
+
+    AVATARCACHEENTRY *ace;
+
+    HANDLE hContact = (HANDLE) wParam;
+    HANDLE hSubContact = GetContactThatHaveTheAvatar(hContact);
+
+    // Get the node
+    struct CacheNode *node = FindAvatarInCache(hSubContact, TRUE);
+    if (node == NULL) {
+        ace = (AVATARCACHEENTRY *)GetProtoDefaultAvatar(hSubContact);
+        QueueAdd(requestQueue, hSubContact);
+    }
+    else
+        ace = &node->ace;
+
+    NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)ace);
+    return 0;
+}
+
+static DWORD dwPicLoaderID;
 
 static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 {
     int i, j;
     DBVARIANT dbv = {0};
+    TCHAR szEventName[100];
 
     InitPolls();
+    mir_sntprintf(szEventName, 100, _T("avs_loaderthread_%d"), GetCurrentThreadId());
+    hLoaderEvent = CreateEvent(NULL, TRUE, FALSE, szEventName);
+    hLoaderThread = CreateThread(NULL, 0, PicLoader, 0, 0, &dwPicLoaderID);
+    SetThreadPriority(hLoaderThread, THREAD_PRIORITY_IDLE);
 
     // Folders plugin support
 	if (ServiceExists(MS_FOLDERS_REGISTER_PATH))
@@ -1574,6 +1723,10 @@ static int ContactSettingChanged(WPARAM wParam, LPARAM lParam)
 		}
 		return 0;
 	}
+    else if(g_MetaAvail && !strcmp(cws->szModule, g_szMetaName)) {
+        if(lstrlenA(cws->szSetting) > 6 && !strncmp(cws->szSetting, "Status", 5))
+           MetaChanged(wParam, 0);
+    }
 	return 0;
 }
 
@@ -1637,10 +1790,14 @@ static int OkToExitProc(WPARAM wParam, LPARAM lParam)
 	hEventContactAvatarChanged = 0;
     hMyAvatarChanged = 0;
 	UnhookEvent(hEventDeleted);
+    LeaveCriticalSection(&cachecs);
 
+    SetEvent(hLoaderEvent);
+    WaitForSingleObject(hLoaderThread, 1000);
+    CloseHandle(hLoaderThread);
+    CloseHandle(hLoaderEvent);
 	FreePolls();
 
-	LeaveCriticalSection(&cachecs);
 
     return 0;
 }
@@ -1648,6 +1805,7 @@ static int OkToExitProc(WPARAM wParam, LPARAM lParam)
 static int ShutdownProc(WPARAM wParam, LPARAM lParam)
 {
     DeleteCriticalSection(&cachecs);
+    DeleteCriticalSection(&alloccs);
 	return 0;
 }
 
@@ -1834,6 +1992,7 @@ static int LoadAvatarModule()
 	init_list_interface();
 
 	InitializeCriticalSection(&cachecs);
+    InitializeCriticalSection(&alloccs);
 
 	HookEvent(ME_OPT_INITIALISE, OptInit);
     HookEvent(ME_SYSTEM_MODULESLOADED, ModulesLoaded);
@@ -1897,7 +2056,7 @@ extern "C" int __declspec(dllexport) Unload(void)
 	struct CacheNode *pNode = g_Cache;
 
 	while(pNode) {
-		DeleteCriticalSection(&pNode->cs);
+		//DeleteCriticalSection(&pNode->cs);
         if(pNode->ace.hbmPic != 0)
             DeleteObject(pNode->ace.hbmPic);
 		pNode = pNode->pNextNode;
