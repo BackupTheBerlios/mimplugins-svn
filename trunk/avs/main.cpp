@@ -71,7 +71,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 6), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 7), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -1356,6 +1356,12 @@ int ChangeAvatar(HANDLE hContact, BOOL fLoad, BOOL fNotifyHist, int pa_format)
     return 0;
 }
 
+/*
+ * this thread scans the cache and handles nodes which have mustLoad set to > 0 (must be loaded/reloaded) or
+ * nodes where mustLoad is < 0 (must be deleted).
+ * its waken up by the event and tries to lock the cache only when absolutely necessary.
+ */
+
 static DWORD WINAPI PicLoader(LPVOID param)
 {
     DWORD dwDelay = DBGetContactSettingDword(NULL, AVS_MODULE, "picloader_sleeptime", 80);
@@ -1390,19 +1396,11 @@ static DWORD WINAPI PicLoader(LPVOID param)
                     EnterCriticalSection(&cachecs);
                     CopyMemory(&node->ace, &ace_temp, sizeof(AVATARCACHEENTRY));
                     node->loaded = TRUE;
-					//pTempNode = node->pNextNode;
 					LeaveCriticalSection(&cachecs);
                     if(oldPic)
                         DeleteObject(oldPic);
                     NotifyMetaAware(node->ace.hContact, node);
-					//node = pTempNode;
                 }
-                /*
-				else {
-					node = node->pNextNode;
-					LeaveCriticalSection(&cachecs);
-				}*/
-
                 if(g_shutDown)
                     break;
                 Sleep(dwDelay);
@@ -1421,6 +1419,8 @@ static DWORD WINAPI PicLoader(LPVOID param)
                     NotifyMetaAware(hContact, node, (AVATARCACHEENTRY *)GetProtoDefaultAvatar(hContact));
                 }
             }
+            // protect this by changes from the cache block allocator as it can cause inconsistencies while working
+            // on allocating a new block.
             EnterCriticalSection(&alloccs);
             node = node->pNextNode;
             LeaveCriticalSection(&alloccs);
