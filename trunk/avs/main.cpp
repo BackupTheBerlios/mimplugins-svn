@@ -1297,53 +1297,6 @@ HANDLE GetContactThatHaveTheAvatar(HANDLE hContact, int locked = -1) {
 	return hContact;
 }
 
-/*
-static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
-{
-    if(wParam == 0 || g_shutDown)
-		return 0;
-
-	HANDLE hContact = (HANDLE) wParam;
-	hContact = GetContactThatHaveTheAvatar(hContact);
-
-	// Get the node
-    struct CacheNode *node = FindAvatarInCache(hContact, TRUE);
-	if (node == NULL)
-		return NULL; // This should not happen
-
-	int requestAvatar = 0;
-
-	EnterCriticalSection(&node->cs);
-
-	// Load if needed
-	if (!node->loaded) 
-	{
-		// See if this contact need an update (do this only the first time the contact is loaded
-		if (DBGetContactSettingByte(hContact, "ContactPhoto", "NeedUpdate", 0))
-			QueueAdd(requestQueue, hContact);
-
-		requestAvatar = CreateAvatarInCache(hContact, &node->ace, NULL);
-		node->loaded = TRUE;
-	}
-
-	node->ace.t_lastAccess = time(NULL);
-
-	if (node->ace.hbmPic == NULL) 
-	{
-		LeaveCriticalSection(&node->cs);
-
-		if (requestAvatar == -2)
-			QueueAdd(requestQueue, hContact);
-
-        return (int) GetProtoDefaultAvatar(hContact);
-    }
-    else 
-	{
-		LeaveCriticalSection(&node->cs);
-        return (int) &node->ace;
-    }
-} */
-
 static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
 {
     if(wParam == 0 || g_shutDown)
@@ -1358,40 +1311,6 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
         return (int) GetProtoDefaultAvatar(hContact);
     else
         return (int) &node->ace;
-
-    /*
-    int requestAvatar = 0;
-
-	EnterCriticalSection(&node->cs);
-
-	// Load if needed
-	if (!node->loaded) 
-	{
-		// See if this contact need an update (do this only the first time the contact is loaded
-		if (DBGetContactSettingByte(hContact, "ContactPhoto", "NeedUpdate", 0))
-			QueueAdd(requestQueue, hContact);
-
-		requestAvatar = CreateAvatarInCache(hContact, &node->ace, NULL);
-		node->loaded = TRUE;
-	}
-
-	node->ace.t_lastAccess = time(NULL);
-
-	if (node->ace.hbmPic == NULL) 
-	{
-		LeaveCriticalSection(&node->cs);
-
-		if (requestAvatar == -2)
-			QueueAdd(requestQueue, hContact);
-
-        return (int) GetProtoDefaultAvatar(hContact);
-    }
-    else 
-	{
-		LeaveCriticalSection(&node->cs);
-        return (int) &node->ace;
-    }
-    */
 }
 
 
@@ -1453,35 +1372,37 @@ static DWORD WINAPI PicLoader(LPVOID param)
             if(node->mustLoad > 0 && node->ace.hContact) {
                 node->mustLoad = 0;
                 AVATARCACHEENTRY ace_temp;
-				struct CacheNode *pTempNode;
 
                 if (DBGetContactSettingByte(node->ace.hContact, "ContactPhoto", "NeedUpdate", 0))
                     QueueAdd(requestQueue, node->ace.hContact);
 
                 CopyMemory(&ace_temp, &node->ace, sizeof(AVATARCACHEENTRY));
+                ace_temp.hbmPic = 0;
 
                 int result = CreateAvatarInCache(node->ace.hContact, &ace_temp, NULL);
 
                 if (result == -2)
                     QueueAdd(requestQueue, node->ace.hContact);
 
-                EnterCriticalSection(&cachecs);
 				if(result == 1 && ace_temp.hbmPic != 0) {
                     HBITMAP oldPic = node->ace.hbmPic;
 
+                    EnterCriticalSection(&cachecs);
                     CopyMemory(&node->ace, &ace_temp, sizeof(AVATARCACHEENTRY));
                     node->loaded = TRUE;
-					pTempNode = node->pNextNode;
+					//pTempNode = node->pNextNode;
 					LeaveCriticalSection(&cachecs);
                     if(oldPic)
                         DeleteObject(oldPic);
                     NotifyMetaAware(node->ace.hContact, node);
-					node = pTempNode;
+					//node = pTempNode;
                 }
+                /*
 				else {
 					node = node->pNextNode;
 					LeaveCriticalSection(&cachecs);
-				}
+				}*/
+
                 if(g_shutDown)
                     break;
                 Sleep(dwDelay);
@@ -1499,15 +1420,10 @@ static DWORD WINAPI PicLoader(LPVOID param)
                     node->ace.hContact = hContact;
                     NotifyMetaAware(hContact, node, (AVATARCACHEENTRY *)GetProtoDefaultAvatar(hContact));
                 }
-                EnterCriticalSection(&alloccs);
-                node = node->pNextNode;
-                LeaveCriticalSection(&alloccs);
             }
-			else {
-				EnterCriticalSection(&alloccs);
-				node = node->pNextNode;
-				LeaveCriticalSection(&alloccs);
-			}
+            EnterCriticalSection(&alloccs);
+            node = node->pNextNode;
+            LeaveCriticalSection(&alloccs);
         }
         WaitForSingleObject(hLoaderEvent, INFINITE);
         ResetEvent(hLoaderEvent);
