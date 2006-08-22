@@ -252,9 +252,9 @@ int AVS_pathToAbsolute(const char *pSrc, char *pOut)
     }
 }
 
-static void NotifyMetaAware(HANDLE hContact, struct CacheNode *node = NULL, AVATARCACHEENTRY *ace = NULL)
+static void NotifyMetaAware(HANDLE hContact, struct CacheNode *node = NULL, AVATARCACHEENTRY *ace = (AVATARCACHEENTRY *)0xffffffff)
 {
-    if(ace == NULL)
+    if(ace == (AVATARCACHEENTRY *)0xffffffff)
         ace = &node->ace;
 
     NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)ace);
@@ -379,7 +379,6 @@ int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode)
             cacheNode->ace.dwFlags = mode ? cacheNode->ace.dwFlags | attrib : cacheNode->ace.dwFlags & ~attrib;
             if(cacheNode->ace.dwFlags != dwFlags)
                 NotifyMetaAware(hContact, cacheNode);
-                //NotifyEventHooks(hEventChanged, (WPARAM)hContact, (LPARAM)&cacheNode->ace);
             break;
         }
 		cacheNode = cacheNode->pNextNode;
