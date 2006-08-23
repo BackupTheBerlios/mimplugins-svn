@@ -71,7 +71,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 7), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 8), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -1477,8 +1477,6 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 													  FOLDER_AVATARS);
 	}
 
-    CLISTMENUITEM mi;
-
     g_AvatarHistoryAvail = ServiceExists("AvatarHistory/IsEnabled");
 
     g_MetaAvail = ServiceExists(MS_MC_GETPROTOCOLNAME) ? TRUE : FALSE;
@@ -1563,18 +1561,6 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
         CallService(MS_UPDATE_REGISTER, 0, (LPARAM)&upd);
 	}
 
-    g_hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_AVATAR));
-    ZeroMemory(&mi, sizeof(mi));
-    mi.cbSize = sizeof(mi);
-
-    mi.position = 2000080000;
-    mi.flags = 0;
-    mi.hIcon = g_hIcon;
-    mi.pszContactOwner = NULL;    //on every contact
-    mi.pszName = Translate("Contact picture...");
-    mi.pszService = MS_AV_CONTACTOPTIONS;
-    CallService(MS_CLIST_ADDCONTACTMENUITEM, 0, (LPARAM) &mi);
-	
 	HookEvent(ME_SYSTEM_PRESHUTDOWN, ShutdownProc);
     HookEvent(ME_SYSTEM_OKTOEXIT, OkToExitProc);
 	hUserInfoInitHook = HookEvent(ME_USERINFO_INITIALISE, OnDetailsInit);
