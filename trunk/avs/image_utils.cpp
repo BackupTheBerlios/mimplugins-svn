@@ -24,6 +24,9 @@ Theese are the ones needed
 #include <m_protocols.h>
 */
 
+extern int _DebugTrace(const char *fmt, ...);
+extern int _DebugTrace(HANDLE hContact, const char *fmt, ...);
+
 
 #define GET_PIXEL(__P__, __X__, __Y__) ( __P__ + width * 4 * (__Y__) + 4 * (__X__) )
 
@@ -42,6 +45,9 @@ Status (WINAPI *fGetImageEncoders)(UINT, UINT, ImageCodecInfo*);
 Status (WINAPI *fGetImageEncodersSize)(UINT*, UINT*);
 Status (WINAPI *fGdipCreateBitmapFromHBITMAP)(HBITMAP hbm, HPALETTE hpal, GpBitmap** bitmap);
 Status (WINAPI *fGdipSaveImageToFile)(GpImage*, const WCHAR*, const CLSID*, const EncoderParameters*);
+Status (WINAPI *fGdipCreateHBITMAPFromBitmap)(GpBitmap* bitmap, HBITMAP* hbmReturn, ARGB background);
+Status (WINAPI *fGdipCreateBitmapFromFile)(GDIPCONST WCHAR* filename, GpBitmap **bitmap);
+
 
 extern int AVS_pathToRelative(const char *sPrc, char *pOut);
 extern int AVS_pathToAbsolute(const char *pSrc, char *pOut);
@@ -59,6 +65,8 @@ void LoadGdiPlus(void)
 		(FARPROC&)fGetImageEncodersSize = GetProcAddress(hGdiPlus, "GdipGetImageEncodersSize");
 		(FARPROC&)fGdipCreateBitmapFromHBITMAP = GetProcAddress(hGdiPlus, "GdipCreateBitmapFromHBITMAP");
 		(FARPROC&)fGdipSaveImageToFile = GetProcAddress(hGdiPlus, "GdipSaveImageToFile");
+        (FARPROC&)fGdipCreateBitmapFromFile = GetProcAddress(hGdiPlus, "GdipCreateBitmapFromFile");
+        (FARPROC&)fGdipCreateHBITMAPFromBitmap = GetProcAddress(hGdiPlus, "GdipCreateHBITMAPFromBitmap");
 
 		if (fGdiplusStartup && fGdiplusShutdown && fGetImageEncoders && fGetImageEncodersSize
 			&& fGdipCreateBitmapFromHBITMAP && fGdipSaveImageToFile)
@@ -386,6 +394,35 @@ int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
 	return -1;  // Failure
 }
 
+// gdi+ based function to load .gif images (prevent problem with Ole function when trying
+// to load a "broken" gif image
+
+static HBITMAP LoadGIForJPG(const char *szFilename)
+{
+    if (!gdiPlusFail) {
+        WCHAR wszFilename[MAX_PATH + 1];
+
+        MultiByteToWideChar(CP_ACP, 0, szFilename, -1, wszFilename, MAX_PATH);
+        wszFilename[MAX_PATH] = 0;
+
+        GpBitmap *bitmap = NULL;
+        HBITMAP hbm = 0;
+
+        fGdipCreateBitmapFromFile(wszFilename, &bitmap);
+        if(bitmap) {
+            fGdipCreateHBITMAPFromBitmap(bitmap, &hbm, RGB(0, 0, 0));
+            delete bitmap;
+            if(hbm)
+                return hbm;
+            else
+                return 0;
+        }
+        else
+            return 0;
+    }
+    else
+        return 0;
+}
 
 // Load ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -418,6 +455,13 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 			return (int) hBmpCopy;
 		}
 
+        if ( !lstrcmpiA( pszExt, ".gif") || !lstrcmpiA( pszExt, ".jpg") || !lstrcmpiA( pszExt, ".jpeg") ) {
+            if(!gdiPlusFail) {
+                HBITMAP hbitmap = LoadGIForJPG(szFilename);
+                if(hbitmap != INVALID_HANDLE_VALUE)
+                    return (int)hbitmap;
+            }
+        }
 		if ( !lstrcmpiA( pszExt, ".png" )) {
 			HANDLE hFile, hMap = NULL;
 			BYTE* ppMap = NULL;
@@ -623,14 +667,13 @@ int BmpFilterResizeBitmap(WPARAM wParam,LPARAM lParam)
 	}
 }
 
-
+// 
 // Save ///////////////////////////////////////////////////////////////////////////////////////////
 
 
-int SaveGIF(HBITMAP hBmp, const char *szFilename)
+static int SaveGIF(HBITMAP hBmp, const char *szFilename)
 {
 	// Initialize GDI+.
-	InitGdiPlus();
 
 	if (!gdiPlusFail)
 	{
@@ -650,10 +693,10 @@ int SaveGIF(HBITMAP hBmp, const char *szFilename)
 		MultiByteToWideChar(CP_ACP,0,szFilename,-1,pszwFilename,MAX_PATH);
 		stat = fGdipSaveImageToFile(bitmap, pszwFilename, &encoderClsid, NULL);
 
-		//delete image;
-		ShutdownGdiPlus();
-		
-		if(stat == Ok)
+        if(bitmap)
+            delete bitmap;
+
+        if(stat == Ok)
 			return 0;
 		else
 			return -1;
@@ -664,11 +707,8 @@ int SaveGIF(HBITMAP hBmp, const char *szFilename)
 	}
 }
 
-int SaveJPEG(HBITMAP hBmp, const char *szFilename)
+static int SaveJPEG(HBITMAP hBmp, const char *szFilename)
 {
-	// Initialize GDI+.
-	InitGdiPlus();
-
 	if (!gdiPlusFail)
 	{
 		CLSID             encoderClsid;
@@ -681,8 +721,11 @@ int SaveJPEG(HBITMAP hBmp, const char *szFilename)
 		fGdipCreateBitmapFromHBITMAP(hBmp, NULL, &bitmap);
 
 		// Get the CLSID of the JPEG encoder.
-		if (GetEncoderClsid(L"image/jpeg", &encoderClsid) < 0)
-			return -2;
+		if (GetEncoderClsid(L"image/jpeg", &encoderClsid) < 0) {
+            if(bitmap)
+                delete bitmap;
+            return -2;
+        }
 
 		WCHAR pszwFilename[MAX_PATH];
 		MultiByteToWideChar(CP_ACP,0,szFilename,-1,pszwFilename,MAX_PATH);
@@ -697,10 +740,10 @@ int SaveJPEG(HBITMAP hBmp, const char *szFilename)
 
 		stat = fGdipSaveImageToFile(bitmap, pszwFilename, &encoderClsid, &encoderParameters);
 
-		//delete image;
-		ShutdownGdiPlus();
-		
-		if(stat == Ok)
+        if(bitmap)
+            delete bitmap;
+
+        if(stat == Ok)
 			return 0;
 		else
 			return -1;

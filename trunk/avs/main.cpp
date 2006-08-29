@@ -71,7 +71,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 8), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 9), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -429,6 +429,26 @@ static void ResetTranspSettings(HANDLE hContact)
 }
 
 
+static char *getJGMailID(char *szProto)
+{
+	static char szJID[MAX_PATH+1];
+	DBVARIANT dbva={0}, dbvb={0};
+
+	szJID[0] = '\0';
+	if(DBGetContactSetting(NULL, szProto, "LoginName", &dbva))
+		return szJID;
+	if(DBGetContactSetting(NULL, szProto, "LoginServer", &dbvb)) {
+		DBFreeVariant(&dbva);
+		return szJID;
+	}
+
+	mir_snprintf(szJID, sizeof(szJID), "%s@%s", dbva.pszVal, dbvb.pszVal);
+	DBFreeVariant(&dbva);
+	DBFreeVariant(&dbvb);
+	return szJID;
+}
+
+
 // create the avatar in cache
 // returns 0 if not created (no avatar), iIndex otherwise, -2 if has to request avatar
 int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szProto)
@@ -499,7 +519,13 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
 					FindClose(hFFD);
 					goto done;
 				}
-
+				_snprintf(szTestFile, MAX_PATH, "%s\\jabber\\%s avatar.*", inipath, getJGMailID(szProto));
+				szTestFile[MAX_PATH - 1] = 0;
+				if((hFFD = FindFirstFileA(szTestFile, &ffd)) != INVALID_HANDLE_VALUE) {
+					_snprintf(szFilename, MAX_PATH, "%s\\jabber\\%s", inipath, ffd.cFileName);
+					FindClose(hFFD);
+					goto done;
+				}
 				// Now try profile folder
 				if (_strcmpi(inipath, g_szDBPath)) {
 					strcpy(inipath, g_szDBPath);
@@ -512,6 +538,13 @@ int CreateAvatarInCache(HANDLE hContact, struct avatarCacheEntry *ace, char *szP
 						goto done;
 					}
 					_snprintf(szTestFile, MAX_PATH, "%s\\jabber\\%s avatar.*", inipath, szProto);
+					szTestFile[MAX_PATH - 1] = 0;
+					if((hFFD = FindFirstFileA(szTestFile, &ffd)) != INVALID_HANDLE_VALUE) {
+						_snprintf(szFilename, MAX_PATH, "%s\\jabber\\%s", inipath, ffd.cFileName);
+						FindClose(hFFD);
+						goto done;
+					}
+					_snprintf(szTestFile, MAX_PATH, "%s\\jabber\\%s avatar.*", inipath, getJGMailID(szProto));
 					szTestFile[MAX_PATH - 1] = 0;
 					if((hFFD = FindFirstFileA(szTestFile, &ffd)) != INVALID_HANDLE_VALUE) {
 						_snprintf(szFilename, MAX_PATH, "%s\\jabber\\%s", inipath, ffd.cFileName);
@@ -1946,7 +1979,7 @@ extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)
 {
     pluginLink = link;
     dwMainThreadID = GetCurrentThreadId();
-
+    InitGdiPlus();
 	LoadGdiPlus();
 
     return(LoadAvatarModule());
@@ -1979,6 +2012,7 @@ extern "C" int __declspec(dllexport) Unload(void)
 	if(g_MyAvatars)
 		free(g_MyAvatars);
 	FreeGdiPlus();
+    ShutdownGdiPlus();
     return 0;
 }
 

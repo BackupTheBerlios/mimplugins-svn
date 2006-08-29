@@ -32,7 +32,8 @@ int BmpFilterResizeBitmap(WPARAM wParam,LPARAM lParam);
 
 void LoadGdiPlus(void);
 void FreeGdiPlus(void);
-
+void InitGdiPlus(void);
+void ShutdownGdiPlus(void);
 
 void CorrectBitmap32Alpha(HBITMAP hBitmap, BOOL force);
 HBITMAP CopyBitmapTo32(HBITMAP hBitmap);
