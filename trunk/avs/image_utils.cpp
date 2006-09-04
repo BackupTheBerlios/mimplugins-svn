@@ -45,8 +45,8 @@ Status (WINAPI *fGetImageEncoders)(UINT, UINT, ImageCodecInfo*);
 Status (WINAPI *fGetImageEncodersSize)(UINT*, UINT*);
 Status (WINAPI *fGdipCreateBitmapFromHBITMAP)(HBITMAP hbm, HPALETTE hpal, GpBitmap** bitmap);
 Status (WINAPI *fGdipSaveImageToFile)(GpImage*, const WCHAR*, const CLSID*, const EncoderParameters*);
-Status (WINAPI *fGdipCreateHBITMAPFromBitmap)(GpBitmap* bitmap, HBITMAP* hbmReturn, ARGB background);
-Status (WINAPI *fGdipCreateBitmapFromFile)(GDIPCONST WCHAR* filename, GpBitmap **bitmap);
+Status (WINAPI *fGdipCreateHBITMAPFromBitmap)(GpBitmap* bitmap, HBITMAP* hbmReturn, ARGB background) = 0;
+Status (WINAPI *fGdipCreateBitmapFromFile)(GDIPCONST WCHAR* filename, GpBitmap **bitmap) = 0;
 
 
 extern int AVS_pathToRelative(const char *sPrc, char *pOut);
@@ -399,7 +399,7 @@ int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
 
 static HBITMAP LoadGIForJPG(const char *szFilename)
 {
-    if (!gdiPlusFail) {
+    if (!gdiPlusFail && fGdipCreateBitmapFromFile && fGdipCreateHBITMAPFromBitmap) {
         WCHAR wszFilename[MAX_PATH + 1];
 
         MultiByteToWideChar(CP_ACP, 0, szFilename, -1, wszFilename, MAX_PATH);
@@ -458,7 +458,7 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
         if ( !lstrcmpiA( pszExt, ".gif") || !lstrcmpiA( pszExt, ".jpg") || !lstrcmpiA( pszExt, ".jpeg") ) {
             if(!gdiPlusFail) {
                 HBITMAP hbitmap = LoadGIForJPG(szFilename);
-                if(hbitmap != INVALID_HANDLE_VALUE)
+                if(hbitmap != (HBITMAP)0)
                     return (int)hbitmap;
             }
         }
