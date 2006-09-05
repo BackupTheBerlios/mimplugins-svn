@@ -47,7 +47,7 @@ Status (WINAPI *fGdipCreateBitmapFromHBITMAP)(HBITMAP hbm, HPALETTE hpal, GpBitm
 Status (WINAPI *fGdipSaveImageToFile)(GpImage*, const WCHAR*, const CLSID*, const EncoderParameters*);
 Status (WINAPI *fGdipCreateHBITMAPFromBitmap)(GpBitmap* bitmap, HBITMAP* hbmReturn, ARGB background) = 0;
 Status (WINAPI *fGdipCreateBitmapFromFile)(GDIPCONST WCHAR* filename, GpBitmap **bitmap) = 0;
-
+Status (WINAPI *fGdipDisposeImage)(GpImage*) = 0;
 
 extern int AVS_pathToRelative(const char *sPrc, char *pOut);
 extern int AVS_pathToAbsolute(const char *pSrc, char *pOut);
@@ -67,9 +67,10 @@ void LoadGdiPlus(void)
 		(FARPROC&)fGdipSaveImageToFile = GetProcAddress(hGdiPlus, "GdipSaveImageToFile");
         (FARPROC&)fGdipCreateBitmapFromFile = GetProcAddress(hGdiPlus, "GdipCreateBitmapFromFile");
         (FARPROC&)fGdipCreateHBITMAPFromBitmap = GetProcAddress(hGdiPlus, "GdipCreateHBITMAPFromBitmap");
+        (FARPROC&)fGdipDisposeImage = GetProcAddress(hGdiPlus, "GdipDisposeImage");
 
 		if (fGdiplusStartup && fGdiplusShutdown && fGetImageEncoders && fGetImageEncodersSize
-			&& fGdipCreateBitmapFromHBITMAP && fGdipSaveImageToFile)
+			&& fGdipCreateBitmapFromHBITMAP && fGdipSaveImageToFile && fGdipDisposeImage)
 		{
 			gdiPlusLoaded = true;
 		}
@@ -411,7 +412,8 @@ static HBITMAP LoadGIForJPG(const char *szFilename)
         fGdipCreateBitmapFromFile(wszFilename, &bitmap);
         if(bitmap) {
             fGdipCreateHBITMAPFromBitmap(bitmap, &hbm, RGB(0, 0, 0));
-            delete bitmap;
+            if(fGdipDisposeImage)
+                fGdipDisposeImage(bitmap);
             if(hbm)
                 return hbm;
             else
@@ -693,8 +695,8 @@ static int SaveGIF(HBITMAP hBmp, const char *szFilename)
 		MultiByteToWideChar(CP_ACP,0,szFilename,-1,pszwFilename,MAX_PATH);
 		stat = fGdipSaveImageToFile(bitmap, pszwFilename, &encoderClsid, NULL);
 
-        if(bitmap)
-            delete bitmap;
+        if(fGdipDisposeImage && bitmap)
+            fGdipDisposeImage(bitmap);
 
         if(stat == Ok)
 			return 0;
@@ -722,8 +724,8 @@ static int SaveJPEG(HBITMAP hBmp, const char *szFilename)
 
 		// Get the CLSID of the JPEG encoder.
 		if (GetEncoderClsid(L"image/jpeg", &encoderClsid) < 0) {
-            if(bitmap)
-                delete bitmap;
+            if(fGdipDisposeImage && bitmap)
+                fGdipDisposeImage(bitmap);
             return -2;
         }
 
@@ -740,8 +742,8 @@ static int SaveJPEG(HBITMAP hBmp, const char *szFilename)
 
 		stat = fGdipSaveImageToFile(bitmap, pszwFilename, &encoderClsid, &encoderParameters);
 
-        if(bitmap)
-            delete bitmap;
+        if(fGdipDisposeImage && bitmap)
+            fGdipDisposeImage(bitmap);
 
         if(stat == Ok)
 			return 0;
