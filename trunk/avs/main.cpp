@@ -1487,12 +1487,16 @@ static int MetaChanged(WPARAM wParam, LPARAM lParam)
 }
 
 static DWORD dwPicLoaderID;
+extern bool gdiPlusFail;
 
 static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 {
     int i, j;
     DBVARIANT dbv = {0};
     TCHAR szEventName[100];
+
+    if(gdiPlusFail)
+        MessageBox(0, TranslateT("GDI+ is not installed on this system. Support for .GIF and .JPG avatars has been disabled."), TranslateT("Avatar Service warning"), MB_OK);
 
     InitPolls();
     mir_sntprintf(szEventName, 100, _T("avs_loaderthread_%d"), GetCurrentThreadId());

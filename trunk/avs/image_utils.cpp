@@ -434,13 +434,7 @@ static HBITMAP LoadGIForJPG(const char *szFilename)
 // lParam = filename
 int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 {
-	IPicture *pic;
-	HBITMAP hBmp,hBmpCopy;
-	HBITMAP hOldBitmap, hOldBitmap2;
-	BITMAP bmpInfo;
-	WCHAR pszwFilename[MAX_PATH];
-	HDC hdc,hdcMem1,hdcMem2;
-	short picType;
+    HBITMAP hBmpCopy;
 	const char *szFile=(const char *)lParam;
 	char szFilename[MAX_PATH];
 	int filenameLen;
@@ -460,8 +454,10 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
         if ( !lstrcmpiA( pszExt, ".gif") || !lstrcmpiA( pszExt, ".jpg") || !lstrcmpiA( pszExt, ".jpeg") ) {
             if(!gdiPlusFail) {
                 HBITMAP hbitmap = LoadGIForJPG(szFilename);
-                if(hbitmap != (HBITMAP)0)
+                if(hbitmap != (HBITMAP)0) {
+                    CorrectBitmap32Alpha(hbitmap, TRUE);
                     return (int)hbitmap;
+                }
             }
         }
 		if ( !lstrcmpiA( pszExt, ".png" )) {
@@ -508,51 +504,10 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 				// Should not be here
 				CorrectBitmap32Alpha(hBitmap, FALSE);
 				return (int)hBitmap;
-	}	}	}
-
-	OleInitialize(NULL);
-	MultiByteToWideChar(CP_ACP,0,szFilename,-1,pszwFilename,MAX_PATH);
-#ifndef __WINE__
- 	MultiByteToWideChar(CP_ACP,0,szFilename,-1,pszwFilename,MAX_PATH);
-#else
-	char szFilenameAux[MAX_PATH];
-	mir_snprintf(szFilenameAux, MAX_PATH, "%s%s", "file://", szFilename);
-	MultiByteToWideChar(CP_ACP,0,szFilenameAux,-1,pszwFilename,MAX_PATH);
-#endif
-
-	if(S_OK!=OleLoadPicturePath(pszwFilename,NULL,0,0,IID_IPicture,(PVOID*)&pic)) {
-		OleUninitialize();
-		return (int)(HBITMAP)NULL;
-	}
-	pic->get_Type(&picType);
-	if(picType!=PICTYPE_BITMAP) {
-		pic->Release();
-		OleUninitialize();
-		return (int)(HBITMAP)NULL;
-	}
-	pic->get_Handle((OLE_HANDLE*)&hBmp);
-	GetObject(hBmp,sizeof(bmpInfo),&bmpInfo);
-
-	//need to copy bitmap so we can free the IPicture
-	hdc=GetDC(NULL);
-	hdcMem1=CreateCompatibleDC(hdc);
-	hdcMem2=CreateCompatibleDC(hdc);
-	hOldBitmap=(HBITMAP)SelectObject(hdcMem1,hBmp);
-	hBmpCopy=CreateCompatibleBitmap(hdcMem1,bmpInfo.bmWidth,bmpInfo.bmHeight);
-	hOldBitmap2=(HBITMAP)SelectObject(hdcMem2,hBmpCopy);
-	BitBlt(hdcMem2,0,0,bmpInfo.bmWidth,bmpInfo.bmHeight,hdcMem1,0,0,SRCCOPY);
-	SelectObject(hdcMem1,hOldBitmap);
-	SelectObject(hdcMem2,hOldBitmap2);
-	DeleteDC(hdcMem2);
-	DeleteDC(hdcMem1);
-	ReleaseDC(NULL,hdc);
-
-	DeleteObject(hBmp);
-	pic->Release();
-	OleUninitialize();
-
-	CorrectBitmap32Alpha(hBmpCopy, FALSE);
-	return (int)hBmpCopy;
+            }	
+        }	
+    }
+    return 0;
 }
 
 
