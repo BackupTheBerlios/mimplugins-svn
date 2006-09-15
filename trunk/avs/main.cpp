@@ -863,12 +863,14 @@ static BOOL CALLBACK OpenFileSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
     switch(msg) {
         case WM_INITDIALOG: 
 		{
+            SetWindowLong(hwnd, GWL_USERDATA, (LONG)lParam);
             OPENFILENAMEA *ofn = (OPENFILENAMEA *)lParam;
 
 			OpenFileSubclassData *data = (OpenFileSubclassData *) malloc(sizeof(OpenFileSubclassData));
-            SetWindowLong(hwnd, GWL_USERDATA, (LONG)data);
             data->locking_request = (BYTE *)ofn->lCustData;
 			data->setView = TRUE;
+
+			ofn->lCustData = (LPARAM) data;
 
             CheckDlgButton(hwnd, IDC_PROTECTAVATAR, *(data->locking_request));
             break;
@@ -877,14 +879,16 @@ static BOOL CALLBACK OpenFileSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 		{
             if(LOWORD(wParam) == IDC_PROTECTAVATAR) 
 			{
-                OpenFileSubclassData *data= (OpenFileSubclassData *)GetWindowLong(hwnd, GWL_USERDATA);
+				OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
+                OpenFileSubclassData *data= (OpenFileSubclassData *)ofn->lCustData;
                 *(data->locking_request) = IsDlgButtonChecked(hwnd, IDC_PROTECTAVATAR) ? TRUE : FALSE;
             }
             break;
 		}
 		case WM_NOTIFY:
 		{
-            OpenFileSubclassData *data= (OpenFileSubclassData *)GetWindowLong(hwnd, GWL_USERDATA);
+			OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
+			OpenFileSubclassData *data = (OpenFileSubclassData *)ofn->lCustData;
 			if (data->setView)
 			{
 				HWND hwndParent = GetParent(hwnd);
@@ -897,11 +901,10 @@ static BOOL CALLBACK OpenFileSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 			}
 			break;
 		}
-		case WM_NCDESTROY:
+		case WM_DESTROY:
 		{
-            OpenFileSubclassData *data= (OpenFileSubclassData *)GetWindowLong(hwnd, GWL_USERDATA);
-			free((OpenFileSubclassData *)data);
-			SetWindowLong(hwnd, GWL_USERDATA, (LONG)0);
+			OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
+			free((OpenFileSubclassData *) ofn->lCustData);
 			break;
 		}
 	}
@@ -1980,8 +1983,8 @@ extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)
 {
     pluginLink = link;
     dwMainThreadID = GetCurrentThreadId();
-    InitGdiPlus();
 	LoadGdiPlus();
+    InitGdiPlus();
 
     return(LoadAvatarModule());
 }
@@ -2016,5 +2019,3 @@ extern "C" int __declspec(dllexport) Unload(void)
     ShutdownGdiPlus();
     return 0;
 }
-
-

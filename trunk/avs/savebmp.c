@@ -25,7 +25,7 @@ extern  HPALETTE ghPal;
 extern  HWND ghwndMain;
 extern char gtext[256];
 
-BOOL    SaveBitmapFile( HDC, HBITMAP, PSTR );
+BOOL    SaveBitmapFile( HDC, HBITMAP, const char * );
 
 
 /******************************Public*Routine******************************\ 
