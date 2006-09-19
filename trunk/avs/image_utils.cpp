@@ -45,7 +45,7 @@ Status (WINAPI *fGetImageEncoders)(UINT, UINT, ImageCodecInfo*);
 Status (WINAPI *fGetImageEncodersSize)(UINT*, UINT*);
 Status (WINAPI *fGdipCreateBitmapFromHBITMAP)(HBITMAP hbm, HPALETTE hpal, GpBitmap** bitmap);
 Status (WINAPI *fGdipSaveImageToFile)(GpImage*, const WCHAR*, const CLSID*, const EncoderParameters*);
-Status (WINAPI *fGdipCreateHBITMAPFromBitmap)(GpBitmap* bitmap, HBITMAP* hbmReturn, ARGB background) = 0;
+Status (WINAPI *fGdipCreateHBITMAPFromBitmap)(GpBitmap* bitmap, HBITMAP* hbmReturn, DWORD background) = 0;
 Status (WINAPI *fGdipCreateBitmapFromFile)(GDIPCONST WCHAR* filename, GpBitmap **bitmap) = 0;
 Status (WINAPI *fGdipDisposeImage)(GpImage*) = 0;
 
@@ -408,10 +408,12 @@ static HBITMAP LoadGIForJPG(const char *szFilename)
 
         GpBitmap *bitmap = NULL;
         HBITMAP hbm = 0;
-
+        BITMAP bminfo = {0};
         fGdipCreateBitmapFromFile(wszFilename, &bitmap);
         if(bitmap) {
-            fGdipCreateHBITMAPFromBitmap(bitmap, &hbm, RGB(0, 0, 0));
+            fGdipCreateHBITMAPFromBitmap(bitmap, &hbm, (DWORD)0xffffffff);
+            //CorrectBitmap32Alpha(hbm, TRUE);
+            //MakeTransparentBkg(0, &hbm);
             if(fGdipDisposeImage)
                 fGdipDisposeImage(bitmap);
             if(hbm)
@@ -454,10 +456,8 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
         if ( !lstrcmpiA( pszExt, ".gif") || !lstrcmpiA( pszExt, ".jpg") || !lstrcmpiA( pszExt, ".jpeg") ) {
             if(!gdiPlusFail) {
                 HBITMAP hbitmap = LoadGIForJPG(szFilename);
-                if(hbitmap != (HBITMAP)0) {
-                    CorrectBitmap32Alpha(hbitmap, TRUE);
+                if(hbitmap != (HBITMAP)0)
                     return (int)hbitmap;
-                }
             }
         }
 		if ( !lstrcmpiA( pszExt, ".png" )) {

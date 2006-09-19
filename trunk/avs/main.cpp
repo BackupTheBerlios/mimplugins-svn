@@ -71,7 +71,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 10), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 11), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -650,8 +650,7 @@ done:
 		{
 			CorrectBitmap32Alpha(ace->hbmPic, TRUE);
 		}
-
-		if (bminfo.bmBitsPixel == 32)
+        if (bminfo.bmBitsPixel == 32)
 		{
 			if (PreMultiply(ace->hbmPic))
 			{
@@ -659,7 +658,6 @@ done:
 			}
 			ace->dwFlags |= AVS_PREMULTIPLIED;
 		}
-
         if(szProto) {
             struct protoPicCacheEntry *pAce = (struct protoPicCacheEntry *)ace;
 			if(hContact == 0)
@@ -863,14 +861,12 @@ static BOOL CALLBACK OpenFileSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
     switch(msg) {
         case WM_INITDIALOG: 
 		{
-            SetWindowLong(hwnd, GWL_USERDATA, (LONG)lParam);
             OPENFILENAMEA *ofn = (OPENFILENAMEA *)lParam;
 
 			OpenFileSubclassData *data = (OpenFileSubclassData *) malloc(sizeof(OpenFileSubclassData));
+            SetWindowLong(hwnd, GWL_USERDATA, (LONG)data);
             data->locking_request = (BYTE *)ofn->lCustData;
 			data->setView = TRUE;
-
-			ofn->lCustData = (LPARAM) data;
 
             CheckDlgButton(hwnd, IDC_PROTECTAVATAR, *(data->locking_request));
             break;
@@ -879,16 +875,14 @@ static BOOL CALLBACK OpenFileSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 		{
             if(LOWORD(wParam) == IDC_PROTECTAVATAR) 
 			{
-				OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
-                OpenFileSubclassData *data= (OpenFileSubclassData *)ofn->lCustData;
+                OpenFileSubclassData *data= (OpenFileSubclassData *)GetWindowLong(hwnd, GWL_USERDATA);
                 *(data->locking_request) = IsDlgButtonChecked(hwnd, IDC_PROTECTAVATAR) ? TRUE : FALSE;
             }
             break;
 		}
 		case WM_NOTIFY:
 		{
-			OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
-			OpenFileSubclassData *data = (OpenFileSubclassData *)ofn->lCustData;
+            OpenFileSubclassData *data= (OpenFileSubclassData *)GetWindowLong(hwnd, GWL_USERDATA);
 			if (data->setView)
 			{
 				HWND hwndParent = GetParent(hwnd);
@@ -901,10 +895,11 @@ static BOOL CALLBACK OpenFileSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 			}
 			break;
 		}
-		case WM_DESTROY:
+		case WM_NCDESTROY:
 		{
-			OPENFILENAMEA *ofn = (OPENFILENAMEA *)GetWindowLong(hwnd, GWL_USERDATA);
-			free((OpenFileSubclassData *) ofn->lCustData);
+            OpenFileSubclassData *data= (OpenFileSubclassData *)GetWindowLong(hwnd, GWL_USERDATA);
+			free((OpenFileSubclassData *)data);
+			SetWindowLong(hwnd, GWL_USERDATA, (LONG)0);
 			break;
 		}
 	}
@@ -1983,8 +1978,8 @@ extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)
 {
     pluginLink = link;
     dwMainThreadID = GetCurrentThreadId();
-	LoadGdiPlus();
     InitGdiPlus();
+	LoadGdiPlus();
 
     return(LoadAvatarModule());
 }
@@ -2019,3 +2014,5 @@ extern "C" int __declspec(dllexport) Unload(void)
     ShutdownGdiPlus();
     return 0;
 }
+
+
