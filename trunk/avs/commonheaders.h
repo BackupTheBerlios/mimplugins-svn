@@ -96,16 +96,6 @@ extern HINSTANCE g_hInst;
 
 */
 
-__inline char * mir_strdup(const char *src)
-{
-    char *p = 0;
-    if (src == NULL)
-        return NULL;
-    p = (char *)mir_alloc(strlen(src) + 1);
-    strcpy(p, src);
-    return p;
-}
-
 // The same fields as avatarCacheEntry + proto name
 struct protoPicCacheEntry {
 	DWORD cbSize;                   // set to sizeof(struct)

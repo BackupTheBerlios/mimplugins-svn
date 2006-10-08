@@ -21,22 +21,13 @@ Boston, MA 02111-1307, USA.
 #include "commonheaders.h"
 
 
-static struct MM_INTERFACE mmInterface;
+struct MM_INTERFACE memoryManagerInterface;
 
 
 void init_mir_malloc()
 {
-	mmInterface.cbSize = sizeof(mmInterface);
-	CallService(MS_SYSTEM_GET_MMI, 0, (LPARAM)&mmInterface);
-}
-
-
-void * mir_alloc(size_t size) 
-{
-	if (size <= 0)
-		return NULL;
-
-	return mmInterface.mmi_malloc(size);
+	memoryManagerInterface.cbSize = sizeof(memoryManagerInterface);
+	CallService(MS_SYSTEM_GET_MMI, 0, (LPARAM)&memoryManagerInterface);
 }
 
 void * mir_alloc0(size_t size) 
@@ -48,48 +39,6 @@ void * mir_alloc0(size_t size)
 
 	return ptr;
 }
-
-void * mir_realloc(void *ptr, size_t size) 
-{
-	return mmInterface.mmi_realloc(ptr, size);
-}
-
-void mir_free(void *ptr) 
-{
-	if (ptr)
-		mmInterface.mmi_free(ptr);
-}
-
-char *mir_dup(const char *ptr) 
-{
-	if (ptr)
-	{
-		char *ret = (char *) mir_alloc(strlen(ptr)+1);
-		if (ret != NULL)
-			strcpy(ret, ptr);
-		return ret;
-	}
-	else
-	{
-		return NULL;
-	}
-}
-
-wchar_t *mir_dupW(const wchar_t *ptr) 
-{
-	if (ptr)
-	{
-		wchar_t *ret = (wchar_t *) mir_alloc((wcslen(ptr) + 1) * sizeof(wchar_t));
-		if (ret != NULL)
-			wcscpy(ret, ptr);
-		return ret;
-	}
-	else
-	{
-		return NULL;
-	}
-}
-
 
 char *mir_dupToAscii(WCHAR *ptr)
 {
