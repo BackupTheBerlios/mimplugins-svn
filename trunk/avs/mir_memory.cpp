@@ -31,6 +31,7 @@ void init_mir_malloc()
 }
 
 
+/*
 void * mir_alloc(size_t size) 
 {
 	if (size <= 0)
@@ -38,6 +39,7 @@ void * mir_alloc(size_t size)
 
 	return memoryManagerInterface.mmi_malloc(size);
 }
+*/
 
 void * mir_alloc0(size_t size) 
 {
@@ -49,6 +51,7 @@ void * mir_alloc0(size_t size)
 	return ptr;
 }
 
+/*
 void * mir_realloc(void *ptr, size_t size) 
 {
 	return memoryManagerInterface.mmi_realloc(ptr, size);
@@ -59,6 +62,7 @@ void mir_free(void *ptr)
 	if (ptr)
 		memoryManagerInterface.mmi_free(ptr);
 }
+*/
 
 char *mir_dup(const char *ptr) 
 {
@@ -116,3 +120,4 @@ WCHAR *mir_dupToUnicode(char *ptr)
 
 	return tmp;
 }
+
