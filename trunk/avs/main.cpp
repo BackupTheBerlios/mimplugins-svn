@@ -2010,8 +2010,8 @@ extern "C" int __declspec(dllexport) Unload(void)
 
 	if(g_MyAvatars)
 		free(g_MyAvatars);
-	FreeGdiPlus();
     ShutdownGdiPlus();
+    FreeGdiPlus();
     return 0;
 }
 
