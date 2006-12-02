@@ -1998,6 +1998,7 @@ extern "C" int __declspec(dllexport) Unload(void)
 	int i;
 	for(i = 0; i < g_curBlock; i++)
 		free(g_cacheBlocks[i]);
+	free(g_cacheBlocks);
 
 	for(i = 0; i < g_protocount; i++) {
         if(g_ProtoPictures[i].hbmPic != 0)
