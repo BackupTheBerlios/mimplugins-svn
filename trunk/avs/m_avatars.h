@@ -215,7 +215,7 @@ typedef struct _contactAvatarChangedNotification {
 	HANDLE hContact;			// this might have to be set by the caller too
 	int format;					// PA_FORMAT_*
 	char filename[MAX_PATH];	// full path to filename which contains the avatar
-	char hash[128];				// avatar hash (always an empty string by now)
+	char hash[128];				// avatar hash
 } CONTACTAVATARCHANGEDNOTIFICATION;
 
 // fired when the contacts avatar is changed by the contact

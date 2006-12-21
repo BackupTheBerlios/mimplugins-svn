@@ -1,5 +1,5 @@
 /* 
-Copyright (C) 2006 Ricardo Pescuma Domenecci
+Copyright (C) 2006 Ricardo Pescuma Domenecci, Nightwish
 
 This is free software; you can redistribute it and/or
 modify it under the terms of the GNU Library General Public
@@ -251,16 +251,15 @@ static void RequestThread(void *vParam)
 				{
 					// Can have avatar, but must request it?
 					if (
-						(g_AvatarHistoryAvail && CallService("AvatarHistory/IsEnabled", (WPARAM) hContact, 0))
+						(g_AvatarHistoryAvail && CallService(MS_AVATARHISTORY_ENABLED, (WPARAM) hContact, 0))
 						 || (PollCheckProtocol(szProto) && PollCheckContact(hContact, szProto))
 						)
 					{
 						// Request it
-						PROTO_AVATAR_INFORMATION pai_s;
+						PROTO_AVATAR_INFORMATION pai_s = {0};
 						pai_s.cbSize = sizeof(pai_s);
 						pai_s.hContact = hContact;
 						pai_s.format = PA_FORMAT_UNKNOWN;
-						pai_s.filename[0] = '\0';
                         //_DebugTrace(hContact, "schedule request");
 						int result = CallProtoService(szProto, PS_GETAVATARINFO, GAIF_FORCE, (LPARAM)&pai_s);
 						if (result == GAIR_SUCCESS) 
@@ -270,11 +269,22 @@ static void RequestThread(void *vParam)
 							DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
 							if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
 								DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
-							//DBWriteContactSettingString(hContact, "ContactPhoto", "File", "");
 							DBWriteContactSettingString(hContact, "ContactPhoto", "File", pai_s.filename);
-							MakePathRelative(hContact, pai_s.filename);
-							// Fix cache
-							ChangeAvatar(hContact, TRUE, FALSE, pai_s.format);
+							DBWriteContactSettingWord(hContact, "ContactPhoto", "Format", pai_s.format);
+
+							if (pai_s.format == PA_FORMAT_PNG || pai_s.format == PA_FORMAT_JPEG 
+								|| pai_s.format == PA_FORMAT_ICON  || pai_s.format == PA_FORMAT_BMP
+								|| pai_s.format == PA_FORMAT_GIF)
+							{
+								// We can load it!
+								MakePathRelative(hContact, pai_s.filename);
+								ChangeAvatar(hContact, TRUE, TRUE, pai_s.format);
+							}
+							else
+							{
+								// As we can't load it, notify as deleted
+								ChangeAvatar(hContact, FALSE, TRUE, pai_s.format);
+							}
 						}
 						else if (result == GAIR_NOAVATAR) 
 						{
@@ -287,6 +297,7 @@ static void RequestThread(void *vParam)
 								if (!DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0))
 									DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
 								DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+								DBDeleteContactSetting(hContact, "ContactPhoto", "Format");
 
 								// Fix cache
 								ChangeAvatar(hContact, FALSE, TRUE, 0);

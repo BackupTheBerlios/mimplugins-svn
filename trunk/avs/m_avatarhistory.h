@@ -1,5 +1,5 @@
 /* 
-Copyright (C) 2006 Ricardo Pescuma Domenecci, Nightwish
+Copyright (C) 2006 MattJ, Ricardo Pescuma Domenecci
 
 This is free software; you can redistribute it and/or
 modify it under the terms of the GNU Library General Public
@@ -18,35 +18,34 @@ Boston, MA 02111-1307, USA.
 */
 
 
-#ifndef __POLL_H__
-# define __POLL_H__
-
-#include <windows.h>
-
-struct ThreadQueue
-{
-	SortedList *queue;
-	CRITICAL_SECTION cs;
-	int waitTime;
-};
-
-extern ThreadQueue requestQueue;
-
-struct QueueItem
-{
-	HANDLE hContact;
-	DWORD check_time;
-};
+#ifndef __M_AVATARHISTORY_H__
+# define __M_AVATARHISTORY_H__
 
 
-void InitPolls();
-void FreePolls();
+#define EVENTTYPE_AVATAR_CHANGE 9003
 
-// Add an contact to a queue
-void QueueAdd(ThreadQueue &queue, HANDLE hContact);
 
+/*
+Return TRUE is Avatar History is enabled for this contact
+
+wParam: hContact
+lParam: ignored
+*/
+#define MS_AVATARHISTORY_ENABLED				"AvatarHistory/IsEnabled"
+
+
+/*
+Get cached avatar
+
+wParam: (char *) protocol name
+lParam: (char *) hash 
+return: (TCHAR *) NULL if none is found or the path to the avatar. You need to free this string 
+        with mir_free.
+*/
+#define MS_AVATARHISTORY_GET_CACHED_AVATAR		"AvatarHistory/GetCachedAvatar"
 
 
 
 
-#endif // __POLL_H__
+
+#endif // __M_AVATARHISTORY_H__

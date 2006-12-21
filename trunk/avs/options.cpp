@@ -495,6 +495,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                     DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Format");
                     DBDeleteContactSetting(hContact, szProto, "AvatarHash");
                     DBDeleteContactSetting(hContact, szProto, "AvatarSaved");
 					DeleteAvatarFromCache(hContact, FALSE);
@@ -518,6 +519,7 @@ BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
                     DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Format");
 					DeleteAvatarFromCache(hContact, FALSE);
                     SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
                     InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
@@ -624,16 +626,23 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
     switch(msg) {
         case WM_INITDIALOG:
         {
-            struct WindowData *dat = (struct WindowData *)malloc(sizeof(struct WindowData));
+            dat = (struct WindowData *) malloc(sizeof(struct WindowData));
+            if (dat == NULL)
+				return FALSE;
+            dat->hContact = (HANDLE)lParam;
 
-            if(dat)
-                dat->hContact = (HANDLE)lParam;
+			HWND protopic = GetDlgItem(hwndDlg, IDC_PROTOPIC);
+            SendMessage(protopic, AVATAR_SETCONTACT, 0, (LPARAM) dat->hContact);
+			SendMessage(protopic, AVATAR_SETBKGCOLOR, 0, (LPARAM) GetSysColor(COLOR_BTNFACE));
+			SendMessage(protopic, AVATAR_SETBORDERCOLOR, 0, (LPARAM) GetSysColor(COLOR_BTNSHADOW));
+			SendMessage(protopic, AVATAR_SETAVATARBORDERCOLOR, 0, (LPARAM) GetSysColor(COLOR_BTNSHADOW));
+			SendMessage(protopic, AVATAR_SETNOAVATARTEXT, 0, (LPARAM) "Contact has no avatar");
+			SendMessage(protopic, AVATAR_RESPECTHIDDEN, 0, (LPARAM) FALSE);
 
             SetWindowLong(hwndDlg, GWL_USERDATA, (LONG)dat);
             hContact = (HANDLE)lParam;
             TranslateDialogDefault(hwndDlg);
             SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
-            InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, FALSE);
             CheckDlgButton(hwndDlg, IDC_PROTECTAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Locked", 0) ? TRUE : FALSE);
             CheckDlgButton(hwndDlg, IDC_HIDEAVATAR, DBGetContactSettingByte(hContact, "ContactPhoto", "Hidden", 0) ? TRUE : FALSE);
 
@@ -644,7 +653,6 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			SendDlgItemMessage(hwndDlg, IDC_BKG_COLOR_DIFFERENCE_SPIN, UDM_SETRANGE, 0, MAKELONG(100, 0));
 
 			LoadTransparentData(hwndDlg, GetContactThatHaveTheAvatar(hContact));
-            dat->hHook = HookEventMessage(ME_AV_AVATARCHANGED, hwndDlg, DM_AVATARCHANGED);
             return TRUE;
         }
         case WM_COMMAND:
@@ -718,6 +726,7 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                     DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Format");
                     DBDeleteContactSetting(hContact, szProto, "AvatarHash");
                     DBDeleteContactSetting(hContact, szProto, "AvatarSaved");
 					DeleteAvatarFromCache(hContact, FALSE);
@@ -740,70 +749,23 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
                     DBDeleteContactSetting(hContact, "ContactPhoto", "Backup");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "RFile");
                     DBDeleteContactSetting(hContact, "ContactPhoto", "File");
+                    DBDeleteContactSetting(hContact, "ContactPhoto", "Format");
                     DeleteAvatarFromCache(hContact, FALSE);
                     SendMessage(hwndDlg, DM_SETAVATARNAME, 0, 0);
-                    InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
                     break;
 				}
             }
             break;
-        case WM_DRAWITEM:
-        {
-            LPDRAWITEMSTRUCT dis = (LPDRAWITEMSTRUCT) lParam;
-
-            if(dis->CtlType == ODT_BUTTON && dis->CtlID == IDC_PROTOPIC) {
-                AVATARDRAWREQUEST avdrq = {0};
-				GetClientRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), &avdrq.rcDraw);
-
-				FillRect(dis->hDC, &avdrq.rcDraw, GetSysColorBrush(COLOR_BTNFACE));
-
-                avdrq.hContact = hContact;
-                avdrq.cbSize = sizeof(avdrq);
-                avdrq.hTargetDC = dis->hDC;
-                avdrq.dwFlags |= AVDRQ_DRAWBORDER;
-                avdrq.clrBorder = GetSysColor(COLOR_BTNTEXT);
-                avdrq.radius = 6;
-				if (!CallService(MS_AV_DRAWAVATAR, 0, (LPARAM)&avdrq)) 
-				{
-					// Get text rectangle
-					RECT rc = avdrq.rcDraw;
-					rc.top += 10;
-					rc.bottom -= 10;
-					rc.left += 10;
-					rc.right -= 10;
-
-					// Calc text size
-					RECT rc_ret = rc;
-					DrawText(dis->hDC, TranslateT("Contact has no avatar"), -1, &rc_ret, 
-							DT_WORDBREAK | DT_NOPREFIX | DT_CENTER | DT_CALCRECT);
-					
-					// Calc needed size
-					rc.top += ((rc.bottom - rc.top) - (rc_ret.bottom - rc_ret.top)) / 2;
-					rc.bottom = rc.top + (rc_ret.bottom - rc_ret.top);
-					DrawText(dis->hDC, TranslateT("Contact has no avatar"), -1, &rc, 
-							DT_WORDBREAK | DT_NOPREFIX | DT_CENTER);
-				}
-
-				FrameRect(dis->hDC, &avdrq.rcDraw, GetSysColorBrush(COLOR_BTNSHADOW));
-            }
-            return TRUE;
-        }
         case DM_REALODAVATAR:
         {
 			SaveTransparentData(hwndDlg, hContact, IsDlgButtonChecked(hwndDlg, IDC_PROTECTAVATAR));
             ChangeAvatar(hContact, TRUE);
-			InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
             break;
         }
-        case DM_AVATARCHANGED:
-            InvalidateRect(GetDlgItem(hwndDlg, IDC_PROTOPIC), NULL, TRUE);
-            break;
         case WM_NCDESTROY:
         {
-            if(dat) {
-                UnhookEvent(dat->hHook);
+            if(dat)
                 free(dat);
-            }
             SetWindowLong(hwndDlg, GWL_USERDATA, 0);
             break;
         }

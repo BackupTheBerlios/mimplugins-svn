@@ -71,7 +71,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 11), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 12), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -276,7 +276,49 @@ static void NotifyMetaAware(HANDLE hContact, struct CacheNode *node = NULL, AVAT
             cacn.format = node->pa_format;
             strncpy(cacn.filename, node->ace.szFilename, MAX_PATH);
             cacn.filename[MAX_PATH - 1] = 0;
-            mir_snprintf(cacn.hash, sizeof(cacn.hash), "AVS-HASH-%x", GetFileHash(cacn.filename));
+
+			// Get hash
+			char *szProto = (char *)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0);
+			if (szProto != NULL) {
+				DBVARIANT dbv = {0};
+				if (!DBGetContactSettingStringUtf(hContact, szProto, "AvatarHash", &dbv)) {
+					if (dbv.type == DBVT_ASCIIZ || dbv.type == DBVT_UTF8) {
+						strncpy(cacn.hash, dbv.pszVal, sizeof(cacn.hash));
+						DBFreeVariant(&dbv);
+					} else if (dbv.type == DBVT_BLOB) {
+						// Lets use base64 encode
+						char *tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+						int i;
+						for(i = 0; i < dbv.cpbVal / 3 && i*4+3 < sizeof(cacn.hash)-1; i++) {
+							BYTE a = dbv.pbVal[i*3];
+							BYTE b = i*3 + 1 < dbv.cpbVal ? dbv.pbVal[i*3 + 1] : 0;
+							BYTE c = i*3 + 2 < dbv.cpbVal ? dbv.pbVal[i*3 + 2] : 0;
+
+							cacn.hash[i*4] = tab[(a & 0xFC) >> 2];
+							cacn.hash[i*4+1] = tab[((a & 0x3) << 4) + ((b & 0xF0) >> 4)];
+							cacn.hash[i*4+2] = tab[((b & 0xF) << 2) + ((c & 0xC0) >> 6)];
+							cacn.hash[i*4+3] = tab[c & 0x3F];
+						}
+						if (dbv.cpbVal % 3 != 0 && i*4+3 < sizeof(cacn.hash)-1) {
+							BYTE a = dbv.pbVal[i*3];
+							BYTE b = i*3 + 1 < dbv.cpbVal ? dbv.pbVal[i*3 + 1] : 0;
+
+							cacn.hash[i*4] = tab[(a & 0xFC) >> 2];
+							cacn.hash[i*4+1] = tab[((a & 0x3) << 4) + ((b & 0xF0) >> 4)];
+							if (i + 1 < dbv.cpbVal)
+								cacn.hash[i*4+2] = tab[((b & 0xF) << 4)];
+							else
+								cacn.hash[i*4+2] = '=';
+							cacn.hash[i*4+3] = '=';
+						}
+					}
+				}
+			}
+
+			// Default value
+			if (cacn.hash[0] == '\0')
+				mir_snprintf(cacn.hash, sizeof(cacn.hash), "AVS-HASH-%x", GetFileHash(cacn.filename));
+
             NotifyEventHooks(hEventContactAvatarChanged, (WPARAM)cacn.hContact, (LPARAM)&cacn);
         }
         else
@@ -704,8 +746,7 @@ struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL add)
             }
             else {
                 LeaveCriticalSection(&cachecs);
-                return add ? NULL : cacheNode;                      // return 0 only to the service (client) as it calls with add = TRUE
-                                                                    // internal functions get the cache node when it exists.
+                return cacheNode;
             }
 		}
 
@@ -802,11 +843,22 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 			DBDeleteContactSetting(pai->hContact, "ContactPhoto", "RFile");
 			if (!DBGetContactSettingByte(pai->hContact, "ContactPhoto", "Locked", 0))
 				DBDeleteContactSetting(pai->hContact, "ContactPhoto", "Backup");
-			//DBWriteContactSettingString(pai->hContact, "ContactPhoto", "File", "");
 			DBWriteContactSettingString(pai->hContact, "ContactPhoto", "File", pai->filename);
-            MakePathRelative(pai->hContact, pai->filename);
-			// Fix cache
-			ChangeAvatar(pai->hContact, TRUE, TRUE, pai->format);
+			DBGetContactSettingWord(pai->hContact, "ContactPhoto", "Format", pai->format);
+
+			if (pai->format == PA_FORMAT_PNG || pai->format == PA_FORMAT_JPEG 
+				|| pai->format == PA_FORMAT_ICON  || pai->format == PA_FORMAT_BMP
+				|| pai->format == PA_FORMAT_GIF)
+			{
+				// We can load it!
+				MakePathRelative(pai->hContact, pai->filename);
+				ChangeAvatar(pai->hContact, TRUE, TRUE, pai->format);
+			}
+			else
+			{
+				// As we can't load it, notify as deleted
+				ChangeAvatar(pai->hContact, FALSE, TRUE, pai->format);
+			}
         }
         else if(ack->result == ACKRESULT_FAILED) 
 		{
@@ -817,6 +869,7 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 				if (!DBGetContactSettingByte(ack->hContact, "ContactPhoto", "Locked", 0))
 					DBDeleteContactSetting(ack->hContact, "ContactPhoto", "Backup");
 				DBDeleteContactSetting(ack->hContact, "ContactPhoto", "File");
+				DBDeleteContactSetting(ack->hContact, "ContactPhoto", "Format");
 				// Fix cache
 				ChangeAvatar(ack->hContact, FALSE, FALSE, 0);
 			}
@@ -1334,7 +1387,7 @@ static int GetAvatarBitmap(WPARAM wParam, LPARAM lParam)
 
 	// Get the node
     struct CacheNode *node = FindAvatarInCache(hContact, TRUE);
-	if (node == NULL)
+	if (node == NULL || !node->loaded)
         return (int) GetProtoDefaultAvatar(hContact);
     else
         return (int) &node->ace;
@@ -1370,11 +1423,11 @@ int ChangeAvatar(HANDLE hContact, BOOL fLoad, BOOL fNotifyHist, int pa_format)
 	hContact = GetContactThatHaveTheAvatar(hContact);
 
 	// Get the node
-    struct CacheNode *node = FindAvatarInCache(hContact, FALSE);
-	if (node == NULL)
+    struct CacheNode *node = FindAvatarInCache(hContact, g_AvatarHistoryAvail && fNotifyHist);
+	if (node == NULL) 
 		return 0;
 
-    if(fNotifyHist)
+    if (fNotifyHist)
         node->dwFlags |= AVH_MUSTNOTIFY;
 
     node->mustLoad = fLoad ? 1 : -1;
@@ -1470,7 +1523,7 @@ static int MetaChanged(WPARAM wParam, LPARAM lParam)
 
     // Get the node
     struct CacheNode *node = FindAvatarInCache(hSubContact, TRUE);
-    if (node == NULL) {
+    if (node == NULL || !node->loaded) {
         ace = (AVATARCACHEENTRY *)GetProtoDefaultAvatar(hSubContact);
         QueueAdd(requestQueue, hSubContact);
     }
@@ -1509,7 +1562,7 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
 													  FOLDER_AVATARS);
 	}
 
-    g_AvatarHistoryAvail = ServiceExists("AvatarHistory/IsEnabled");
+    g_AvatarHistoryAvail = ServiceExists(MS_AVATARHISTORY_ENABLED);
 
     g_MetaAvail = ServiceExists(MS_MC_GETPROTOCOLNAME) ? TRUE : FALSE;
     if(g_MetaAvail) {
@@ -1778,13 +1831,12 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
         ace = (AVATARCACHEENTRY *)GetAvatarBitmap((WPARAM)r->hContact, 0);
 
 	if(ace && (!(r->dwFlags & AVDRQ_RESPECTHIDDEN) || !(ace->dwFlags & AVS_HIDEONCLIST))) {
-        float dScale = 0.;
-        float newHeight, newWidth;
+        float dScale = 0;
+        int newHeight, newWidth;
         HDC hdcAvatar;
         HBITMAP hbmMem;
         DWORD topoffset = 0, leftoffset = 0;
         LONG bmWidth, bmHeight;
-        float dAspect;
         HBITMAP hbm;
         HRGN rgn = 0, oldRgn = 0;
         int targetWidth = r->rcDraw.right - r->rcDraw.left;
@@ -1793,10 +1845,6 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
         
         bmHeight = ace->bmHeight;
         bmWidth = ace->bmWidth;
-        if(bmWidth != 0)
-            dAspect = (float)bmHeight / (float)bmWidth;
-        else
-            dAspect = 1.0;
         hbm = ace->hbmPic;
         ace->t_lastAccess = time(NULL);
 
@@ -1806,36 +1854,22 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
         hdcAvatar = CreateCompatibleDC(r->hTargetDC);
         hbmMem = (HBITMAP)SelectObject(hdcAvatar, hbm);
 
-        if(dAspect >= 1.0) {            // height > width
-            dScale = (float)(targetHeight) / (float)bmHeight;
-            newHeight = (float)(targetHeight);
-            newWidth = (float)bmWidth * dScale;
+        if (bmHeight >= bmWidth) {
+            dScale = targetHeight / (float)bmHeight;
+            newHeight = targetHeight;
+            newWidth = (int) (bmWidth * dScale);
         }
         else {
-            /* ??? */
-            dScale = (float)(targetWidth) / (float)bmWidth;
-            newWidth = (float)(targetWidth);
-            newHeight = (float)bmHeight * dScale;
-            /* ??? */
+            dScale = targetWidth / (float)bmWidth;
+            newWidth = targetWidth;
+            newHeight = (int) (bmHeight * dScale);
         }
-		/*
-		if(dAspect >= 1.0) {            // height > width
-            dScale = (float)(targetHeight) / (float)bmHeight;
-            newHeight = (float)(targetHeight);
-            newWidth = (float)bmWidth * dScale;
-        }
-        else {
-            newWidth = (float)(targetHeight);
-            dScale = (float)(targetHeight) / (float)bmWidth;
-            newHeight = (float)bmHeight * dScale;
-        }*/
 
-        topoffset = targetHeight > (int)newHeight ? (targetHeight - (int)newHeight) / 2 : 0;
-
+        topoffset = targetHeight > newHeight ? (targetHeight - newHeight) / 2 : 0;
+        leftoffset = targetWidth > newWidth ? (targetWidth - newWidth) / 2 : 0;
+        
         // create the region for the avatar border - use the same region for clipping, if needed.
 
-        leftoffset = targetWidth > (int)newWidth ? (targetWidth - (int)newWidth) / 2 : 0;
-        
 		oldRgn = CreateRectRgn(0,0,1,1);
 		if (GetClipRgn(r->hTargetDC, oldRgn) != 1)
 		{
@@ -1844,9 +1878,9 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
 		}
 
         if(r->dwFlags & AVDRQ_ROUNDEDCORNER)
-            rgn = CreateRoundRectRgn(r->rcDraw.left + leftoffset, r->rcDraw.top + topoffset, r->rcDraw.left + leftoffset + (int)newWidth + 1, r->rcDraw.top + topoffset + (int)newHeight + 1, 2 * r->radius, 2 * r->radius);
+            rgn = CreateRoundRectRgn(r->rcDraw.left + leftoffset, r->rcDraw.top + topoffset, r->rcDraw.left + leftoffset + newWidth + 1, r->rcDraw.top + topoffset + newHeight + 1, 2 * r->radius, 2 * r->radius);
         else
-            rgn = CreateRectRgn(r->rcDraw.left + leftoffset, r->rcDraw.top + topoffset, r->rcDraw.left + leftoffset + (int)newWidth, r->rcDraw.top + topoffset + (int)newHeight);
+            rgn = CreateRectRgn(r->rcDraw.left + leftoffset, r->rcDraw.top + topoffset, r->rcDraw.left + leftoffset + newWidth, r->rcDraw.top + topoffset + newHeight);
 
 		ExtSelectClipRgn(r->hTargetDC, rgn, RGN_AND);
 
@@ -1855,7 +1889,7 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
 
         SetStretchBltMode(r->hTargetDC, HALFTONE);
         if(bf.SourceConstantAlpha == 255 && bf.AlphaFormat == 0) {
-            StretchBlt(r->hTargetDC, r->rcDraw.left + leftoffset, r->rcDraw.top + topoffset, (int)newWidth, (int)newHeight, hdcAvatar, 0, 0, bmWidth, bmHeight, SRCCOPY);
+            StretchBlt(r->hTargetDC, r->rcDraw.left + leftoffset, r->rcDraw.top + topoffset, newWidth, newHeight, hdcAvatar, 0, 0, bmWidth, bmHeight, SRCCOPY);
         }
         else {
             /*
@@ -1870,9 +1904,9 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
 
             //SetBkMode(hdcTemp, TRANSPARENT);
             SetStretchBltMode(hdcTemp, HALFTONE);
-            StretchBlt(hdcTemp, 0, 0, bmWidth, bmHeight, r->hTargetDC, r->rcDraw.left + leftoffset, r->rcDraw.top + topoffset, (int)newWidth, (int)newHeight, SRCCOPY);
+            StretchBlt(hdcTemp, 0, 0, bmWidth, bmHeight, r->hTargetDC, r->rcDraw.left + leftoffset, r->rcDraw.top + topoffset, newWidth, newHeight, SRCCOPY);
             AlphaBlend(hdcTemp, 0, 0, bmWidth, bmHeight, hdcAvatar, 0, 0, bmWidth, bmHeight, bf);
-            StretchBlt(r->hTargetDC, r->rcDraw.left + leftoffset, r->rcDraw.top + topoffset, (int)newWidth, (int)newHeight, hdcTemp, 0, 0, bmWidth, bmHeight, SRCCOPY);
+            StretchBlt(r->hTargetDC, r->rcDraw.left + leftoffset, r->rcDraw.top + topoffset, newWidth, newHeight, hdcTemp, 0, 0, bmWidth, bmHeight, SRCCOPY);
             SelectObject(hdcTemp, hbmTempOld);
             DeleteObject(hbmTemp);
             DeleteDC(hdcTemp);
@@ -1980,8 +2014,9 @@ extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)
     dwMainThreadID = GetCurrentThreadId();
     InitGdiPlus();
 	LoadGdiPlus();
+	LoadACC();
 
-    return(LoadAvatarModule());
+    return LoadAvatarModule();
 }
 
 extern "C" int __declspec(dllexport) Unload(void)

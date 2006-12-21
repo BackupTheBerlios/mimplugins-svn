@@ -73,14 +73,18 @@ extern "C"
 #include "m_avatars.h"
 #include <m_popup.h>
 #include "m_metacontacts.h"
+#include "m_avatarhistory.h"
 }
 
 #include "resource.h"
 #include "m_updater.h"
+#include "m_flash.h"
 #include "image_utils.h"
 #include "mir_dblists.h"
 #include "mir_memory.h"
 #include "poll.h"
+#include "m_acc.h"
+#include "acc.h"
 
 
 // shared vars
@@ -112,3 +116,5 @@ struct protoPicCacheEntry {
 };
 
 int SetAvatarAttribute(HANDLE hContact, DWORD attrib, int mode);
+
+#define MAX_REGS(_A_) ( sizeof(_A_) / sizeof(_A_[0]) )
