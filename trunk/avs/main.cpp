@@ -844,7 +844,7 @@ static int ProtocolAck(WPARAM wParam, LPARAM lParam)
 			if (!DBGetContactSettingByte(pai->hContact, "ContactPhoto", "Locked", 0))
 				DBDeleteContactSetting(pai->hContact, "ContactPhoto", "Backup");
 			DBWriteContactSettingString(pai->hContact, "ContactPhoto", "File", pai->filename);
-			DBGetContactSettingWord(pai->hContact, "ContactPhoto", "Format", pai->format);
+			DBWriteContactSettingWord(pai->hContact, "ContactPhoto", "Format", pai->format);
 
 			if (pai->format == PA_FORMAT_PNG || pai->format == PA_FORMAT_JPEG 
 				|| pai->format == PA_FORMAT_ICON  || pai->format == PA_FORMAT_BMP
