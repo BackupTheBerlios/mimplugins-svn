@@ -32,7 +32,7 @@ A queue to request items. One request is done at a time, REQUEST_WAIT_TIME milis
 #define POOL_DELAY 1000
 
 // Number of mileseconds the threads wait after a GAIR_WAITFOR is returned
-#define REQUEST_DELAY 6000
+#define REQUEST_DELAY 18000
 
 
 // Prototypes ///////////////////////////////////////////////////////////////////////////
