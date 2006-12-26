@@ -70,6 +70,24 @@ void ResizeFlash(HWND hwnd, ACCData* data)
 	}
 }
 
+void SetBkgFlash(HWND hwnd, ACCData* data)
+{
+	if ((data->hContact != NULL || data->proto[0] != '\0')
+		&& ServiceExists(MS_FAVATAR_SETBKCOLOR))
+	{
+		FLASHAVATAR fa = {0}; 
+        fa.hContact = data->hContact;
+		fa.cProto = data->proto;
+		fa.hParentWindow = hwnd;
+        fa.id = 1675;
+
+		if (data->bkgColor != -1)
+			CallService(MS_FAVATAR_SETBKCOLOR, (WPARAM)&fa, (LPARAM)data->bkgColor);
+		else
+			CallService(MS_FAVATAR_SETBKCOLOR, (WPARAM)&fa, (LPARAM)RGB(255,255,255));
+	}
+}
+
 void DestroyFlash(HWND hwnd, ACCData* data)
 {
 	if ((data->hContact != NULL || data->proto[0] != '\0')
@@ -99,6 +117,7 @@ BOOL StartFlash(HWND hwnd, ACCData* data)
 		if (fa.hWindow != NULL) 
 		{
 			ResizeFlash(hwnd, data);
+			SetBkgFlash(hwnd, data);
 			return TRUE;
 		}
 	}
@@ -186,6 +205,8 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 		case AVATAR_SETBKGCOLOR:
 		{
 			data->bkgColor = (COLORREF) lParam;
+			if (data->showingFlash)
+				SetBkgFlash(hwnd, data);
 			InvalidateRect(hwnd, NULL, TRUE);
 			return TRUE;
 		}
