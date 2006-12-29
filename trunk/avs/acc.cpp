@@ -55,10 +55,10 @@ void ResizeFlash(HWND hwnd, ACCData* data)
 
 		if (data->borderColor != -1)
 		{
-			rc.left++;
-			rc.right--;
-			rc.top++;
-			rc.bottom--;
+			rc.left ++;
+			rc.right -= 2;
+			rc.top ++;
+			rc.bottom -= 2;
 		}
 
 		FLASHAVATAR fa = {0}; 
@@ -67,6 +67,7 @@ void ResizeFlash(HWND hwnd, ACCData* data)
 		fa.hParentWindow = hwnd;
         fa.id = 1675;
 		CallService(MS_FAVATAR_RESIZE, (WPARAM)&fa, (LPARAM)&rc);
+		CallService(MS_FAVATAR_SETPOS, (WPARAM)&fa, (LPARAM)&rc);
 	}
 }
 

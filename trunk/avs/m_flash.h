@@ -40,6 +40,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 /**
 	WPARAM FLASHAVATAR* (hContact, hParentWindow)
+	LPARAM LPRECT
+ */
+#define MS_FAVATAR_SETPOS 		"FlashAvatar/SetPos"
+
+/**
+	WPARAM FLASHAVATAR* (hContact, hParentWindow)
 	LPARAM not used
  */
 #define MS_FAVATAR_GETINFO 		"FlashAvatar/GetInfo"
