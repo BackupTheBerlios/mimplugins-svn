@@ -77,7 +77,7 @@ PLUGININFO pluginInfo = {
 	"", 
 	"Copyright 2000-2005 Miranda-IM project", 
 	"http://www.miranda-im.org", 
-	0, 
+	UNICODE_AWARE, 
 	0
 };
 
