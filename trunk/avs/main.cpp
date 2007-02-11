@@ -2012,8 +2012,8 @@ extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)
 {
     pluginLink = link;
     dwMainThreadID = GetCurrentThreadId();
-    InitGdiPlus();
 	LoadGdiPlus();
+    InitGdiPlus();
 	LoadACC();
 
     return LoadAvatarModule();
