@@ -88,8 +88,9 @@
 				Name="VCCLCompilerTool"
 				Optimization="3"
 				GlobalOptimizations="TRUE"
-				InlineFunctionExpansion="1"
 				FavorSizeOrSpeed="2"
+				OmitFramePointers="FALSE"
+				OptimizeForProcessor="0"
 				AdditionalIncludeDirectories="../../include/"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;CLIST_EXPORTS;_UNICODE;UNICODE"
 				StringPooling="TRUE"
@@ -285,6 +286,9 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat">
 			<File
+				RelativePath=".\acc.cpp">
+			</File>
+			<File
 				RelativePath=".\image_utils.cpp">
 			</File>
 			<File
@@ -306,6 +310,9 @@
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl">
+			<File
+				RelativePath=".\acc.h">
+			</File>
 			<File
 				RelativePath=".\commonheaders.h">
 			</File>
