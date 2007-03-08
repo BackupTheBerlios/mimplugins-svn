@@ -71,7 +71,7 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 12), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 13), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
@@ -79,6 +79,30 @@ PLUGININFO pluginInfo = {
 	"http://www.miranda-im.org", 
 	UNICODE_AWARE, 
 	0
+};
+
+PLUGININFOEX pluginInfoEx = {
+    sizeof(PLUGININFOEX), 
+#if defined(_UNICODE)
+	"Avatar service (Unicode)",
+#else
+	"Avatar service",
+#endif
+	PLUGIN_MAKE_VERSION(0, 0, 2, 13), 
+	"Load and manage contact pictures for other plugins", 
+	"Nightwish, Pescuma", 
+	"", 
+	"Copyright 2000-2005 Miranda-IM project", 
+	"http://www.miranda-im.org", 
+	UNICODE_AWARE, 
+	0,
+#if defined(_UNICODE)
+// {E00F1643-263C-4599-B84B-053E5C511D28}
+    { 0xe00f1643, 0x263c, 0x4599, { 0xb8, 0x4b, 0x5, 0x3e, 0x5c, 0x51, 0x1d, 0x28 } }
+#else
+// {C9E01EB0-A119-42d2-B340-E8678F5FEAD9}
+    { 0xc9e01eb0, 0xa119, 0x42d2, { 0xb3, 0x40, 0xe8, 0x67, 0x8f, 0x5f, 0xea, 0xd9 } }
+#endif	
 };
 
 extern BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -2007,6 +2031,21 @@ extern "C" __declspec(dllexport) PLUGININFO * MirandaPluginInfo(DWORD mirandaVer
         return NULL;
     return &pluginInfo;
 }
+
+extern "C" __declspec(dllexport) PLUGININFOEX * MirandaPluginInfoEx(DWORD mirandaVersion)
+{
+    if (mirandaVersion < PLUGIN_MAKE_VERSION(0, 4, 0, 0))
+        return NULL;
+    return &pluginInfoEx;
+}
+
+
+static const MUUID interfaces[] = { { 0xece29554, 0x1cf0, 0x41da, { 0x85, 0x82, 0xfb, 0xe8, 0x45, 0x5c, 0x6b, 0xec } }, MIID_LAST};
+extern "C" __declspec(dllexport) const MUUID * MirandaPluginInterfaces(void)
+{
+	return interfaces;
+}
+
 
 extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)
 {
