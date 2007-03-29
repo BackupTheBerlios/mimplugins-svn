@@ -1,0 +1,26 @@
+[Global]
+CurrentProject=avatars_8.vpj
+[ActiveConfig]
+avatars_8.vpj=,Release - UNICODE|Win32
+[ProjectDates]
+avatars_8.vcproj=20060731160643925
+[TreeExpansion2]
+- avatars_8.vcproj
+  - Source Files
+  - Header Files
+  - Resource Files
+  + Docs
+scroll:0
+[State]
+SCREEN: 1600 1200 68 23 1381 1132 0 0 N 0 0 0 0 1031 802
+CWD: ..\avs
+FILEHIST: 9
+mir_dblists.cpp
+m_avatars.h
+..\clist_nicer\clcpaint.c
+poll.cpp
+options.cpp
+\vs8\VC\PlatformSDK\include\GdiPlusPixelFormats.h
+image_utils.h
+main.cpp
+image_utils.cpp
