@@ -1580,13 +1580,14 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     int i, j;
     DBVARIANT dbv = {0};
     TCHAR szEventName[100];
+	int   result = 0;
 
 	if(ServiceExists(MS_IMG_GETINTERFACE))
-		CallService(MS_IMG_GETINTERFACE, 0, (LPARAM)&fei);
+		result = CallService(MS_IMG_GETINTERFACE, FI_IF_VERSION, (LPARAM)&fei);
 
     InitPolls();
 
-	if(fei == NULL) {
+	if(fei == NULL || result == 0) {
 		MessageBox(0, _T("Fatal error, image services not found. Avatar service will be disabled"), _T("Loadavatars"), MB_OK);
 		//DestroyServicesAndEvents();
 	}
