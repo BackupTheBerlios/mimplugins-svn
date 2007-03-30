@@ -662,9 +662,17 @@ static int servicePng2Dib( WPARAM wParam, LPARAM lParam )
 
 FE_INTERFACE feif = {0};
 
+/*
+ * caller MUST supply the desired version in wParam
+ * if it doesn't match, error will be returned
+ */
+
 static int serviceGetInterface(WPARAM wParam, LPARAM lParam)
 {
     FE_INTERFACE **ppfe = (FE_INTERFACE **)lParam;
+
+    if((DWORD)wParam != FI_IF_VERSION)
+        return 0;
 
     if(ppfe) {
         *ppfe = &feif;
@@ -758,7 +766,7 @@ static int serviceSave(WPARAM wParam, LPARAM lParam)
         if(isi->szName) {
             if(isi->fif == FIF_UNKNOWN) {
                 if(lParam & IMGL_WCHAR)
-                    fif = FreeImage_GetFIFFromFilenameU((wchar_t *)isi->szName);
+                    fif = FreeImage_GetFIFFromFilenameU(isi->wszName);
                 else
                     fif = FreeImage_GetFIFFromFilename(isi->szName);
             }
@@ -778,7 +786,7 @@ static int serviceSave(WPARAM wParam, LPARAM lParam)
 
             if(dib) {
 				if(lParam & IMGL_WCHAR)
-					FreeImage_SaveU(fif, dib, (wchar_t *)isi->szName, 0);
+					FreeImage_SaveU(fif, dib, isi->wszName, 0);
 				else
 					FreeImage_Save(fif, dib, isi->szName, 0);
 

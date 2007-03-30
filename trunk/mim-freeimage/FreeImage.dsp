@@ -377,6 +377,10 @@ SOURCE=.\Source\Metadata\FreeImageTag.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\m_imgsrvc.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\Source\Plugin.h
 # End Source File
 # Begin Source File

@@ -10,12 +10,11 @@ Source\LibPNG\LibPNG.vpj=,CFG=LibPNG - Win32 Debug
 Source\LibTIFF\LibTIFF.vpj=,CFG=LibTIFF - Win32 Debug
 Source\ZLib\ZLib.vpj=,CFG=ZLib - Win32 Debug
 [ProjectDates]
-FreeImage.dsp=20070329014541109
-SOURCE\FreeImageLib\FreeImageLib.dsp=20060226195516000
-Wrapper\FreeImagePlus\FreeImagePlus.dsp=20070324001027403
-Source\LibJPEG\LibJPEG.dsp=20070324001027434
-Source\LibPNG\LibPNG.dsp=20070324001027450
-Source\ZLib\ZLib.dsp=20070323233904509
+FreeImage.dsp=20070330041701501
+SOURCE\FreeImageLib\FreeImageLib.dsp=20070329165320209
+Wrapper\FreeImagePlus\FreeImagePlus.dsp=20070329165320209
+Source\LibJPEG\LibJPEG.dsp=20070329165320209
+Source\LibPNG\LibPNG.dsp=20070329165320209
 [TreeExpansion2]
 - FreeImage.dsp
   - Header Files
@@ -32,26 +31,10 @@ Source\ZLib\ZLib.dsp=20070323233904509
 + Wrapper\FreeImagePlus\FreeImagePlus.dsp
 + Source\LibJPEG\LibJPEG.dsp
 + Source\LibPNG\LibPNG.dsp
-+ Source\ZLib\ZLib.dsp
-scroll:0
+scroll:7
 [State]
-SCREEN: 1600 1200 23 13 1380 1128 0 0 N 0 0 0 0 1030 778
+SCREEN: 1600 1200 66 6 1380 1128 0 0 N 0 0 0 0 1030 778
 CWD: ..\freeimage
-BUFFER: BN="..\..\protocols\MSN\msn_p2p.cpp"
-BI: MA=1 74 1  TABS=1 5  WWS=1 IWT=0 ST=0 IN=2 BW=0 US=32000 RO=0 SE=1 SN=0 BIN=0 MN=C	HM=0 MF=608 TL=0 MLL=0 ASE=0 LNL=6 LCF=2 CAPS=0 E=0 ESBU2=-1
-VIEW: LN=.1160 CL=15 LE=0 CX=15 CY=32 WI=5 BI=4 HT=0 HN=0 HF=0 HC=4
-BUFFER: BN="AVS\png2dib.cpp"
-BI: MA=1 74 1  TABS=1 5  WWS=1 IWT=0 ST=0 IN=2 BW=0 US=32000 RO=0 SE=1 SN=0 BIN=0 MN=C	HM=0 MF=616 TL=0 MLL=0 ASE=0 LNL=6 LCF=2 CAPS=0 E=0 ESBU2=-1
-VIEW: LN=.6786 CL=17 LE=0 CX=17 CY=33 WI=5 BI=22 HT=0 HN=0 HF=0 HC=4
-BUFFER: BN="..\..\include\m_imgsrvc.h"
-BI: MA=1 74 1  TABS=1 5  WWS=1 IWT=0 ST=0 IN=2 BW=0 US=32000 RO=0 SE=1 SN=0 BIN=0 MN=C	HM=0 MF=131176 TL=0 MLL=0 ASE=0 LNL=6 LCF=2 CAPS=0 E=0 ESBU2=-1
-VIEW: LN=.20072 CL=47 LE=0 CX=47 CY=36 WI=5 BI=23 HT=0 HN=0 HF=0 HC=4
-BUFFER: BN="..\..\protocols\MSN\msn_bitmap.cpp"
-BI: MA=1 74 1  TABS=1 5  WWS=1 IWT=0 ST=0 IN=2 BW=0 US=32000 RO=0 SE=1 SN=0 BIN=0 MN=C	HM=0 MF=131680 TL=0 MLL=0 ASE=0 LNL=6 LCF=2 CAPS=0 E=0 ESBU2=-1
-VIEW: LN=.1264 CL=25 LE=0 CX=25 CY=31 WI=5 BI=24 HT=0 HN=0 HF=0 HC=4
-WINDOW: 0 0 832 535 -1 -1 M  WF=0 WT=1 "Consolas,10,0,1"
-BUFFER: BN="..\..\protocols\MSN\msn_bitmap.cpp"
-VIEW: LN=.5894 CL=44 LE=0 CX=52 CY=27 WI=281 BI=24 HT=0 HN=0 HF=0 HC=4
 FILEHIST: 9
 Source\FreeImage.h
 m_imgsrvc.h
@@ -59,6 +42,6 @@ Source\FreeImage\BitmapAccess.cpp
 AVS\image_utils.cpp
 AVS\main.cpp
 ..\..\protocols\MSN\msn_p2p.cpp
+..\..\protocols\MSN\msn_bitmap.cpp
 ..\..\include\m_imgsrvc.h
 AVS\png2dib.cpp
-..\..\protocols\MSN\msn_bitmap.cpp
