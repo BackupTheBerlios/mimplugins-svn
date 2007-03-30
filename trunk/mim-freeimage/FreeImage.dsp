@@ -55,7 +55,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 ..\zlib\Release\zlib.lib msimg32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /base:"0x5130000" /dll /machine:I386 /out:"..\..\bin\Release\Plugins\fe_imgsrvc.dll" /opt:NOWIN98
+# ADD LINK32 ..\zlib\Release\zlib.lib msimg32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /base:"0x5130000" /dll /machine:I386 /out:"..\..\bin\Release\Plugins\advaimg.dll" /opt:NOWIN98
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
@@ -122,7 +122,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 msimg32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /base:"0x5130000" /dll /machine:I386 /opt:NOWIN98
 # SUBTRACT BASE LINK32 /pdb:none
-# ADD LINK32 ..\zlib\Release\zlib.lib msimg32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /base:"0x5130000" /dll /machine:I386 /out:"..\..\bin\Release Unicode\Plugins\fe_imgsrvc.dll" /opt:NOWIN98
+# ADD LINK32 ..\zlib\Release\zlib.lib msimg32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /base:"0x5130000" /dll /machine:I386 /out:"..\..\bin\Release Unicode\Plugins\advaimg.dll" /opt:NOWIN98
 # SUBTRACT LINK32 /pdb:none
 
 !ENDIF 
@@ -291,7 +291,7 @@ SOURCE=.\Source\Metadata\TagConversion.cpp
 SOURCE=.\Source\Metadata\TagLib.cpp
 # End Source File
 # End Group
-# Begin Group "PNG2DIB"
+# Begin Group "Miranda"
 
 # PROP Default_Filter ""
 # Begin Source File

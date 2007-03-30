@@ -660,7 +660,7 @@ static int servicePng2Dib( WPARAM wParam, LPARAM lParam )
 	return mempng2dib( param->pSource, param->cbSourceSize, param->pResult );
 }
 
-FE_INTERFACE feif = {0};
+FI_INTERFACE feif = {0};
 
 /*
  * caller MUST supply the desired version in wParam
@@ -669,17 +669,17 @@ FE_INTERFACE feif = {0};
 
 static int serviceGetInterface(WPARAM wParam, LPARAM lParam)
 {
-    FE_INTERFACE **ppfe = (FE_INTERFACE **)lParam;
+    FI_INTERFACE **ppfe = (FI_INTERFACE **)lParam;
 
     if((DWORD)wParam != FI_IF_VERSION)
-        return 0;
+        return CALLSERVICE_NOTFOUND;
 
     if(ppfe) {
         *ppfe = &feif;
-        return 1;
+        return S_OK;
     }
     else
-        return 0;
+        return CALLSERVICE_NOTFOUND;
 }
 
 static int serviceLoad(WPARAM wParam, LPARAM lParam)
@@ -800,18 +800,9 @@ static int serviceSave(WPARAM wParam, LPARAM lParam)
     }
     return 0;
 }
-static HANDLE hGetIF, hLoad, hLoadFromMem, hSave, hUnload, hResize;
 
-static int IMGSERVICE_Load()
+void FI_Populate(void)
 {
-    hDib2mempng = CreateServiceFunction( MS_DIB2PNG, serviceDib2Png );
-	hMempng2Dib = CreateServiceFunction( MS_PNG2DIB, servicePng2Dib );
-    hGetIF = CreateServiceFunction(MS_IMG_GETINTERFACE, serviceGetInterface);
-    hLoad = CreateServiceFunction(MS_IMG_LOAD, serviceLoad);
-    hLoadFromMem = CreateServiceFunction(MS_IMG_LOADFROMMEM, serviceLoadFromMem);
-    hSave = CreateServiceFunction(MS_IMG_SAVE, serviceSave);
-    hUnload = CreateServiceFunction(MS_IMG_UNLOAD, serviceUnload);
-    hResize = CreateServiceFunction(MS_IMG_RESIZE, serviceBmpFilterResizeBitmap);
     /*
      * populate the interface
      */
@@ -900,7 +891,7 @@ static int IMGSERVICE_Load()
     feif.FI_ConvertTo24Bits = FreeImage_ConvertTo24Bits;
     feif.FI_ConvertTo32Bits = FreeImage_ConvertTo32Bits;
     feif.FI_ColorQuantize = FreeImage_ColorQuantize;
-    //feif.FI_ColorQuantizeEx = FreeImage_ColorQuantizeEx;
+    feif.FI_ColorQuantizeEx = FreeImage_ColorQuantizeEx;
     feif.FI_Threshold = FreeImage_Threshold;
     feif.FI_Dither = FreeImage_Dither;
     feif.FI_ConvertFromRawBits = FreeImage_ConvertFromRawBits;
@@ -943,7 +934,7 @@ static int IMGSERVICE_Load()
     feif.FI_AdjustBrightness = FreeImage_AdjustBrightness;
     feif.FI_AdjustContrast = FreeImage_AdjustContrast;
     feif.FI_Invert = FreeImage_Invert;
-    //feif.FI_GetHistogram = FreeImage_GetHistogram;
+    feif.FI_GetHistogram = FreeImage_GetHistogram;
 
     feif.FI_GetChannel = FreeImage_GetChannel;
     feif.FI_SetChannel = FreeImage_SetChannel;
@@ -965,6 +956,67 @@ static int IMGSERVICE_Load()
 
     feif.FI_Premultiply = FreeImage_PreMultiply;
     feif.FI_BmpFilterResizeBitmap = serviceBmpFilterResizeBitmap;
+
+    feif.FI_IsLittleEndian = FreeImage_IsLittleEndian;
+    feif.FI_LookupX11Color = FreeImage_LookupX11Color;
+    feif.FI_LookupSVGColor = FreeImage_LookupSVGColor;
+
+    feif.FI_GetICCProfile = FreeImage_GetICCProfile;
+    feif.FI_CreateICCProfile = FreeImage_CreateICCProfile;
+    feif.FI_DestroyICCProfile = FreeImage_DestroyICCProfile;
+
+    feif.FI_ToneMapping = FreeImage_ToneMapping;
+    feif.FI_TmoDrago03 = FreeImage_TmoDrago03;
+    feif.FI_TmoReinhard05 = FreeImage_TmoReinhard05;
+
+    feif.FI_ZLibCompress = FreeImage_ZLibCompress;
+    feif.FI_ZLibUncompress = FreeImage_ZLibUncompress;
+    feif.FI_ZLibGZip = FreeImage_ZLibGZip;
+    feif.FI_ZLibGUnzip = FreeImage_ZLibGUnzip;
+    feif.FI_ZLibCRC32 = FreeImage_ZLibCRC32;
+
+    feif.FI_CreateTag = FreeImage_CreateTag;
+    feif.FI_DeleteTag = FreeImage_DeleteTag;
+    feif.FI_CloneTag = FreeImage_CloneTag;
+
+    feif.FI_GetTagKey = FreeImage_GetTagKey;
+    feif.FI_GetTagDescription = FreeImage_GetTagDescription;
+    feif.FI_GetTagID = FreeImage_GetTagID;
+    feif.FI_GetTagType = FreeImage_GetTagType;
+    feif.FI_GetTagCount = FreeImage_GetTagCount;
+    feif.FI_GetTagLength = FreeImage_GetTagLength;
+    feif.FI_GetTagValue = FreeImage_GetTagValue;
+
+    feif.FI_SetTagKey = FreeImage_SetTagKey;
+    feif.FI_SetTagDescription = FreeImage_SetTagDescription;
+    feif.FI_SetTagID = FreeImage_SetTagID;
+    feif.FI_SetTagType = FreeImage_SetTagType;
+    feif.FI_SetTagCount = FreeImage_SetTagCount;
+    feif.FI_SetTagLength = FreeImage_SetTagLength;
+    feif.FI_SetTagValue = FreeImage_SetTagValue;
+
+    feif.FI_FindFirstMetadata = FreeImage_FindFirstMetadata;
+    feif.FI_FindNextMetadata = FreeImage_FindNextMetadata;
+    feif.FI_FindCloseMetadata = FreeImage_FindCloseMetadata;
+    feif.FI_SetMetadata = FreeImage_SetMetadata;
+    feif.FI_GetMetadata = FreeImage_GetMetadata;
+
+    feif.FI_GetMetadataCount = FreeImage_GetMetadataCount;
+    feif.FI_TagToString = FreeImage_TagToString;
+}
+
+static HANDLE hGetIF, hLoad, hLoadFromMem, hSave, hUnload, hResize;
+
+static int IMGSERVICE_Load()
+{
+    hDib2mempng = CreateServiceFunction( MS_DIB2PNG, serviceDib2Png );
+	hMempng2Dib = CreateServiceFunction( MS_PNG2DIB, servicePng2Dib );
+    hGetIF = CreateServiceFunction(MS_IMG_GETINTERFACE, serviceGetInterface);
+    hLoad = CreateServiceFunction(MS_IMG_LOAD, serviceLoad);
+    hLoadFromMem = CreateServiceFunction(MS_IMG_LOADFROMMEM, serviceLoadFromMem);
+    hSave = CreateServiceFunction(MS_IMG_SAVE, serviceSave);
+    hUnload = CreateServiceFunction(MS_IMG_UNLOAD, serviceUnload);
+    hResize = CreateServiceFunction(MS_IMG_RESIZE, serviceBmpFilterResizeBitmap);
 	return 0;
 }
 

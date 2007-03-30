@@ -10,11 +10,11 @@ Source\LibPNG\LibPNG.vpj=,CFG=LibPNG - Win32 Debug
 Source\LibTIFF\LibTIFF.vpj=,CFG=LibTIFF - Win32 Debug
 Source\ZLib\ZLib.vpj=,CFG=ZLib - Win32 Debug
 [ProjectDates]
-FreeImage.dsp=20070330041701501
+FreeImage.dsp=20070330150126817
 SOURCE\FreeImageLib\FreeImageLib.dsp=20070329165320209
 Wrapper\FreeImagePlus\FreeImagePlus.dsp=20070329165320209
 Source\LibJPEG\LibJPEG.dsp=20070329165320209
-Source\LibPNG\LibPNG.dsp=20070329165320209
+Source\LibPNG\LibPNG.dsp=20070330140824942
 [TreeExpansion2]
 - FreeImage.dsp
   - Header Files

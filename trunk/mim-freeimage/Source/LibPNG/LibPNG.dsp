@@ -186,10 +186,6 @@ SOURCE=.\png.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\pngasmrd.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\pngconf.h
 # End Source File
 # End Group
