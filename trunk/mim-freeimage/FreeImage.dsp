@@ -296,19 +296,7 @@ SOURCE=.\Source\Metadata\TagLib.cpp
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\AVS\png2dib.cpp
-
-!IF  "$(CFG)" == "FreeImage - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "FreeImage - Win32 Debug"
-
-!ELSEIF  "$(CFG)" == "FreeImage - Win32 Release Unicode"
-
-# ADD CPP /D "UNICODE" /D "_UNICODE"
-# SUBTRACT CPP /D "_MBCS"
-
-!ENDIF 
-
+SOURCE=.\Miranda\main.cpp
 # End Source File
 # End Group
 # Begin Source File
@@ -377,7 +365,11 @@ SOURCE=.\Source\Metadata\FreeImageTag.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\include\m_imgsrvc.h
+SOURCE=.\Miranda\include\m_freeimage.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Miranda\include\m_imgsrvc.h
 # End Source File
 # Begin Source File
 

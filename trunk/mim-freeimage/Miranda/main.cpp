@@ -43,7 +43,7 @@ Last change by : $Author: rainwater $
 #include <m_png.h>
 #include <m_clui.h>
 
-#include <m_imgsrvc.h>
+#include "include\m_imgsrvc.h"
 
 #include "..\Source\libpng\png.h"
 
@@ -945,8 +945,6 @@ void FI_Populate(void)
     feif.FI_Paste = FreeImage_Paste;
     feif.FI_Composite = FreeImage_Composite;
     feif.FI_JPEGCrop = FreeImage_JPEGCrop;
-
-    // own functions (not freeimage)
 
     feif.FI_LoadFromMem = FreeImage_LoadFromMem;
     feif.FI_SaveToMem = FreeImage_SaveToMem;
