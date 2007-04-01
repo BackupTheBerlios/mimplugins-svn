@@ -50,7 +50,7 @@ struct CacheNode *FindAvatarInCache(HANDLE hContact, BOOL add);
 
 extern HANDLE hEventContactAvatarChanged;
 extern BOOL g_AvatarHistoryAvail;
-extern FE_INTERFACE *fei;
+extern FI_INTERFACE *fei;
 
 #ifdef _DEBUG
 int _DebugTrace(const char *fmt, ...);

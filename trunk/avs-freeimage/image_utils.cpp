@@ -5,8 +5,6 @@
 #include <ocidl.h>
 #include <olectl.h>
 
-#include <m_imgsrvc.h>
-
 // This is needed to use mEncoderQuality
 #undef DEFINE_GUID
 #define DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
@@ -36,7 +34,7 @@ extern int _DebugTrace(HANDLE hContact, const char *fmt, ...);
 
 extern int AVS_pathToRelative(const char *sPrc, char *pOut);
 extern int AVS_pathToAbsolute(const char *pSrc, char *pOut);
-extern FE_INTERFACE *fei;
+extern FI_INTERFACE *fei;
 
 // Make a bitmap all transparent, but only if it is a 32bpp
 void MakeBmpTransparent(HBITMAP hBitmap)

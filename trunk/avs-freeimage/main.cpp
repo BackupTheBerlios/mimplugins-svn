@@ -64,7 +64,7 @@ static int  OkToExitProc(WPARAM wParam, LPARAM lParam);
 static int  OnDetailsInit(WPARAM wParam, LPARAM lParam);
 static int  GetFileHash(char* filename);
 
-FE_INTERFACE *fei = 0;
+FI_INTERFACE *fei = 0;
 
 PLUGININFO pluginInfo = {
     sizeof(PLUGININFO), 
@@ -1582,15 +1582,7 @@ static int ModulesLoaded(WPARAM wParam, LPARAM lParam)
     TCHAR szEventName[100];
 	int   result = 0;
 
-	if(ServiceExists(MS_IMG_GETINTERFACE))
-		result = CallService(MS_IMG_GETINTERFACE, FI_IF_VERSION, (LPARAM)&fei);
-
     InitPolls();
-
-	if(fei == NULL || result == 0) {
-		MessageBox(0, _T("Fatal error, image services not found. Avatar service will be disabled"), _T("Loadavatars"), MB_OK);
-		//DestroyServicesAndEvents();
-	}
 
     mir_sntprintf(szEventName, 100, _T("avs_loaderthread_%d"), GetCurrentThreadId());
     hLoaderEvent = CreateEvent(NULL, TRUE, FALSE, szEventName);
@@ -2038,10 +2030,19 @@ extern "C" __declspec(dllexport) const MUUID * MirandaPluginInterfaces(void)
 
 extern "C" int __declspec(dllexport) Load(PLUGINLINK * link)
 {
+	int result = CALLSERVICE_NOTFOUND;
+
     pluginLink = link;
     dwMainThreadID = GetCurrentThreadId();
-	LoadACC();
 
+	if(ServiceExists(MS_IMG_GETINTERFACE))
+		result = CallService(MS_IMG_GETINTERFACE, FI_IF_VERSION, (LPARAM)&fei);
+
+	if(fei == NULL || result != S_OK) {
+		MessageBox(0, _T("Fatal error, image services not found. Avatar service will be disabled"), _T("Loadavatars"), MB_OK);
+		return 1;
+	}
+	LoadACC();
     return LoadAvatarModule();
 }
 
