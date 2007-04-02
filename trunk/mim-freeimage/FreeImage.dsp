@@ -110,7 +110,7 @@ PostBuild_Cmds=copy Debug\FreeImaged.dll Dist	copy Debug\FreeImaged.lib Dist	cop
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O1 /I "Source" /I "Source\ZLib" /I "Source\DeprecationManager" /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "FREEIMAGE_EXPORTS" /FD /c
 # SUBTRACT BASE CPP /YX
-# ADD CPP /nologo /MD /W3 /GX /O1 /I "Source" /I "Source\ZLib" /I "Source\DeprecationManager" /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "FREEIMAGE_EXPORTS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O1 /I "Source" /I "Source\ZLib" /I "Source\DeprecationManager" /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_UNICODE" /D "_USRDLL" /D "FREEIMAGE_EXPORTS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32

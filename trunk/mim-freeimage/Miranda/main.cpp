@@ -104,6 +104,55 @@ PLUGININFOEX pluginInfoEx = {
 
 static HWND hwndClui = 0;
 
+// Correct alpha from bitmaps loaded without it (it cames with 0 and should be 255)
+// originally in loadavatars...
+
+static void FI_CorrectBitmap32Alpha(HBITMAP hBitmap, BOOL force)
+{
+	BITMAP bmp;
+	DWORD dwLen;
+	BYTE *p;
+	int x, y;
+	BOOL fixIt;
+
+	GetObject(hBitmap, sizeof(bmp), &bmp);
+
+	if (bmp.bmBitsPixel != 32)
+		return;
+
+	dwLen = bmp.bmWidth * bmp.bmHeight * (bmp.bmBitsPixel / 8);
+	p = (BYTE *)malloc(dwLen);
+	if (p == NULL)
+		return;
+	memset(p, 0, dwLen);
+
+	GetBitmapBits(hBitmap, dwLen, p);
+
+	fixIt = TRUE;
+	for (y = 0; fixIt && y < bmp.bmHeight; ++y) {
+        BYTE *px = p + bmp.bmWidth * 4 * y;
+
+        for (x = 0; fixIt && x < bmp.bmWidth; ++x) 
+		{
+			if (px[3] != 0 && !force) 
+			{
+				fixIt = FALSE;
+			}
+			else
+			{
+				px[3] = 255;
+			}
+
+			px += 4;
+		}
+	}
+
+	if (fixIt)
+		SetBitmapBits(hBitmap, dwLen, p);
+
+	free(p);
+}
+
 /*
  * needed for per pixel transparent images. Such images should then be rendered by
  * using AlphaBlend() with AC_SRC_ALPHA
@@ -801,6 +850,11 @@ static int serviceSave(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+static int serviceGetVersion(WPARAM wParam, LPARAM lParam)
+{
+    return FI_IF_VERSION;
+}
+
 void FI_Populate(void)
 {
     /*
@@ -1001,9 +1055,11 @@ void FI_Populate(void)
 
     feif.FI_GetMetadataCount = FreeImage_GetMetadataCount;
     feif.FI_TagToString = FreeImage_TagToString;
+
+    feif.FI_CorrectBitmap32Alpha = FI_CorrectBitmap32Alpha;
 }
 
-static HANDLE hGetIF, hLoad, hLoadFromMem, hSave, hUnload, hResize;
+static HANDLE hGetIF, hLoad, hLoadFromMem, hSave, hUnload, hResize, hGetVersion;
 
 static int IMGSERVICE_Load()
 {
@@ -1015,6 +1071,7 @@ static int IMGSERVICE_Load()
     hSave = CreateServiceFunction(MS_IMG_SAVE, serviceSave);
     hUnload = CreateServiceFunction(MS_IMG_UNLOAD, serviceUnload);
     hResize = CreateServiceFunction(MS_IMG_RESIZE, serviceBmpFilterResizeBitmap);
+    hGetVersion = CreateServiceFunction(MS_IMG_GETIFVERSION, serviceGetVersion);
 	return 0;
 }
 
@@ -1037,6 +1094,7 @@ static int IMGSERVICE_Unload( void )
     DestroyServiceFunction( hSave );
     DestroyServiceFunction( hUnload );
     DestroyServiceFunction( hResize );
+    DestroyServiceFunction( hGetVersion );
 	return 0;
 }
 

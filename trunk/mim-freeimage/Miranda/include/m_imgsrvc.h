@@ -34,6 +34,8 @@ by the FreeImage project (http://freeimage.sourceforge.net)
 #ifndef __M_IMGSRVC_H
 #define __M_IMGSRVC_H
 
+#define _FI_MIMPLUGIN 1
+
 #include "m_freeimage.h"
 
 #define FI_IF_VERSION (PLUGIN_MAKE_VERSION(0, 0, 1, 0))           // interface version - must match
@@ -69,7 +71,9 @@ long __stdcall fiio_mem_TellProc(fi_handle handle);
 
 /*
  * this interface directly exports most of FreeImage routines
-*/
+ * you can use them in your plugin after obtaining the interfasce using MS_IMG_GETINTERFACE
+ */
+
 typedef struct _tagFI_interface {
 
     DWORD version;
@@ -320,13 +324,17 @@ typedef struct _tagFI_interface {
 
 // own functions
 
+    // memory I/O
     FIBITMAP *(*FI_LoadFromMem)(FREE_IMAGE_FORMAT fif, fiio_mem_handle *handle, int flags);
     BOOL (*FI_SaveToMem)(FREE_IMAGE_FORMAT fif, FIBITMAP *dib, fiio_mem_handle *handle, int flags);
 
+    // helpers
     FIBITMAP *(*FI_CreateDIBFromHBITMAP)(HBITMAP hBmp);
     HBITMAP  (*FI_CreateHBITMAPFromDIB)(FIBITMAP *dib);
-    BOOL     (*FI_Premultiply)(HBITMAP hBmp);
-    int      (*FI_BmpFilterResizeBitmap)(WPARAM wParam,LPARAM lParam);
+    BOOL     (*FI_Premultiply)(HBITMAP hBmp);                               // premultiplies alpha channel for usage with AlphaBlend()
+                                                                            // original HBITMAP stays valid and must be 32bit RGBA
+    int      (*FI_BmpFilterResizeBitmap)(WPARAM wParam,LPARAM lParam);      // more generic resizer for avatar images
+    void     (*FI_CorrectBitmap32Alpha)(HBITMAP hBitmap, BOOL force);       // corrects broken images (when all alpha values are 0)
 
     BYTE  reserved[200];            // future usage
 } FI_INTERFACE;
@@ -337,6 +345,12 @@ typedef struct _tagFI_interface {
  * only basic functionality is wrapped around Miranda services, because otherwise we would get a huge
  * load of services with complex parameter marshalling requirements.
  */
+
+// get the interface version number
+// wParam = lParam = 0
+// returns FI_IF_VERSION
+
+#define MS_IMG_GETIFVERSION "IMG/GetVersion"
 
 // obtain the full FreeImage interface from the library. This interface provides full access to freeimage
 // internal functions, thus enabling devs to fully utilize the FreeImage API. Only popular functions will
@@ -367,7 +381,7 @@ typedef struct _tagFI_interface {
 
 #define IMGL_WCHAR     2        // filename is wchar_t
 
-#if defined(UNICODE)
+#if defined(UNICODE) || defined(_UNICODE)
     #define IMGL_TCHAR  IMGL_WCHAR
 #else
     #define IMGL_TCHAR  0
@@ -377,6 +391,7 @@ typedef struct _tagFI_interface {
 // wParam = full path and filename to the image
 // lParam = IMGL_* flags
 // returns a valid HBITMAP or 0 if image cannot be loaded
+// if IMGL_RETURNDIB is set, it returns a pointer to a freeimage bitmap (FIBITMAP *)
 
 #define MS_IMG_LOAD "IMG/Load"
 
@@ -425,6 +440,7 @@ typedef struct _tagIMGSRVC_INFO {
 // wParam = IMGSRVC_INFO *  (szName/wszName, hbm OR dib, cbSize, dwMask mandatory. fif optional, if FIF_UNKNOWN is given
 //                           it will be determined from the filename).
 // lParam = IMG_* flags     (IMGL_WCHAR is the only valid - filename will be assumed to be wchar_t and wszName must be used)
+// set IMGSRVC_INFO.dwMask to indicate whether the HBITMAP of FIBITMAP member is valid
 
 #define MS_IMG_SAVE  "IMG/Save"
 
