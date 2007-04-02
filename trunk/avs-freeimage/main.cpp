@@ -632,7 +632,9 @@ done:
         return -2;
     }
     CloseHandle(hFile);
-	ace->hbmPic = (HBITMAP) BmpFilterLoadBitmap32(NULL, (LPARAM)szFilename);
+    WPARAM isTransparentImage = 0;
+
+	ace->hbmPic = (HBITMAP) BmpFilterLoadBitmap32((WPARAM)&isTransparentImage, (LPARAM)szFilename);
 	ace->dwFlags = 0;
 	ace->bmHeight = 0;
 	ace->bmWidth = 0;
@@ -695,9 +697,9 @@ done:
 
 		if (DBGetContactSettingByte(0, AVS_MODULE, "RemoveAllTransparency", 0))
 		{
-			CorrectBitmap32Alpha(ace->hbmPic, TRUE);
+			fei->FI_CorrectBitmap32Alpha(ace->hbmPic, TRUE);
 		}
-        if (bminfo.bmBitsPixel == 32)
+        if (bminfo.bmBitsPixel == 32 && isTransparentImage)
 		{
 			if (fei->FI_Premultiply(ace->hbmPic))
 			{

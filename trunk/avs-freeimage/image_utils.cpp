@@ -59,53 +59,6 @@ void MakeBmpTransparent(HBITMAP hBitmap)
 	free(p);
 }
 
-// Correct alpha from bitmaps loaded without it (it cames with 0 and should be 255)
-void CorrectBitmap32Alpha(HBITMAP hBitmap, BOOL force)
-{
-	BITMAP bmp;
-	DWORD dwLen;
-	BYTE *p;
-	int x, y;
-	BOOL fixIt;
-
-	GetObject(hBitmap, sizeof(bmp), &bmp);
-
-	if (bmp.bmBitsPixel != 32)
-		return;
-
-	dwLen = bmp.bmWidth * bmp.bmHeight * (bmp.bmBitsPixel / 8);
-	p = (BYTE *)malloc(dwLen);
-	if (p == NULL)
-		return;
-	memset(p, 0, dwLen);
-
-	GetBitmapBits(hBitmap, dwLen, p);
-
-	fixIt = TRUE;
-	for (y = 0; fixIt && y < bmp.bmHeight; ++y) {
-        BYTE *px = p + bmp.bmWidth * 4 * y;
-
-        for (x = 0; fixIt && x < bmp.bmWidth; ++x) 
-		{
-			if (px[3] != 0 && !force) 
-			{
-				fixIt = FALSE;
-			}
-			else
-			{
-				px[3] = 255;
-			}
-
-			px += 4;
-		}
-	}
-
-	if (fixIt)
-		SetBitmapBits(hBitmap, dwLen, p);
-
-	free(p);
-}
-
 HBITMAP CopyBitmapTo32(HBITMAP hBitmap)
 {
 	BITMAPINFO RGB32BitsBITMAPINFO; 
@@ -157,7 +110,7 @@ HBITMAP CopyBitmapTo32(HBITMAP hBitmap)
 		DeleteObject(hdcOrig);
 
 		// Set alpha
-		CorrectBitmap32Alpha(hDirectBitmap, FALSE);
+		fei->FI_CorrectBitmap32Alpha(hDirectBitmap, FALSE);
 	}
 	else
 	{
@@ -272,7 +225,9 @@ void SetHIMETRICtoDP(HDC hdc, SIZE* sz)
 
 int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 {
-    if(fei == NULL)
+    FIBITMAP *dib32 = NULL;
+
+	if(fei == NULL)
         return 0;
 
     FIBITMAP *dib = (FIBITMAP *)CallService(MS_IMG_LOAD, lParam, IMGL_RETURNDIB);
@@ -280,10 +235,20 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
 	if(dib == NULL)
 		return 0;
 
-    FIBITMAP *dib32 = fei->FI_ConvertTo32Bits(dib);
-	fei->FI_Unload(dib);
+    if(fei->FI_GetBPP(dib) != 32) {
+        dib32 = fei->FI_ConvertTo32Bits(dib);
+	    fei->FI_Unload(dib);
+    }
+    else
+        dib32 = dib;
 
     if(dib32) {
+        if(fei->FI_IsTransparent(dib32)) {
+            if(wParam) {
+                DWORD *dwTrans = (DWORD *)wParam;
+				*dwTrans = 1;
+			}
+        }
 		if(fei->FI_GetWidth(dib32) > 100 || fei->FI_GetHeight(dib32) > 100) {
 			FIBITMAP *dib_new = fei->FI_MakeThumbnail(dib32, 100, FALSE);
             fei->FI_Unload(dib32);
@@ -295,6 +260,7 @@ int BmpFilterLoadBitmap32(WPARAM wParam,LPARAM lParam)
         HBITMAP bitmap = fei->FI_CreateHBITMAPFromDIB(dib32);
 
         fei->FI_Unload(dib32);
+        fei->FI_CorrectBitmap32Alpha(bitmap, FALSE);
         return (int)bitmap;
 	}
     return 0;
