@@ -99,6 +99,7 @@ struct CacheNode {
 #define AVDRQ_HIDEBORDERONTRANSPARENCY 32  // hide border if bitmap has transparency
 #define AVDRQ_OWNPIC	64				   // draw own avatar (szProto is valid)
 #define AVDRQ_RESPECTHIDDEN 128			   // don't draw images marked as hidden
+#define AVDRQ_DONTRESIZEIFSMALLER 256	   // don't resize images that are smaller then the draw area
 
 // request to draw a contacts picture. See MS_AV_DRAWAVATAR service description
 
@@ -164,7 +165,7 @@ typedef struct _avatarDrawRequest {
 // 
 // wParam = (char *) protocol name
 // lParam = either a full picture filename or NULL. If lParam == NULL, the service
-// will open a file selection dialog.
+// will open a file selection dialog. If lParam == "" the avatar will be removed
 
 #define MS_AV_SETMYAVATAR "SV_Avatars/SetMyAvatar"
 

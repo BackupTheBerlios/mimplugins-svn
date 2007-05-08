@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define DM_AVATARCHANGED (WM_USER + 20)
 #define DM_MYAVATARCHANGED (WM_USER + 21)
 
-
 typedef struct 
 {
 	HANDLE hContact;
@@ -41,6 +40,7 @@ typedef struct
 	char noAvatarText[128];
 	BOOL respectHidden;
 	BOOL showingFlash;
+	BOOL resizeIfSmaller;
 
 } ACCData;
 
@@ -126,6 +126,58 @@ BOOL StartFlash(HWND hwnd, ACCData* data)
 	return FALSE;
 }
 
+BOOL ScreenToClient(HWND hWnd, LPRECT lpRect)
+{
+	BOOL ret;
+
+	POINT pt;
+
+	pt.x = lpRect->left;
+	pt.y = lpRect->top;
+
+	ret = ScreenToClient(hWnd, &pt);
+
+	if (!ret) return ret;
+
+	lpRect->left = pt.x;
+	lpRect->top = pt.y;
+
+
+	pt.x = lpRect->right;
+	pt.y = lpRect->bottom;
+
+	ret = ScreenToClient(hWnd, &pt);
+
+	lpRect->right = pt.x;
+	lpRect->bottom = pt.y;
+
+	return ret;
+}
+
+static void Invalidate(HWND hwnd)
+{
+	ACCData* data =  (ACCData *) GetWindowLong(hwnd, 0);
+	if (data->bkgColor == -1)
+	{
+		HWND parent = GetParent(hwnd);
+		RECT rc;
+		GetWindowRect(hwnd, &rc);
+		ScreenToClient(parent, &rc); 
+		InvalidateRect(parent, &rc, TRUE);
+	}
+	InvalidateRect(hwnd, NULL, TRUE);
+}
+
+static void NotifyAvatarChange(HWND hwnd)
+{
+	PSHNOTIFY pshn = {0};
+	pshn.hdr.idFrom = GetDlgCtrlID(hwnd);
+	pshn.hdr.hwndFrom = hwnd;
+	pshn.hdr.code = NM_AVATAR_CHANGED;
+	pshn.lParam = 0;
+	SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM) &pshn);
+}
+
 static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM lParam) {
 	ACCData* data =  (ACCData *) GetWindowLong(hwnd, 0);
 	switch(msg) 
@@ -149,6 +201,7 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 			data->avatarBorderColor = -1;
 			data->respectHidden = TRUE;
 			data->showingFlash = FALSE;
+			data->resizeIfSmaller = TRUE;
 
 			return TRUE;
 		}
@@ -167,7 +220,7 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 		case WM_SETFONT:
 		{
 			data->hFont = (HFONT)wParam;
-			InvalidateRect(hwnd, NULL, FALSE);
+			Invalidate(hwnd);
 			break;
 		}
 		case AVATAR_SETCONTACT:
@@ -186,7 +239,8 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 				data->showingFlash = StartFlash(hwnd, data);
 			}
 
-			InvalidateRect(hwnd, NULL, TRUE);
+			NotifyAvatarChange(hwnd);
+			Invalidate(hwnd);
 			return TRUE;
 		}
 		case AVATAR_SETPROTOCOL:
@@ -198,9 +252,13 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 			}
 
 			data->hContact = NULL;
-			lstrcpynA(data->proto, (char *) lParam, sizeof(data->proto));
+			if (lParam == NULL)
+				data->proto[0] = '\0';
+			else
+				lstrcpynA(data->proto, (char *) lParam, sizeof(data->proto));
 
-			InvalidateRect(hwnd, NULL, TRUE);
+			NotifyAvatarChange(hwnd);
+			Invalidate(hwnd);
 			return TRUE;
 		}
 		case AVATAR_SETBKGCOLOR:
@@ -208,7 +266,8 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 			data->bkgColor = (COLORREF) lParam;
 			if (data->showingFlash)
 				SetBkgFlash(hwnd, data);
-			InvalidateRect(hwnd, NULL, TRUE);
+			NotifyAvatarChange(hwnd);
+			Invalidate(hwnd);
 			return TRUE;
 		}
 		case AVATAR_SETBORDERCOLOR:
@@ -216,31 +275,42 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 			data->borderColor = (COLORREF) lParam;
 			if (data->showingFlash)
 				ResizeFlash(hwnd, data);
-			InvalidateRect(hwnd, NULL, TRUE);
+			NotifyAvatarChange(hwnd);
+			Invalidate(hwnd);
 			return TRUE;
 		}
 		case AVATAR_SETAVATARBORDERCOLOR:
 		{
 			data->avatarBorderColor = (COLORREF) lParam;
-			InvalidateRect(hwnd, NULL, TRUE);
+			NotifyAvatarChange(hwnd);
+			Invalidate(hwnd);
 			return TRUE;
 		}
 		case AVATAR_SETAVATARROUNDCORNERRADIUS:
 		{
 			data->avatarRoundCornerRadius = (int) lParam;
-			InvalidateRect(hwnd, NULL, TRUE);
+			NotifyAvatarChange(hwnd);
+			Invalidate(hwnd);
 			return TRUE;
 		}
 		case AVATAR_SETNOAVATARTEXT:
 		{
 			lstrcpynA(data->noAvatarText, Translate((char*) lParam), sizeof(data->noAvatarText));
-			InvalidateRect(hwnd, NULL, TRUE);
+			Invalidate(hwnd);
 			return TRUE;
 		}
 		case AVATAR_RESPECTHIDDEN:
 		{
 			data->respectHidden = (BOOL) lParam;
-			InvalidateRect(hwnd, NULL, TRUE);
+			NotifyAvatarChange(hwnd);
+			Invalidate(hwnd);
+			return TRUE;
+		}
+		case AVATAR_SETRESIZEIFSMALLER:
+		{
+			data->resizeIfSmaller = (BOOL) lParam;
+			NotifyAvatarChange(hwnd);
+			Invalidate(hwnd);
 			return TRUE;
 		}
 		case AVATAR_GETUSEDSPACE:
@@ -293,7 +363,12 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 			int targetWidth = rc.right - rc.left;
 			int targetHeight = rc.bottom - rc.top;
 
-			if(ace->bmHeight > ace->bmWidth)
+			if (!data->resizeIfSmaller && ace->bmHeight <= targetHeight && ace->bmWidth <= targetWidth)
+			{
+				*height = ace->bmHeight;
+				*width = ace->bmWidth;
+			} 
+			else if (ace->bmHeight > ace->bmWidth)
 			{
 				float dScale = targetHeight / (float)ace->bmHeight;
 				*height = targetHeight;
@@ -319,11 +394,10 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 				}
 
 				if (DBGetContactSettingWord(data->hContact, "ContactPhoto", "Format", 0) == PA_FORMAT_XML)
-				{
 					data->showingFlash = StartFlash(hwnd, data);
-				}
 
-				InvalidateRect(hwnd, NULL, TRUE);
+				NotifyAvatarChange(hwnd);
+				Invalidate(hwnd);
 			}
             break;
 		}
@@ -337,7 +411,8 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 					data->showingFlash = FALSE;
 				}
 
-				InvalidateRect(hwnd, NULL, TRUE);
+				NotifyAvatarChange(hwnd);
+				Invalidate(hwnd);
 			}
             break;
 		}
@@ -399,7 +474,8 @@ static LRESULT CALLBACK ACCWndProc(HWND hwnd, UINT msg,  WPARAM wParam, LPARAM l
 				| (data->respectHidden ? AVDRQ_RESPECTHIDDEN : 0) 
 				| (data->hContact != NULL ? 0 : AVDRQ_OWNPIC)
 				| (data->avatarBorderColor == -1 ? 0 : AVDRQ_DRAWBORDER)
-				| (data->avatarRoundCornerRadius <= 0 ? 0 : AVDRQ_ROUNDEDCORNER);
+				| (data->avatarRoundCornerRadius <= 0 ? 0 : AVDRQ_ROUNDEDCORNER)
+				| (data->resizeIfSmaller ? 0 : AVDRQ_DONTRESIZEIFSMALLER);
             avdrq.clrBorder = data->avatarBorderColor;
             avdrq.radius = data->avatarRoundCornerRadius;
 			if (!CallService(MS_AV_DRAWAVATAR, 0, (LPARAM)&avdrq)) 

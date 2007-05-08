@@ -71,11 +71,11 @@ PLUGININFO pluginInfo = {
 #else
 	"Avatar service",
 #endif
-	PLUGIN_MAKE_VERSION(0, 0, 2, 13), 
+	PLUGIN_MAKE_VERSION(0, 0, 2, 14), 
 	"Load and manage contact pictures for other plugins", 
 	"Nightwish, Pescuma", 
 	"", 
-	"Copyright 2000-2005 Miranda-IM project", 
+	"Copyright 2000-2007 Miranda-IM project", 
 	"http://www.miranda-im.org", 
 	UNICODE_AWARE, 
 	0
@@ -108,6 +108,7 @@ PLUGININFOEX pluginInfoEx = {
 extern BOOL CALLBACK DlgProcOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern BOOL CALLBACK DlgProcAvatarOptions(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 extern BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+extern BOOL CALLBACK DlgProcAvatarProtoInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
 static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp);
@@ -117,14 +118,7 @@ static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp);
 
 /*
 wParam=0
-lParam=(const char *)Avatar file name
-return=0 for sucess
-*/
-#define MSN_PS_SETMYAVATAR "/SetAvatar"
-
-/*
-wParam=0
-lParam=(const char *)Avatar file name
+lParam=(const char *)Avatar file name or NULL to remove the avatar
 return=0 for sucess
 */
 #define PS_SETMYAVATAR "/SetMyAvatar"
@@ -1073,8 +1067,7 @@ static int CanSetMyAvatar(WPARAM wParam, LPARAM lParam)
     if(protocol == NULL)
         return 0;
 
-	return ProtoServiceExists(protocol, PS_SETMYAVATAR) 
-			|| ProtoServiceExists(protocol, MSN_PS_SETMYAVATAR); // TODO remove this when MSN change this
+	return ProtoServiceExists(protocol, PS_SETMYAVATAR);
 }
 
 /*
@@ -1189,6 +1182,44 @@ static int SetMyAvatar(WPARAM wParam, LPARAM lParam)
     /*
      * filename is now set, check it and perform all needed action
      */
+
+	if (szFinalName[0] == '\0')
+	{
+		// Remove avatar
+		int ret = 0;
+		if (protocol != NULL)
+		{
+			if (ProtoServiceExists(protocol, PS_SETMYAVATAR))
+				ret = CallProtoService(protocol, PS_SETMYAVATAR, 0, NULL);
+			else
+				ret = -3;
+		}
+		else
+		{
+			PROTOCOLDESCRIPTOR **protos;
+			int i,count;
+
+			CallService(MS_PROTO_ENUMPROTOCOLS, (WPARAM)&count, (LPARAM)&protos);
+			for (i = 0; i < count; i++)
+			{
+				if (protos[i]->type != PROTOTYPE_PROTOCOL)
+					continue;
+
+				if (protos[i]->szName == NULL || protos[i]->szName[0] == '\0')
+					continue;
+
+				// Found a protocol
+				if (ProtoServiceExists(protos[i]->szName, PS_SETMYAVATAR))
+				{
+					int retTmp = CallProtoService(protos[i]->szName, PS_SETMYAVATAR, 0, NULL);;
+					if (retTmp != 0)
+						ret = retTmp;
+				}
+			}
+		}
+
+		return ret;
+	}
 
     if((hFile = CreateFileA(szFinalName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE)
         return -3;
@@ -1330,14 +1361,13 @@ static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	}
 	
 	int ret;
-
 	if (saved)
 	{
 		// Call proto service
 		if (ProtoServiceExists(protocol, PS_SETMYAVATAR))
 			ret = CallProtoService(protocol, PS_SETMYAVATAR, 0, (LPARAM)image_file_name);
-		else if (ProtoServiceExists(protocol, MSN_PS_SETMYAVATAR))
-			ret = CallProtoService(protocol, MSN_PS_SETMYAVATAR, 0, (LPARAM)image_file_name); // TODO remove this when MSN change this
+		else 
+			ret = -4;
 
 		DeleteFileA(image_file_name);
 	}
@@ -1681,11 +1711,12 @@ static void ReloadMyAvatar(LPVOID lpParam)
 {
 	char *szProto = (char *)lpParam;
 	
-    Sleep(5000);
+    Sleep(1000);
     for(int i = 0; i < g_protocount; i++) {
 		if(!strcmp(g_MyAvatars[i].szProtoname, szProto)) {
 			if(g_MyAvatars[i].hbmPic)
 				DeleteObject(g_MyAvatars[i].hbmPic);
+			g_MyAvatars[i].hbmPic = NULL;
 
 			if(CreateAvatarInCache((HANDLE)-1, (struct avatarCacheEntry *)&g_MyAvatars[i], szProto) != -1)
 				NotifyEventHooks(hMyAvatarChanged, (WPARAM)szProto, (LPARAM)&g_MyAvatars[i]);
@@ -1878,7 +1909,11 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
         hdcAvatar = CreateCompatibleDC(r->hTargetDC);
         hbmMem = (HBITMAP)SelectObject(hdcAvatar, hbm);
 
-        if (bmHeight >= bmWidth) {
+		if ((r->dwFlags & AVDRQ_DONTRESIZEIFSMALLER) && ace->bmHeight <= targetHeight && ace->bmWidth <= targetWidth) {
+			newHeight = bmHeight;
+			newWidth = bmWidth;
+		} 
+        else if (bmHeight >= bmWidth) {
             dScale = targetHeight / (float)bmHeight;
             newHeight = targetHeight;
             newWidth = (int) (bmWidth * dScale);
@@ -1959,20 +1994,31 @@ static int DrawAvatarPicture(WPARAM wParam, LPARAM lParam)
 static int OnDetailsInit(WPARAM wParam, LPARAM lParam)
 {
 	HANDLE hContact = (HANDLE) lParam;
-	if (hContact == NULL) {
-		// Protocol dialog
-		return 0;
+	if (hContact == NULL) 
+	{
+		// User dialog
+		OPTIONSDIALOGPAGE odp = {0};
+		odp.cbSize = sizeof(odp);
+		odp.hIcon = g_hIcon;
+		odp.hInstance = g_hInst;
+		odp.pfnDlgProc = DlgProcAvatarProtoInfo;
+		odp.pszTemplate = MAKEINTRESOURCEA(IDD_PROTO_AVATARS);
+		odp.pszTitle = Translate("Avatar");
+		CallService(MS_USERINFO_ADDPAGE, wParam, (LPARAM)&odp);
 	}
-
-	OPTIONSDIALOGPAGE odp = {0};
-	odp.cbSize = sizeof(odp);
-	odp.hIcon = g_hIcon;
-	odp.hInstance = g_hInst;
-	odp.pfnDlgProc = DlgProcAvatarUserInfo;
-	odp.position = -2000000000;
-	odp.pszTemplate = MAKEINTRESOURCEA(IDD_USER_AVATAR);
-	odp.pszTitle = Translate("Contact Picture");
-	CallService(MS_USERINFO_ADDPAGE, wParam, (LPARAM)&odp);
+	else
+	{
+		// Contact dialog
+		OPTIONSDIALOGPAGE odp = {0};
+		odp.cbSize = sizeof(odp);
+		odp.hIcon = g_hIcon;
+		odp.hInstance = g_hInst;
+		odp.pfnDlgProc = DlgProcAvatarUserInfo;
+		odp.position = -2000000000;
+		odp.pszTemplate = MAKEINTRESOURCEA(IDD_USER_AVATAR);
+		odp.pszTitle = Translate("Avatar");
+		CallService(MS_USERINFO_ADDPAGE, wParam, (LPARAM)&odp);
+	}
 
 	return 0;
 }

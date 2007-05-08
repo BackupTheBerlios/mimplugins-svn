@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define DM_SETAVATARNAME (WM_USER + 10)
 #define DM_REALODAVATAR (WM_USER + 11)
 #define DM_AVATARCHANGED (WM_USER + 12)
+#define DM_PROTOCOLCHANGED (WM_USER + 13)
 
 extern int g_protocount;
 extern int _DebugPopup(HANDLE hContact, const char *fmt, ...);
@@ -769,6 +770,171 @@ BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
             SetWindowLong(hwndDlg, GWL_USERDATA, 0);
             break;
         }
+    }
+    return FALSE;
+}
+
+static char * GetSelectedProtocol(HWND hwndDlg)
+{
+	HWND hwndList = GetDlgItem(hwndDlg, IDC_PROTOCOLS);
+
+	// Get selection
+    int iItem = ListView_GetSelectionMark(hwndList);
+	if (iItem < 0)
+		return NULL;
+
+	// Get protocol name
+    LVITEMA item = {0};
+    item.mask = LVIF_PARAM;
+    item.iItem = iItem;
+	SendMessageA(hwndList, LVM_GETITEMA, 0, (LPARAM)&item);
+	return (char *) item.lParam;
+}
+
+static void EnableDisableControls(HWND hwndDlg)
+{
+	char *proto = GetSelectedProtocol(hwndDlg);
+	if (proto == NULL)
+	{
+		EnableWindow(GetDlgItem(hwndDlg, IDC_CHANGE), FALSE);
+		EnableWindow(GetDlgItem(hwndDlg, IDC_DELETE), FALSE);
+	}
+	else
+	{
+		EnableWindow(GetDlgItem(hwndDlg, IDC_CHANGE), TRUE);
+
+		int width, height;
+		SendMessage(GetDlgItem(hwndDlg, IDC_PROTOPIC), AVATAR_GETUSEDSPACE, (WPARAM) &width, (LPARAM) &height);
+		EnableWindow(GetDlgItem(hwndDlg, IDC_DELETE), (LPARAM) width != 0 || height != 0);
+	}
+}
+
+BOOL CALLBACK DlgProcAvatarProtoInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch(msg) 
+	{
+        case WM_INITDIALOG:
+        {
+            TranslateDialogDefault(hwndDlg);
+
+			HWND protopic = GetDlgItem(hwndDlg, IDC_PROTOPIC);
+			SendMessage(protopic, AVATAR_SETAVATARBORDERCOLOR, 0, (LPARAM) GetSysColor(COLOR_BTNSHADOW));
+			SendMessage(protopic, AVATAR_SETNOAVATARTEXT, 0, (LPARAM) "Protocol has no avatar");
+			SendMessage(protopic, AVATAR_SETRESIZEIFSMALLER, 0, (LPARAM) FALSE);
+
+		    HWND hwndList = GetDlgItem(hwndDlg, IDC_PROTOCOLS);
+			ListView_SetExtendedListViewStyleEx(hwndList, 0, LVS_EX_SUBITEMIMAGES);
+            
+			HIMAGELIST hIml = ImageList_Create(16, 16, ILC_MASK | (IsWinVerXPPlus()? ILC_COLOR32 : ILC_COLOR16), 4, 0);
+			ListView_SetImageList(hwndList, hIml, LVSIL_SMALL);
+
+            LVCOLUMN lvc = {0};
+            lvc.mask = LVCF_FMT;
+            lvc.fmt = LVCFMT_IMAGE | LVCFMT_LEFT;
+            ListView_InsertColumn(hwndList, 0, &lvc);
+
+            LVITEMA item = {0};
+            item.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
+            item.iItem = 1000;
+
+			// List protocols
+			PROTOCOLDESCRIPTOR **protos;
+			int i, count, num = 0;
+			char description[256];
+
+			CallService(MS_PROTO_ENUMPROTOCOLS, (WPARAM)&count, (LPARAM)&protos);
+			for (i = 0; i < count; i++)
+			{
+				if (protos[i]->type != PROTOTYPE_PROTOCOL)
+					continue;
+
+				if (protos[i]->szName == NULL || protos[i]->szName[0] == '\0')
+					continue;
+
+				if (!CallService(MS_AV_CANSETMYAVATAR, (WPARAM) protos[i]->szName, 0))
+					continue;
+				
+				CallProtoService(protos[i]->szName, PS_GETNAME, sizeof(description),(LPARAM) description);
+
+				ImageList_AddIcon(hIml, LoadSkinnedProtoIcon(protos[i]->szName, ID_STATUS_ONLINE));
+				item.pszText = description;
+				item.iImage = num;
+				item.lParam = (LPARAM) protos[i]->szName;
+
+				SendMessageA(hwndList, LVM_INSERTITEMA, 0, (LPARAM)&item);
+				num++;
+			}
+
+            ListView_SetColumnWidth(hwndList, 0, LVSCW_AUTOSIZE);
+            ListView_Arrange(hwndList, LVA_ALIGNLEFT | LVA_ALIGNTOP);
+			ListView_SetItemState(hwndList, 0, LVIS_FOCUSED | LVIS_SELECTED, 0x0F);
+            return TRUE;
+        }
+        case WM_NOTIFY:
+		{
+			LPNMHDR nm = (LPNMHDR) lParam;
+            switch(nm->idFrom)
+			{
+				case IDC_PROTOCOLS:
+				{
+					switch (nm->code) 
+					{
+						case LVN_ITEMCHANGED:
+						{
+							LPNMLISTVIEW li = (LPNMLISTVIEW) nm;
+							if (li->uNewState & LVIS_SELECTED)
+							{
+								SendMessage(GetDlgItem(hwndDlg, IDC_PROTOPIC), AVATAR_SETPROTOCOL, 0, li->lParam);
+								EnableDisableControls(hwndDlg);
+							}
+							break;
+						}
+					}
+					break;
+				}
+				case IDC_PROTOPIC:
+				{
+					if (nm->code) 
+					{
+						case NM_AVATAR_CHANGED:
+						{
+							EnableDisableControls(hwndDlg);
+							break;
+						}
+					}
+					break;
+				}
+			}
+			break;
+		}
+        case WM_COMMAND:
+		{
+            switch(LOWORD(wParam)) 
+			{
+                case IDC_CHANGE:
+				{
+					char *proto = GetSelectedProtocol(hwndDlg);
+					if (proto == NULL)
+						break;
+
+					CallService(MS_AV_SETMYAVATAR, (WPARAM) proto, 0);
+                    break;
+				}
+                case IDC_DELETE:
+				{
+					char *proto = GetSelectedProtocol(hwndDlg);
+					if (proto == NULL)
+						break;
+
+					char description[256];
+					CallProtoService(proto, PS_GETNAME, sizeof(description),(LPARAM) description);
+					if (MessageBoxA(hwndDlg, Translate("Are you sure you want to remove your avatar?"), description, MB_YESNO) == IDYES)
+						CallService(MS_AV_SETMYAVATAR, (WPARAM) proto, (LPARAM) "");
+                    break;
+				}
+            }
+            break;
+		}
     }
     return FALSE;
 }
