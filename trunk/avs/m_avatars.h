@@ -295,4 +295,55 @@ typedef struct {
 #define AVH_MUSTNOTIFY     0x04             // node->dwFlags (loader thread must notify avatar history about change/delete event)
 #define AVS_DELETENODEFOREVER 0x08
 
+
+
+// Protocol services //////////////////////////////////////////////////////////////////////
+
+/*
+wParam=0
+lParam=(const char *)Avatar file name or NULL to remove the avatar
+return=0 for sucess
+*/
+#define PS_SETMYAVATAR "/SetMyAvatar"
+
+/*
+wParam=(char *)Buffer to file name
+lParam=(int)Buffer size
+return=0 for sucess
+*/
+#define PS_GETMYAVATAR "/GetMyAvatar"
+
+
+#define PIP_NONE				0
+#define PIP_SQUARE				1
+
+// Avatar image max size
+// lParam = (POINT*) maxSize (use -1 for no max)
+// return 0 for success
+#define AF_MAXSIZE 1
+
+// Avatar image proportion
+// lParam = 0
+// return or of PIP_*
+#define AF_PROPORTION 2
+
+// Avatar format
+// lParam = PA_FORMAT_*
+// return = 1 (supported) or 0 (not supported)
+#define AF_FORMATSUPPORTED 3
+
+// Avatars are enabled for protocol?
+// lParam = 0
+// return = 1 (avatars ready) or 0 (disabled)
+#define AF_ENABLED 4
+
+/*
+Query avatar caps for a protocol
+wParam = One of AF_*
+lParam = See descr of each AF_*
+*/
+#define PS_GETAVATARCAPS "/GetAvatarCaps"
+
+
+
 #endif

@@ -48,6 +48,9 @@ extern int AVS_pathToRelative(const char *sPrc, char *pOut);
 extern int AVS_pathToAbsolute(const char *pSrc, char *pOut);
 extern void MakePathRelative(HANDLE hContact, char *path);
 
+extern int ProtoServiceExists(const char *szModule,const char *szService);
+extern BOOL Proto_IsAvatarsEnabled(char *proto);
+
 static BOOL dialoginit = TRUE;
 
 struct WindowData {
@@ -851,7 +854,10 @@ BOOL CALLBACK DlgProcAvatarProtoInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
 				if (protos[i]->szName == NULL || protos[i]->szName[0] == '\0')
 					continue;
 
-				if (!CallService(MS_AV_CANSETMYAVATAR, (WPARAM) protos[i]->szName, 0))
+				if (!ProtoServiceExists(protos[i]->szName, PS_SETMYAVATAR))
+					continue;
+
+				if (!Proto_IsAvatarsEnabled(protos[i]->szName))
 					continue;
 				
 				CallProtoService(protos[i]->szName, PS_GETNAME, sizeof(description),(LPARAM) description);

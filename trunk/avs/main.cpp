@@ -64,6 +64,12 @@ static int  OkToExitProc(WPARAM wParam, LPARAM lParam);
 static int  OnDetailsInit(WPARAM wParam, LPARAM lParam);
 static int  GetFileHash(char* filename);
 
+BOOL Proto_IsAvatarsEnabled(char *proto);
+BOOL Proto_IsAvatarFormatSupported(char *proto, int format);
+void Proto_GetAvatarMaxSize(char *proto, int &width, int &height);
+int Proto_AvatarImageProportion(char *proto);
+
+
 PLUGININFO pluginInfo = {
     sizeof(PLUGININFO), 
 #if defined(_UNICODE)
@@ -114,48 +120,8 @@ extern BOOL CALLBACK DlgProcAvatarProtoInfo(HWND hwndDlg, UINT msg, WPARAM wPara
 static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp);
 
 
-// Functions to set avatar for a protocol
-
-/*
-wParam=0
-lParam=(const char *)Avatar file name or NULL to remove the avatar
-return=0 for sucess
-*/
-#define PS_SETMYAVATAR "/SetMyAvatar"
-
-/*
-wParam=(char *)Buffer to file name
-lParam=(int)Buffer size
-return=0 for sucess
-*/
-#define PS_GETMYAVATAR "/GetMyAvatar"
-
-/*
-wParam=(int *)max width of avatar - will be set (-1 for no max)
-lParam=(int *)max height of avatar - will be set (-1 for no max)
-return=0 for sucess
-*/
-#define PS_GETMYAVATARMAXSIZE "/GetMyAvatarMaxSize"
-
-/*
-wParam=0
-lParam=0
-return=One of PIP_SQUARE, PIP_FREEPROPORTIONS
-*/
-#define PIP_FREEPROPORTIONS	0
-#define PIP_SQUARE			1
-#define PS_GETMYAVATARIMAGEPROPORTION "/GetMyAvatarImageProportion"
-
-/*
-wParam = 0
-lParam = PA_FORMAT_*   // avatar format
-return = 1 (supported) or 0 (not supported)
-*/
-#define PS_ISAVATARFORMATSUPPORTED "/IsAvatarFormatSupported"
-
-
 // See if a protocol service exists
-__inline static int ProtoServiceExists(const char *szModule,const char *szService)
+int ProtoServiceExists(const char *szModule,const char *szService)
 {
 	char str[MAXMODULELABELLENGTH * 2];
 	strcpy(str,szModule);
@@ -1208,13 +1174,16 @@ static int SetMyAvatar(WPARAM wParam, LPARAM lParam)
 				if (protos[i]->szName == NULL || protos[i]->szName[0] == '\0')
 					continue;
 
+				if (!ProtoServiceExists(protos[i]->szName, PS_SETMYAVATAR))
+					continue;
+
+				if (!Proto_IsAvatarsEnabled(protos[i]->szName))
+					continue;
+				
 				// Found a protocol
-				if (ProtoServiceExists(protos[i]->szName, PS_SETMYAVATAR))
-				{
-					int retTmp = CallProtoService(protos[i]->szName, PS_SETMYAVATAR, 0, NULL);;
-					if (retTmp != 0)
-						ret = retTmp;
-				}
+				int retTmp = CallProtoService(protos[i]->szName, PS_SETMYAVATAR, 0, NULL);;
+				if (retTmp != 0)
+					ret = retTmp;
 			}
 		}
 
@@ -1281,17 +1250,15 @@ static int SetMyAvatar(WPARAM wParam, LPARAM lParam)
 static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 {
 	// Protocol has max size?
-	int width = -1, height = -1;
-	bool square = false;	// Get user setting
+	int width, height;
+	BOOL square = FALSE;	// Get user setting
 
-	if (ProtoServiceExists(protocol, PS_GETMYAVATARMAXSIZE))
-		CallProtoService(protocol, PS_GETMYAVATARMAXSIZE, (WPARAM) &width, (LPARAM) &height);
+	Proto_GetAvatarMaxSize(protocol, width, height);
 
 	if (DBGetContactSettingByte(0, AVS_MODULE, "SetAllwaysMakeSquare", 0))
-		square = true;
-	else if (ProtoServiceExists(protocol, PS_GETMYAVATARIMAGEPROPORTION))
-		if (CallProtoService(protocol, PS_GETMYAVATARIMAGEPROPORTION, 0, 0) == PIP_SQUARE)
-			square = true;
+		square = TRUE;
+	else 
+		square = Proto_AvatarImageProportion(protocol) & PIP_SQUARE;
 
 	ResizeBitmap rb;
 	rb.size = sizeof(ResizeBitmap);
@@ -1322,8 +1289,7 @@ static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 
 	// What format?
 	if (BmpFilterCanSaveBitmap(0, PA_FORMAT_PNG) // Png is default
-		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
-			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_PNG)))
+		&& Proto_IsAvatarFormatSupported(protocol, PA_FORMAT_PNG))
 	{
 		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".png");
 		if (!BmpFilterSaveBitmap((WPARAM)hBmpProto, (LPARAM)image_file_name))
@@ -1332,8 +1298,7 @@ static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	
 	if (!saved  // Jpeg is second
 		&& BmpFilterCanSaveBitmap(0, PA_FORMAT_JPEG)
-		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
-			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_JPEG)))
+		&& Proto_IsAvatarFormatSupported(protocol, PA_FORMAT_JPEG))
 	{
 		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".jpg");
 		if (!BmpFilterSaveBitmap((WPARAM)hBmpProto, (LPARAM)image_file_name))
@@ -1342,8 +1307,7 @@ static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	
 	if (!saved  // Gif
 		&& BmpFilterCanSaveBitmap(0, PA_FORMAT_GIF)
-		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
-			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_GIF)))
+		&& Proto_IsAvatarFormatSupported(protocol, PA_FORMAT_GIF))
 	{
 		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".gif");
 		if (!BmpFilterSaveBitmap((WPARAM)hBmpProto, (LPARAM)image_file_name))
@@ -1352,8 +1316,7 @@ static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	
 	if (!saved   // Bitmap
 		&& BmpFilterCanSaveBitmap(0, PA_FORMAT_BMP)
-		&& (!ProtoServiceExists(protocol, PS_ISAVATARFORMATSUPPORTED) 
-			|| CallProtoService(protocol, PS_ISAVATARFORMATSUPPORTED, 0, PA_FORMAT_BMP)))
+		&& Proto_IsAvatarFormatSupported(protocol, PA_FORMAT_BMP))
 	{
 		mir_snprintf(image_file_name, sizeof(image_file_name), "%s%s", temp_file, ".bmp");
 		if (!BmpFilterSaveBitmap((WPARAM)hBmpProto, (LPARAM)image_file_name))
@@ -2137,3 +2100,90 @@ extern "C" int __declspec(dllexport) Unload(void)
 }
 
 
+/*
+wParam=(int *)max width of avatar - will be set (-1 for no max)
+lParam=(int *)max height of avatar - will be set (-1 for no max)
+return=0 for sucess
+*/
+#define PS_GETMYAVATARMAXSIZE "/GetMyAvatarMaxSize"
+
+/*
+wParam=0
+lParam=0
+return=One of PIP_SQUARE, PIP_FREEPROPORTIONS
+*/
+#define PIP_FREEPROPORTIONS	0
+#define PIP_SQUARE			1
+#define PS_GETMYAVATARIMAGEPROPORTION "/GetMyAvatarImageProportion"
+
+/*
+wParam = 0
+lParam = PA_FORMAT_*   // avatar format
+return = 1 (supported) or 0 (not supported)
+*/
+#define PS_ISAVATARFORMATSUPPORTED "/IsAvatarFormatSupported"
+
+
+
+BOOL Proto_IsAvatarsEnabled(char *proto)
+{
+	if (ProtoServiceExists(proto, PS_GETAVATARCAPS))
+		return CallProtoService(proto, PS_GETAVATARCAPS, AF_ENABLED, 0);
+		
+	return TRUE;
+}
+
+BOOL Proto_IsAvatarFormatSupported(char *proto, int format)
+{
+	if (ProtoServiceExists(proto, PS_GETAVATARCAPS))
+		return CallProtoService(proto, PS_GETAVATARCAPS, AF_FORMATSUPPORTED, format);
+
+	if (ProtoServiceExists(proto, PS_ISAVATARFORMATSUPPORTED))
+		return CallProtoService(proto, PS_ISAVATARFORMATSUPPORTED, 0, format);
+
+	if (format > PA_FORMAT_SWF)
+		return FALSE;
+
+	return TRUE;
+}
+
+int Proto_AvatarImageProportion(char *proto)
+{
+	if (ProtoServiceExists(proto, PS_GETAVATARCAPS))
+		return CallProtoService(proto, PS_GETAVATARCAPS, AF_PROPORTION, 0);
+
+	if (ProtoServiceExists(proto, PS_GETMYAVATARIMAGEPROPORTION))
+		return CallProtoService(proto, PS_GETMYAVATARIMAGEPROPORTION, 0, 0);
+
+	return 0;
+}
+
+void Proto_GetAvatarMaxSize(char *proto, int &width, int &height)
+{
+	if (ProtoServiceExists(proto, PS_GETAVATARCAPS))
+	{
+		POINT maxSize;
+		CallProtoService(proto, PS_GETAVATARCAPS, AF_MAXSIZE, (LPARAM) &maxSize);
+		width = maxSize.y;
+		height = maxSize.x;
+	}
+	else if (ProtoServiceExists(proto, PS_GETMYAVATARMAXSIZE))
+	{
+		CallProtoService(proto, PS_GETMYAVATARMAXSIZE, (WPARAM) &width, (LPARAM) &height);
+	}
+	else
+	{
+		width = 300;
+		height = 300;
+	}
+
+	if (width < 0)
+		width = 0;
+	else if (width > 300)
+		width = 300;
+
+	if (height < 0)
+		height = 0;
+	else if (height > 300)
+		height = 300;
+}
