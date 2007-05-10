@@ -117,7 +117,7 @@ extern BOOL CALLBACK DlgProcAvatarUserInfo(HWND hwndDlg, UINT msg, WPARAM wParam
 extern BOOL CALLBACK DlgProcAvatarProtoInfo(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
-static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp);
+static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp, char *originalFilename, int format);
 
 
 // See if a protocol service exists
@@ -1077,6 +1077,111 @@ static UINT_PTR CALLBACK OFNHookProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 	return 0;
 }
 
+
+static int GetImageFormat(char *filename)
+{
+	size_t len = strlen(filename);
+
+	if (len < 5)
+	{
+		return PA_FORMAT_UNKNOWN;
+	}
+	else if (strcmpi(".png", &filename[len-4]) == 0)
+	{
+		return PA_FORMAT_PNG;
+	}
+	else if (strcmpi(".jpg", &filename[len-4]) == 0 || strcmpi(".jpeg", &filename[len-4]) == 0)
+	{
+		return PA_FORMAT_JPEG;
+	}
+	else if (strcmpi(".ico", &filename[len-4]) == 0)
+	{
+		return PA_FORMAT_ICON;
+	}
+	else if (strcmpi(".bmp", &filename[len-4]) == 0 || strcmpi(".rle", &filename[len-4]) == 0)
+	{
+		return PA_FORMAT_BMP;
+	}
+	else if (strcmpi(".gif", &filename[len-4]) == 0)
+	{
+		return PA_FORMAT_GIF;
+	}
+	else if (strcmpi(".swf", &filename[len-4]) == 0)
+	{
+		return PA_FORMAT_SWF;
+	}
+	else if (strcmpi(".xml", &filename[len-4]) == 0)
+	{
+		return PA_FORMAT_XML;
+	}
+	else
+	{
+		return PA_FORMAT_UNKNOWN;
+	}
+}
+
+
+static void FilterGetStrings(char *filter, int bytesLeft, BOOL xml, BOOL swf)
+{
+	char *pfilter;
+	int wParam = bytesLeft;
+
+	lstrcpynA(filter,Translate("All Files"),bytesLeft); bytesLeft-=lstrlenA(filter);
+	strncat(filter," (*.bmp;*.jpg;*.gif;*.png",bytesLeft); 
+	if (swf) strcat(filter,";*.swf");
+	if (xml) strcat(filter,";*.xml");
+	strcat(filter,")");
+	pfilter=filter+lstrlenA(filter)+1; bytesLeft=wParam-(pfilter-filter);
+	lstrcpynA(pfilter,"*.BMP;*.RLE;*.JPG;*.JPEG;*.GIF;*.PNG",bytesLeft);
+	if (swf) strcat(pfilter,";*.SWF");
+	if (xml) strcat(pfilter,";*.XML");
+	pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+
+	lstrcpynA(pfilter,Translate("Windows Bitmaps"),bytesLeft); bytesLeft-=lstrlenA(pfilter);
+	strncat(pfilter," (*.bmp;*.rle)",bytesLeft);
+	pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+	lstrcpynA(pfilter,"*.BMP;*.RLE",bytesLeft);
+	pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+
+	lstrcpynA(pfilter,Translate("JPEG Bitmaps"),bytesLeft); bytesLeft-=lstrlenA(pfilter);
+	strncat(pfilter," (*.jpg;*.jpeg)",bytesLeft);
+	pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+	lstrcpynA(pfilter,"*.JPG;*.JPEG",bytesLeft);
+	pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+
+	lstrcpynA(pfilter,Translate("GIF Bitmaps"),bytesLeft); bytesLeft-=lstrlenA(pfilter);
+	strncat(pfilter," (*.gif)",bytesLeft);
+	pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+	lstrcpynA(pfilter,"*.GIF",bytesLeft);
+	pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+
+	lstrcpynA(pfilter,Translate("PNG Bitmaps"),bytesLeft); bytesLeft-=lstrlenA(pfilter);
+	strncat(pfilter," (*.png)",bytesLeft);
+	pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+	lstrcpynA(pfilter,"*.PNG",bytesLeft);
+	pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+
+	if (swf)
+	{
+		lstrcpynA(pfilter,Translate("Flash Animations"),bytesLeft); bytesLeft-=lstrlenA(pfilter);
+		strncat(pfilter," (*.swf)",bytesLeft);
+		pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+		lstrcpynA(pfilter,"*.SWF",bytesLeft);
+		pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+	}
+
+	if (xml)
+	{
+		lstrcpynA(pfilter,Translate("XML Files"),bytesLeft); bytesLeft-=lstrlenA(pfilter);
+		strncat(pfilter," (*.xml)",bytesLeft);
+		pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+		lstrcpynA(pfilter,"*.XML",bytesLeft);
+		pfilter+=lstrlenA(pfilter)+1; bytesLeft=wParam-(pfilter-filter);
+	}
+
+	if(bytesLeft) *pfilter='\0';
+}
+
 /*
  * set an avatar for a protocol (service function)
  * if lParam == NULL, a open file dialog will be opened, otherwise, lParam is taken as a FULL
@@ -1088,6 +1193,8 @@ static int SetMyAvatar(WPARAM wParam, LPARAM lParam)
     char FileName[MAX_PATH];
     char *szFinalName = NULL;
     HANDLE hFile = 0;
+	BOOL allAcceptXML;
+	BOOL allAcceptSWF;
     
 	protocol = (char *)wParam;
     
@@ -1103,13 +1210,47 @@ static int SetMyAvatar(WPARAM wParam, LPARAM lParam)
 		return -2;
 	}
 
+	// Check for XML and SWF
+	if (protocol == NULL)
+	{
+		allAcceptXML = TRUE;
+		allAcceptSWF = TRUE;
+
+		PROTOCOLDESCRIPTOR **protos;
+		int i,count;
+
+		CallService(MS_PROTO_ENUMPROTOCOLS, (WPARAM)&count, (LPARAM)&protos);
+		for (i = 0; i < count; i++)
+		{
+			if (protos[i]->type != PROTOTYPE_PROTOCOL)
+				continue;
+
+			if (protos[i]->szName == NULL || protos[i]->szName[0] == '\0')
+				continue;
+
+			if (!ProtoServiceExists(protos[i]->szName, PS_SETMYAVATAR))
+				continue;
+
+			if (!Proto_IsAvatarsEnabled(protos[i]->szName))
+				continue;
+
+			allAcceptXML = allAcceptXML && Proto_IsAvatarFormatSupported(protos[i]->szName, PA_FORMAT_XML);
+			allAcceptSWF = allAcceptSWF && Proto_IsAvatarFormatSupported(protos[i]->szName, PA_FORMAT_SWF);
+		}
+	}
+	else
+	{
+		allAcceptXML = Proto_IsAvatarFormatSupported(protocol, PA_FORMAT_XML);
+		allAcceptSWF = Proto_IsAvatarFormatSupported(protocol, PA_FORMAT_SWF);
+	}
+
     if(lParam == 0) {
         OPENFILENAMEA ofn = {0};
-		char filter[256];
+		char filter[512];
 		char inipath[1024];
 
 		filter[0] = '\0';
-		CallService(MS_UTILS_GETBITMAPFILTERSTRINGS, sizeof(filter), (LPARAM) filter);
+		FilterGetStrings(filter, sizeof(filter), allAcceptXML, allAcceptSWF);
 
 		FoldersGetCustomPath(hMyAvatarsFolder, inipath, sizeof(inipath), ".");
 
@@ -1190,33 +1331,50 @@ static int SetMyAvatar(WPARAM wParam, LPARAM lParam)
 		return ret;
 	}
 
-    if((hFile = CreateFileA(szFinalName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE)
+	int format = GetImageFormat(szFinalName);
+    if (format == PA_FORMAT_UNKNOWN || (hFile = CreateFileA(szFinalName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE)
         return -3;
     
     CloseHandle(hFile);
         
     // file exists...
 
-	HBITMAP hBmp = (HBITMAP) BmpFilterLoadBitmap32(NULL, (LPARAM)szFinalName);
-    if (hBmp == 0)
-		return -4;
+	HBITMAP hBmp = NULL;
 
-	BITMAP bminfo;
-	GetObject(hBmp, sizeof(bminfo), &bminfo);
-
-	if (bminfo.bmBitsPixel != 32)
+	if (format == PA_FORMAT_SWF)
 	{
-		HBITMAP hBmpTmp = CopyBitmapTo32(hBmp);
-		if (hBmpTmp == 0)
-			return -5;
-		DeleteObject(hBmp);
-		hBmp = hBmpTmp;
+		if (!allAcceptSWF)
+			return -4;
+	}
+	else if (format == PA_FORMAT_XML)
+	{
+		if (!allAcceptXML)
+			return -4;
+	}
+	else
+	{
+		// Try to open if is not a flash or XML
+		hBmp = (HBITMAP) BmpFilterLoadBitmap32(NULL, (LPARAM)szFinalName);
+		if (hBmp == NULL)
+			return -4;
+
+		BITMAP bminfo;
+		GetObject(hBmp, sizeof(bminfo), &bminfo);
+
+		if (bminfo.bmBitsPixel != 32)
+		{
+			HBITMAP hBmpTmp = CopyBitmapTo32(hBmp);
+			DeleteObject(hBmp);
+			if (hBmpTmp == 0)
+				return -5;
+			hBmp = hBmpTmp;
+		}
 	}
 
 	int ret = 0;
 	if (protocol != NULL)
 	{
-		ret = SetProtoMyAvatar(protocol, hBmp);
+		ret = SetProtoMyAvatar(protocol, hBmp, szFinalName, format);
 	}
 	else
 	{
@@ -1232,13 +1390,15 @@ static int SetMyAvatar(WPARAM wParam, LPARAM lParam)
 			if (protos[i]->szName == NULL || protos[i]->szName[0] == '\0')
 				continue;
 
-			// Found a protocol
-			if (CanSetMyAvatar((WPARAM) protos[i]->szName, 0))
-			{
-				int retTmp = SetProtoMyAvatar(protos[i]->szName, hBmp);
-				if (retTmp != 0)
-					ret = retTmp;
-			}
+			if (!ProtoServiceExists(protos[i]->szName, PS_SETMYAVATAR))
+				continue;
+
+			if (!Proto_IsAvatarsEnabled(protos[i]->szName))
+				continue;
+			
+			int retTmp = SetProtoMyAvatar(protos[i]->szName, hBmp, szFinalName, format);
+			if (retTmp != 0)
+				ret = retTmp;
 		}
 	}
 
@@ -1247,8 +1407,29 @@ static int SetMyAvatar(WPARAM wParam, LPARAM lParam)
 	return ret;
 }
 	
-static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
+static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp, char *originalFilename, int originalFormat)
 {
+	if (!ProtoServiceExists(protocol, PS_SETMYAVATAR))
+		return -1;
+
+	// If is swf or xml, just set it
+
+	if (originalFormat == PA_FORMAT_SWF)
+	{
+		if (!Proto_IsAvatarFormatSupported(protocol, PA_FORMAT_SWF))
+			return -1;
+
+		return CallProtoService(protocol, PS_SETMYAVATAR, 0, (LPARAM) originalFilename);
+	}
+
+	if (originalFormat == PA_FORMAT_XML)
+	{
+		if (!Proto_IsAvatarFormatSupported(protocol, PA_FORMAT_XML))
+			return -1;
+
+		return CallProtoService(protocol, PS_SETMYAVATAR, 0, (LPARAM) originalFilename);
+	}
+
 	// Protocol has max size?
 	int width, height;
 	BOOL square = FALSE;	// Get user setting
@@ -1269,6 +1450,15 @@ static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 
 	HBITMAP hBmpProto = (HBITMAP) BmpFilterResizeBitmap((WPARAM)&rb, 0);
 
+	// Check if need to resize
+	if (hBmpProto == hBmp && Proto_IsAvatarFormatSupported(protocol, originalFormat))
+	{
+		// Use original image
+		return CallProtoService(protocol, PS_SETMYAVATAR, 0, (LPARAM) originalFilename);
+	}
+
+	// Need to resize...
+
 	// Save to a temporary file
 	char temp_file[MAX_PATH];
 	temp_file[0] = '\0';
@@ -1280,7 +1470,7 @@ static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	if (GetTempFileNameA(temp_file, "mir_av_", 0, temp_file) == 0)
 	{
 		if (hBmpProto != hBmp) DeleteObject(hBmpProto);
-		return -2;
+		return -1;
 	}
 
 	char image_file_name[MAX_PATH];
@@ -1327,12 +1517,13 @@ static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	if (saved)
 	{
 		// Call proto service
-		if (ProtoServiceExists(protocol, PS_SETMYAVATAR))
-			ret = CallProtoService(protocol, PS_SETMYAVATAR, 0, (LPARAM)image_file_name);
-		else 
-			ret = -4;
+		ret = CallProtoService(protocol, PS_SETMYAVATAR, 0, (LPARAM)image_file_name);
 
 		DeleteFileA(image_file_name);
+	}
+	else
+	{
+		ret = -1;
 	}
 
 	DeleteFileA(temp_file);
@@ -1340,7 +1531,7 @@ static int SetProtoMyAvatar(char *protocol, HBITMAP hBmp)
 	if (hBmpProto != hBmp) 
 		DeleteObject(hBmpProto);
 
-	return saved ? ret : -3;
+	return ret;
 }
 
 static int ContactOptions(WPARAM wParam, LPARAM lParam)
@@ -2141,7 +2332,7 @@ BOOL Proto_IsAvatarFormatSupported(char *proto, int format)
 	if (ProtoServiceExists(proto, PS_ISAVATARFORMATSUPPORTED))
 		return CallProtoService(proto, PS_ISAVATARFORMATSUPPORTED, 0, format);
 
-	if (format > PA_FORMAT_SWF)
+	if (format >= PA_FORMAT_SWF)
 		return FALSE;
 
 	return TRUE;
