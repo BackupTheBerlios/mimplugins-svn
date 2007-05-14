@@ -99,6 +99,7 @@ struct CacheNode {
 #define AVDRQ_HIDEBORDERONTRANSPARENCY 32  // hide border if bitmap has transparency
 #define AVDRQ_OWNPIC	64				   // draw own avatar (szProto is valid)
 #define AVDRQ_RESPECTHIDDEN 128			   // don't draw images marked as hidden
+#define AVDRQ_DONTRESIZEIFSMALLER 256	   // don't resize images that are smaller then the draw area
 
 // request to draw a contacts picture. See MS_AV_DRAWAVATAR service description
 
@@ -164,7 +165,7 @@ typedef struct _avatarDrawRequest {
 // 
 // wParam = (char *) protocol name
 // lParam = either a full picture filename or NULL. If lParam == NULL, the service
-// will open a file selection dialog.
+// will open a file selection dialog. If lParam == "" the avatar will be removed
 
 #define MS_AV_SETMYAVATAR "SV_Avatars/SetMyAvatar"
 
@@ -257,6 +258,23 @@ typedef struct _contactAvatarChangedNotification {
 // lParam = PA_FORMAT_*   // image format
 #define MS_AV_CANSAVEBITMAP "SV_Avatars/CanSaveBitmap"
 
+
+#define RESIZEBITMAP_STRETCH 0				// Distort bitmap to size in (max_width, max_height)
+#define RESIZEBITMAP_KEEP_PROPORTIONS 1		// Keep bitmap proportions (probabily only one of the 
+											// max_width/max_height will be respected, and the other will be
+											// smaller)
+#define RESIZEBITMAP_CROP 2					// Keep bitmap proportions but crop it to fix exactly in (max_width, max_height)
+											// Some image info outside will be lost
+#define RESIZEBITMAP_MAKE_SQUARE 3			// Image will be allways square. Image will be croped and the size
+											// returned will be min(max_width, max_height)
+
+#define RESIZEBITMAP_FLAG_DONT_GROW	0x1000	// If set, the image will not grow. Else, it will grow to fit the max width/height
+
+// Returns a copy of the bitmap with the size especified or the original bitmap if nothing has to be changed
+// wParam = ResizeBitmap *
+// lParam = NULL
+#define MS_AV_RESIZEBITMAP "SV_Avatars/ResizeBitmap"
+
 /*
  * flags for internal use ONLY
  */
@@ -265,5 +283,56 @@ typedef struct _contactAvatarChangedNotification {
 #define MC_ISSUBCONTACT    0x02
 #define AVH_MUSTNOTIFY     0x04             // node->dwFlags (loader thread must notify avatar history about change/delete event)
 #define AVS_DELETENODEFOREVER 0x08
+
+
+
+// Protocol services //////////////////////////////////////////////////////////////////////
+
+/*
+wParam=0
+lParam=(const char *)Avatar file name or NULL to remove the avatar
+return=0 for sucess
+*/
+#define PS_SETMYAVATAR "/SetMyAvatar"
+
+/*
+wParam=(char *)Buffer to file name
+lParam=(int)Buffer size
+return=0 for sucess
+*/
+#define PS_GETMYAVATAR "/GetMyAvatar"
+
+
+#define PIP_NONE				0
+#define PIP_SQUARE				1
+
+// Avatar image max size
+// lParam = (POINT*) maxSize (use -1 for no max)
+// return 0 for success
+#define AF_MAXSIZE 1
+
+// Avatar image proportion
+// lParam = 0
+// return or of PIP_*
+#define AF_PROPORTION 2
+
+// Avatar format
+// lParam = PA_FORMAT_*
+// return = 1 (supported) or 0 (not supported)
+#define AF_FORMATSUPPORTED 3
+
+// Avatars are enabled for protocol?
+// lParam = 0
+// return = 1 (avatars ready) or 0 (disabled)
+#define AF_ENABLED 4
+
+/*
+Query avatar caps for a protocol
+wParam = One of AF_*
+lParam = See descr of each AF_*
+*/
+#define PS_GETAVATARCAPS "/GetAvatarCaps"
+
+
 
 #endif

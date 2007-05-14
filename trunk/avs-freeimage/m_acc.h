@@ -93,11 +93,22 @@ Boston, MA 02111-1307, USA.
 // is filled with background color). Set both to 0 if no avatar exists.
 // wParam = (int *) width
 // lParam = (int *) height
-// Usage: SendMessage(hwnd, AVATAR_GETUSEDSPACE, (WPARAM) &width, (LPARAM) &width);
+// Usage: SendMessage(hwnd, AVATAR_GETUSEDSPACE, (WPARAM) &width, (LPARAM) &height);
 // Only works on AVATAR_CONTROL_CLASS controls
 #define AVATAR_GETUSEDSPACE						(WM_USER+9)
 
+// Sets if the avatar will be resized when its smaller then the control size
+// Default: TRUE
+// wParam = not used
+// lParam = (BOOL) TRUE or FALSE
+// Usage: SendMessage(hwnd, AVATAR_SETRESIZEIFSMALLER, 0, (LPARAM) FALSE);
+// Only works on AVATAR_CONTROL_CLASS controls
+#define AVATAR_SETRESIZEIFSMALLER				(WM_USER+10)
 
+
+
+// Set to the parent throught WM_NOTIFY to notify when the avatar shown has changed
+#define NM_AVATAR_CHANGED						(0U-200U)
 
 
 #endif // __M_ACC_H__

@@ -9,6 +9,7 @@
 #define IDI_AVATAR                      104
 #define IDD_DIALOG1                     106
 #define IDD_USER_AVATAR                 106
+#define IDD_PROTO_AVATARS               107
 #define IDC_PROTOCOLS                   1001
 #define IDC_CLIST                       1002
 #define IDC_SETPROTOPIC                 1003
@@ -27,12 +28,15 @@
 #define IDC_SET_MAKE_SQUARE             1010
 #define IDC_HIDEAVATAR                  1011
 #define IDC_DELETE                      1012
+#define IDC_SIZELIMIT                   1012
+#define IDC_SIZELIMITSPIN               1013
 #define IDC_MAKETRANSPBKG               1013
 #define IDC_GUESS_LEVEL                 1014
 #define IDC_BKG_NUM_POINTS              1014
 #define IDC_COMBO1                      1015
 #define IDC_BKG_NUM_POINTS_SPIN         1015
 #define IDC_BKG_COLOR_DIFFERENCE        1016
+#define IDC_SIZELIMITSPIN3              1017
 #define IDC_BKG_COLOR_DIFFERENCE_SPIN   1017
 #define IDC_BKG_NUM_POINTS_L            1018
 #define IDC_BKG_COLOR_DIFFERENCE_L      1019
@@ -43,7 +47,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        107
+#define _APS_NEXT_RESOURCE_VALUE        108
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1023
 #define _APS_NEXT_SYMED_VALUE           101
