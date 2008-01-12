@@ -1,0 +1,216 @@
+#include "headers.h"
+
+#define MAXMODS 128
+typedef struct {
+	HWND hwnd2Tree;
+	HANDLE hContact2select;
+} ContactTreeStruct;
+
+static WNDPROC HistoryListSubClass, ContactTreeSubClass, SplitterSubClass;
+
+static LRESULT CALLBACK HistoryListSubClassProc(HWND hwnd,UINT msg,WPARAM wParam,LPARAM lParam)
+{
+	switch(msg) {
+		case WM_KEYDOWN:
+			if (wParam == VK_F2)
+			{
+				LVITEM lvi;
+				HANDLE hContact =(HANDLE)GetWindowLong(hwnd,GWL_USERDATA);
+				lvi.mask = LVIF_PARAM;
+				lvi.iItem = ListView_GetSelectionMark(hwnd);
+				lvi.iSubItem = 0;
+				if (ListView_GetItem(hwnd, &lvi))
+					editHistory(hContact, (HANDLE)lvi.lParam);			
+			}
+		break;
+
+		default: break;
+	}
+	return CallWindowProc(HistoryListSubClass,hwnd,msg,wParam,lParam);
+}
+
+int DialogResize(HWND hwnd,LPARAM lParam,UTILRESIZECONTROL *urc)
+{
+   switch(urc->wId) 
+   {
+       case IDC_HISTORY:
+           urc->rcItem.top = 0;
+           urc->rcItem.bottom = urc->dlgNewSize.cy;
+           urc->rcItem.left = lParam;
+           urc->rcItem.right = urc->dlgNewSize.cx;
+           return RD_ANCHORX_CUSTOM|RD_ANCHORY_CUSTOM;
+   }
+   return RD_ANCHORX_LEFT|RD_ANCHORY_TOP;
+
+}
+BOOL CALLBACK MainDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch(msg) 
+	{
+		case WM_INITDIALOG:
+		{
+			// do the icon
+			SendMessage(hwnd,WM_SETICON,ICON_BIG,(LPARAM)LoadIcon(hInst,MAKEINTRESOURCE(IDI_HISTORY)));
+
+			// settings list
+			HistoryListSubClass=(WNDPROC)SetWindowLong(GetDlgItem(hwnd,IDC_HISTORY),GWL_WNDPROC,(LONG)HistoryListSubClassProc);
+			setupHistoryList(GetDlgItem(hwnd,IDC_HISTORY));
+
+			// translate the dialog and menus...
+			TranslateDialogDefault(hwnd);
+		}
+		return TRUE;
+	   case WM_GETMINMAXINFO:
+	   {
+			MINMAXINFO *mmi=(MINMAXINFO*)lParam;
+			int splitterPos = GetWindowLong(GetDlgItem(hwnd,IDC_SPLITTER),GWL_USERDATA);
+
+			if(splitterPos+40 > 200)
+			   mmi->ptMinTrackSize.x=splitterPos+65;
+			else
+			   mmi->ptMinTrackSize.x=200;
+			mmi->ptMinTrackSize.y=150;
+			return 0;
+	   }
+	   case WM_SIZE:
+	   {
+			UTILRESIZEDIALOG urd;
+			ZeroMemory(&urd,sizeof(urd));
+			urd.cbSize=sizeof(urd);
+			urd.hInstance=hInst;
+			urd.hwndDlg=hwnd;
+			urd.lParam=(LPARAM)GetWindowLong(GetDlgItem(hwnd,IDC_SPLITTER),GWL_USERDATA);
+			urd.lpTemplate=MAKEINTRESOURCE(IDD_MAIN);
+			urd.pfnResizer=DialogResize;
+			CallService(MS_UTILS_RESIZEDIALOG,0,(LPARAM)&urd);
+
+	   }
+       break;
+	   case WM_DESTROY:
+			hwnd2mainWindow = 0;					
+	   return 0;
+	   case WM_COMMAND:
+		   switch(LOWORD(wParam)) 
+			{
+				case IDCANCEL:
+				case MENU_EXIT:
+					DestroyWindow(hwnd);
+				break;
+			///// menus
+				case MENU_REFRESH_CONTACTS:
+					populateContactsTree(GetDlgItem(hwnd,IDC_CONTACTS),0);
+				break;
+				case MENU_REFRESH_HISTORY:
+					populateHistroy(GetDlgItem(hwnd,IDC_HISTORY), (HANDLE)GetWindowLong(GetDlgItem(hwnd,IDC_HISTORY),GWL_USERDATA));
+				break;
+			}
+		return TRUE;
+		case WM_NOTIFY:
+			switch(LOWORD(wParam)) 
+			{
+				case IDC_CONTACTS:
+				break;
+				case IDC_HISTORY:
+				{
+					LVITEM lvi;
+					LVHITTESTINFO hti;
+					HANDLE hContact =(HANDLE)GetWindowLong(GetDlgItem(hwnd,IDC_HISTORY),GWL_USERDATA),  hDbEvent;
+					DBEVENTINFO dbei = { 0 };
+					int newBlobSize,oldBlobSize;
+					hti.pt=((NMLISTVIEW*)lParam)->ptAction;
+					ListView_SubItemHitTest(GetDlgItem(hwnd,IDC_HISTORY),&hti);
+					lvi.mask = LVIF_PARAM;
+					lvi.iItem = hti.iItem;
+					lvi.iSubItem = 0;
+					if (ListView_GetItem(GetDlgItem(hwnd,IDC_HISTORY), &lvi))
+					{
+						hDbEvent = (HANDLE)lvi.lParam;
+						// get the event
+						ZeroMemory(&dbei,sizeof(dbei));
+						dbei.cbSize=sizeof(dbei);
+						dbei.pBlob=NULL;
+						oldBlobSize=0;
+							
+						newBlobSize=CallService(MS_DB_EVENT_GETBLOBSIZE,(WPARAM)hDbEvent,0);
+						if(newBlobSize>oldBlobSize) {
+							dbei.pBlob=(PBYTE)realloc(dbei.pBlob,newBlobSize);
+							oldBlobSize=newBlobSize;
+						}
+						dbei.cbBlob=oldBlobSize;
+						if (CallService(MS_DB_EVENT_GET,(WPARAM)hDbEvent,(LPARAM)&dbei)) break;
+						switch(((NMHDR*)lParam)->code)
+						{
+							case NM_DBLCLK:
+								if (dbei.eventType == EVENTTYPE_MESSAGE || dbei.eventType == EVENTTYPE_URL || dbei.eventType == EVENTTYPE_LOGGEDSTATUSCHANGE) 
+									editHistory(hContact, hDbEvent);
+							break;
+							case NM_RCLICK:
+							{
+								HMENU hMenu = GetSubMenu(LoadMenu(hInst, MAKEINTRESOURCE(IDR_CONTEXTMENU)), 0);
+								GetCursorPos(&(hti.pt));
+								if (dbei.eventType != EVENTTYPE_MESSAGE && dbei.eventType != EVENTTYPE_URL && dbei.eventType != EVENTTYPE_LOGGEDSTATUSCHANGE) 
+									RemoveMenu(hMenu, 0, MF_BYPOSITION);
+								switch (TrackPopupMenu(hMenu, TPM_RETURNCMD, hti.pt.x, hti.pt.y, 0, hwnd, NULL)) 
+								{
+									case MENU_EDIT_ITEM:
+										editHistory(hContact, hDbEvent);
+									break;
+									case MENU_DELETE_ITEM:
+										CallService(MS_DB_EVENT_DELETE,(WPARAM)hContact, (LPARAM)hDbEvent);
+										ListView_DeleteItem(GetDlgItem(hwnd,IDC_HISTORY), lvi.iItem);
+									break;
+								}
+							}
+							break;
+
+							case NM_CLICK:
+							{	
+								if (hti.iSubItem == 3) // un/read column
+								{
+									if (dbei.flags & DBEF_READ) // read
+									{
+										CallService(MS_DB_EVENT_DELETE,(WPARAM)hContact, (LPARAM)hDbEvent);
+										dbei.flags -= DBEF_READ;
+										hDbEvent = (HANDLE)CallService(MS_DB_EVENT_ADD,(WPARAM)hContact, (LPARAM)&dbei);
+										if (hDbEvent) 
+										{
+											lvi.mask = LVIF_IMAGE;
+											lvi.iImage = 5;
+											lvi.iItem = hti.iItem;
+											lvi.iSubItem = 3;
+											ListView_SetItem(GetDlgItem(hwnd,IDC_HISTORY),&lvi);
+											lvi.mask = LVIF_PARAM;
+											lvi.iItem = hti.iItem;
+											lvi.iSubItem = 0;
+											lvi.lParam = (LPARAM)hDbEvent;
+											ListView_SetItem(GetDlgItem(hwnd,IDC_HISTORY),&lvi);
+										}
+
+									}
+									else if (dbei.flags & DBEF_SENT)// was outgoing event
+										msg(Translate("Cannot mark a outgoing event as Unread!"),modFullname);
+									else // unread
+									{
+										CallService(MS_DB_EVENT_MARKREAD,(WPARAM)hContact, (LPARAM)hDbEvent);
+										CallService(MS_CLIST_REMOVEEVENT,(WPARAM)hContact, (LPARAM)hDbEvent);
+										lvi.mask = LVIF_IMAGE;
+										lvi.iImage = 4;
+										lvi.iItem = hti.iItem;
+										lvi.iSubItem = 3;
+										ListView_SetItem(GetDlgItem(hwnd,IDC_HISTORY),&lvi);
+									}
+									
+								}
+							}
+							break;
+						}
+						if (dbei.pBlob) free(dbei.pBlob);
+					}
+				}
+				break;
+			}
+		return TRUE;
+	   
+	}	// switch(msg)
+	return 0;
+}

@@ -1,0 +1,94 @@
+--------------------------------------------------------------------
+		History Editor Version 2.x, a simple plugin for Miranda IM.
+		
+		This plugin allows you to edit the history of any contact on your list.
+		You can change the message text, the timestamp and the read status of 
+		any event.
+		
+		Note that Miranda does not allow to replace the event contents in
+		its database, so what History Editor does is simple: Any event you
+		change will be deleted and then added with the new content.
+		
+		It is therefore important to run DBTOOL after doing bigger changes,
+		because deleted events will still occupy database space (like in many
+		other simple databases, they are only marked for later deletion and 
+		the space is reclaimed when you run the database compression utility.)
+
+		Releases are compiled with Visual C++ 6.0. Source code is included
+		and project files are available for Visual C++ 6.0 and Visual Studio
+		2005.
+		
+		This plugin was originally written by Jonathan Gordon in 2004. With
+		the many changes in the Miranda core, it became incompatible, mainly
+		because of the new UTF-8 based message storage format.
+
+		NOTE: This plugin needs Miranda IM 0.7 or later and will not work in
+			  older versions as it does not support the old plugin interface
+			  any longer.
+			  		
+---------------------------------------------------------------------
+
+Legend for the changelist:
+
+-  -> removed item/feature
++  -> added feature
+!  -> bugfix
+*  -> changed feature
+
+
+2.0.0.0	- 2008/01/11
+
+*	Initial release, based on Jonathan Gordons old History Editor.
+	
+	The following things were changed:
+	----------------------------------
+	
++	UNICODE aware. There are two builds, one ANSI, one UNICODE. Use
+	the proper build (unless, you run Miranda on Win 9x, you most
+	likely want to use the Unicode build).
+	
+-	removed main menu item
+
+-	removed the contact list in the history editor window. You can
+	now use it from the contacts context menu, choosing "View History
+	with History Editor" entry. Multiple edit windows can be open,
+	however only one per contact (obviously). The change was made to
+	standardize its UI with similar plugins (i.e. Database Editor++).
+
+*	display contacts name in the editor title bar.
+
+*	implemented a paging approach for large histories. If the history
+	of a contact has more than 1000 entries, only 1000 will be loaded
+	and you will be able to use the paging controls at the bottom of
+	the window to load the next/previous 1000 entries. This makes 
+	things fast for large histories and reduces memory footprint.
+	
+*	fixed sorting of the history list. It's now properly sorted by
+	timestamp.		
+
+!	fixed message text corruption for all events stored in UTF-8
+	format. This message format is now supported.
+	
+*	Save size and position of the history editor window when you close
+	it. It also saves the column widths you have setup in the list
+	of history items.
+
+*	Size and position of the edit window is also remembered between 
+	sessions.
+	
+*	Renamed DLL to historyeditor2.dll, because Miranda core blocks
+	the old plugin name.
+	
+*	implemented new plugin API, including interface ID. Plugin will
+	only load and work in Miranda 0.7 or later.
+
+*	Unicode version stores all edited messages in UTF-8 format.
+
+*	ability to add timestamps.
+
+*	"auto-fix timestamps" will try to fix all timestamps which refer
+	to a date and/or time in the future. This will solve problems with
+	message sorting in SRMM and other message dialogs.
+	When using this feature, MAKE SURE YOUR SYSTEM TIME IS CORRECT.
+	
+*	removed all icons from the plugin and use core icons via icolib.
