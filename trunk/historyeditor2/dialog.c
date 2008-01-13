@@ -26,7 +26,8 @@ Originally written in 2004 by Jonathan Gordon.
 Rewritten by Nightwish in 2008 to make it compatible with Miranda IM
 0.7 and later.
 
-$Id:$
+$Id$
+
 */
 
 
