@@ -421,39 +421,7 @@
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
 			<File
-				RelativePath="res\addcontact.ico"
-				>
-			</File>
-			<File
-				RelativePath="res\file.ico"
-				>
-			</File>
-			<File
 				RelativePath="res\freechat.ico"
-				>
-			</File>
-			<File
-				RelativePath="res\history.ico"
-				>
-			</File>
-			<File
-				RelativePath="res\Icon_4.ico"
-				>
-			</File>
-			<File
-				RelativePath="res\message.ico"
-				>
-			</File>
-			<File
-				RelativePath="res\notick.ico"
-				>
-			</File>
-			<File
-				RelativePath="res\offline2.ico"
-				>
-			</File>
-			<File
-				RelativePath="res\online2.ico"
 				>
 			</File>
 			<File
@@ -483,14 +451,6 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="res\tick.ico"
-				>
-			</File>
-			<File
-				RelativePath="res\url.ico"
-				>
 			</File>
 		</Filter>
 		<Filter

@@ -142,7 +142,7 @@ int __declspec(dllexport) Load(PLUGINLINK *link)
 	mi.cbSize = sizeof(mi);
 	mi.position = 1900000001;
 	mi.flags = 0;
-	mi.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_HISTORY));
+	mi.hIcon = LoadIconEx("core_main_10");
 	mi.pszContactOwner = NULL;
 
 	mi.pszName = Translate("View History with History Editor");
@@ -167,6 +167,5 @@ int __declspec(dllexport) Unload(void)
 HICON LoadIconEx(char *pszIcoLibName)
 {
 	char szTemp[256];
-	mir_snprintf(szTemp, sizeof(szTemp), "chat_%s", pszIcoLibName);
-	return (HICON) CallService(MS_SKIN2_GETICON, 0, (LPARAM)szTemp);
+	return (HICON) CallService(MS_SKIN2_GETICON, 0, (LPARAM)pszIcoLibName);
 }

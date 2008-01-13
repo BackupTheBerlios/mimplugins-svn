@@ -27,7 +27,14 @@
 			  any longer.
 			  		
 ---------------------------------------------------------------------
+SOURCE CODE availability:
+			
+Source code for this plugin can be obtained via SVN from the following 
+repository URL:
 
+http://svn.berlios.de/svnroot/repos/mimplugins/trunk/historyeditor2/
+----------------------------------------------------------------------
+			
 Legend for the changelist:
 
 -  -> removed item/feature

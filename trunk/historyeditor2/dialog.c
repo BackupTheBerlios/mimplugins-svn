@@ -88,7 +88,7 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			dat->hContact = (HANDLE)lParam;
 			dat->hFirstEvent = dat->hLastEvent = 0;
 
-			SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)LoadIconEx("foo"));
+			SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)LoadIconEx("core_main_10"));
 
 			HistoryListSubClass = (WNDPROC)SetWindowLong(GetDlgItem(hwnd, IDC_HISTORY), GWL_WNDPROC, (LONG)HistoryListSubClassProc);
 			setupHistoryList(GetDlgItem(hwnd, IDC_HISTORY));

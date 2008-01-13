@@ -135,32 +135,31 @@ void populateHistory(HWND hwnd2List, HANDLE hContact)
 		msg(TranslateT("Couldnt create the image list..."), _T(modFullname));
 		return;
 	}
-	hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_HISTORY)); // 0
-	if (hIcon == NULL) return;
+	hIcon = LoadIconEx("core_main_10");
 	ImageList_AddIcon(himl, hIcon);
-	hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_MSG)); // 1
-	if (hIcon == NULL) return;
+
+	hIcon = LoadIconEx("core_main_1");
 	ImageList_AddIcon(himl, hIcon);
-	hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_FILE)); // 2
-	if (hIcon == NULL) return;
+
+	hIcon = LoadIconEx("core_main_3");
 	ImageList_AddIcon(himl, hIcon);
-	hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_URL)); // 3
-	if (hIcon == NULL) return;
+
+	hIcon = LoadIconEx("core-main_2");
 	ImageList_AddIcon(himl, hIcon);
-	hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_TICK)); // 4
-	if (hIcon == NULL) return;
+
+	hIcon = LoadIconEx("core_main_19");
 	ImageList_AddIcon(himl, hIcon);
-	hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_NOTICK)); // 5
-	if (hIcon == NULL) return;
+
+	hIcon = LoadIconEx("core_main_20");
 	ImageList_AddIcon(himl, hIcon);
-	hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_ONLINE)); // 6
-	if (hIcon == NULL) return;
+
+	hIcon = LoadIconEx("core_main_4");
 	ImageList_AddIcon(himl, hIcon);
+
 	hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_AUTH)); // 7
-	if (hIcon == NULL) return;
 	ImageList_AddIcon(himl, hIcon);
-	hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_ADD)); // 8
-	if (hIcon == NULL) return;
+
+	hIcon = LoadIconEx("core_main_8");
 	ImageList_AddIcon(himl, hIcon);
 
 	ListView_SetImageList(hwnd2List, himl, LVSIL_SMALL);
